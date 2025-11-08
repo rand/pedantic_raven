@@ -17,6 +17,7 @@ import (
 	"github.com/rand/pedantic-raven/internal/editor/buffer"
 	"github.com/rand/pedantic-raven/internal/editor/search"
 	"github.com/rand/pedantic-raven/internal/editor/semantic"
+	"github.com/rand/pedantic-raven/internal/editor/syntax"
 	"github.com/rand/pedantic-raven/internal/layout"
 	"github.com/rand/pedantic-raven/internal/terminal"
 )
@@ -48,15 +49,18 @@ type EditorComponent struct {
 	searchEngine search.Engine
 	searchResult *search.SearchResult
 	currentMatch int // Current match index (-1 if no search active)
+	highlighter  *syntax.Highlighter
 }
 
 // NewEditorComponent creates a new editor component.
 func NewEditorComponent() *EditorComponent {
+	scheme := syntax.DefaultStyleScheme()
 	return &EditorComponent{
 		buffer:       buffer.NewBuffer("editor-0"),
 		searchEngine: search.NewEngine(),
 		searchResult: nil,
 		currentMatch: -1,
+		highlighter:  syntax.NewHighlighter(syntax.LangNone, scheme),
 	}
 }
 
@@ -113,6 +117,14 @@ func (e *EditorComponent) View(area layout.Rect, focused bool) string {
 	content := e.buffer.Content()
 	if content == "" {
 		content = "(empty)"
+	} else if e.highlighter != nil {
+		// Apply syntax highlighting line by line
+		lines := strings.Split(content, "\n")
+		highlightedLines := make([]string, len(lines))
+		for i, line := range lines {
+			highlightedLines[i] = e.highlighter.HighlightLine(line, i)
+		}
+		content = strings.Join(highlightedLines, "\n")
 	}
 
 	return style.Render(content)
@@ -148,6 +160,15 @@ func (e *EditorComponent) OpenFile(path string) error {
 	// Set buffer path and content
 	e.buffer.SetPath(path)
 	e.SetContent(content)
+
+	// Detect language and create highlighter
+	lang := syntax.DetectLanguage(path)
+	if lang == syntax.LangNone {
+		// Try content-based detection as fallback
+		lang = syntax.DetectLanguageFromContent(content)
+	}
+	scheme := syntax.DefaultStyleScheme()
+	e.highlighter = syntax.NewHighlighter(lang, scheme)
 
 	// Mark as clean since we just loaded from disk
 	e.buffer.MarkClean()

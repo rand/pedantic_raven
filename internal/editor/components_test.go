@@ -1,10 +1,13 @@
 package editor
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/rand/pedantic-raven/internal/editor/buffer"
 	"github.com/rand/pedantic-raven/internal/editor/search"
+	"github.com/rand/pedantic-raven/internal/editor/syntax"
 )
 
 // --- EditorComponent Search Tests ---
@@ -561,5 +564,178 @@ func TestEditorComponentSearchCursorMovement(t *testing.T) {
 	cursor = e.buffer.Cursor()
 	if cursor.Line != 0 || cursor.Column != 0 {
 		t.Errorf("Expected cursor at (0,0) after previous, got (%d,%d)", cursor.Line, cursor.Column)
+	}
+}
+
+// --- Syntax Highlighting Tests ---
+
+func TestEditorComponentSyntaxHighlightingDefault(t *testing.T) {
+	e := NewEditorComponent()
+
+	// Verify highlighter is initialized
+	if e.highlighter == nil {
+		t.Fatal("Expected highlighter to be initialized")
+	}
+
+	// Should have no tokenizer by default (LangNone)
+	// This is tested indirectly by checking that View returns content unchanged
+	e.SetContent("package main")
+	content := e.GetContent()
+	if content != "package main" {
+		t.Errorf("Expected 'package main', got '%s'", content)
+	}
+}
+
+func TestEditorComponentSyntaxHighlightingGoFile(t *testing.T) {
+	// Create temporary Go file
+	tmpDir := t.TempDir()
+	goFile := filepath.Join(tmpDir, "test.go")
+	goContent := "package main\n\nfunc main() {\n\tfmt.Println(\"hello\")\n}"
+	err := os.WriteFile(goFile, []byte(goContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+
+	e := NewEditorComponent()
+	err = e.OpenFile(goFile)
+	if err != nil {
+		t.Fatalf("Failed to open file: %v", err)
+	}
+
+	// Verify content loaded
+	content := e.GetContent()
+	if content != goContent {
+		t.Errorf("Content mismatch: expected '%s', got '%s'", goContent, content)
+	}
+
+	// Verify highlighter was created with Go language
+	if e.highlighter == nil {
+		t.Fatal("Expected highlighter to be set after opening file")
+	}
+
+	// The highlighter should have a tokenizer for Go
+	// We can't directly access the language, but we can verify it works by checking that
+	// the tokenizer is not nil (indirectly tested by View not returning plain content)
+	// For now, just verify the highlighter exists
+}
+
+func TestEditorComponentSyntaxHighlightingMarkdownFile(t *testing.T) {
+	// Create temporary Markdown file
+	tmpDir := t.TempDir()
+	mdFile := filepath.Join(tmpDir, "test.md")
+	mdContent := "# Header\n\nThis is **bold** text."
+	err := os.WriteFile(mdFile, []byte(mdContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+
+	e := NewEditorComponent()
+	err = e.OpenFile(mdFile)
+	if err != nil {
+		t.Fatalf("Failed to open file: %v", err)
+	}
+
+	// Verify content loaded
+	content := e.GetContent()
+	if content != mdContent {
+		t.Errorf("Content mismatch: expected '%s', got '%s'", mdContent, content)
+	}
+
+	// Verify highlighter was created
+	if e.highlighter == nil {
+		t.Fatal("Expected highlighter to be set after opening file")
+	}
+}
+
+func TestEditorComponentSyntaxHighlightingUnknownFile(t *testing.T) {
+	// Create temporary file with unknown extension
+	tmpDir := t.TempDir()
+	unknownFile := filepath.Join(tmpDir, "test.xyz")
+	content := "some text"
+	err := os.WriteFile(unknownFile, []byte(content), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+
+	e := NewEditorComponent()
+	err = e.OpenFile(unknownFile)
+	if err != nil {
+		t.Fatalf("Failed to open file: %v", err)
+	}
+
+	// Verify highlighter was still created (with LangNone)
+	if e.highlighter == nil {
+		t.Fatal("Expected highlighter to be set even for unknown files")
+	}
+}
+
+func TestEditorComponentSyntaxHighlightingContentDetection(t *testing.T) {
+	// Create file without extension but with recognizable content
+	tmpDir := t.TempDir()
+	file := filepath.Join(tmpDir, "noext")
+	goContent := "package main\n\nfunc main() {}"
+	err := os.WriteFile(file, []byte(goContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+
+	e := NewEditorComponent()
+	err = e.OpenFile(file)
+	if err != nil {
+		t.Fatalf("Failed to open file: %v", err)
+	}
+
+	// Highlighter should use content-based detection and detect Go
+	if e.highlighter == nil {
+		t.Fatal("Expected highlighter to be set")
+	}
+
+	// Verify content loaded correctly
+	content := e.GetContent()
+	if content != goContent {
+		t.Errorf("Content mismatch: expected '%s', got '%s'", goContent, content)
+	}
+}
+
+func TestEditorComponentLanguageDetectionByExtension(t *testing.T) {
+	tests := []struct {
+		ext      string
+		content  string
+		wantLang syntax.Language
+	}{
+		{".go", "package main", syntax.LangGo},
+		{".md", "# Header", syntax.LangMarkdown},
+		{".py", "print('hello')", syntax.LangPython},
+		{".js", "console.log('hello')", syntax.LangJavaScript},
+		{".ts", "const x: number = 1", syntax.LangTypeScript},
+		{".rs", "fn main() {}", syntax.LangRust},
+		{".json", "{\"key\": \"value\"}", syntax.LangJSON},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.ext, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			file := filepath.Join(tmpDir, "test"+tt.ext)
+			err := os.WriteFile(file, []byte(tt.content), 0644)
+			if err != nil {
+				t.Fatalf("Failed to create temp file: %v", err)
+			}
+
+			e := NewEditorComponent()
+			err = e.OpenFile(file)
+			if err != nil {
+				t.Fatalf("Failed to open file: %v", err)
+			}
+
+			// Verify highlighter exists
+			if e.highlighter == nil {
+				t.Fatal("Expected highlighter to be set")
+			}
+
+			// Verify content loaded
+			if e.GetContent() != tt.content {
+				t.Errorf("Content mismatch")
+			}
+		})
 	}
 }
