@@ -5,8 +5,8 @@
 Pedantic Raven combines the specialized context engineering capabilities of ICS (Integrated Context Studio) with the rich interaction patterns of Crush TUI to create a powerful, production-ready terminal interface for creating, editing, and refining context with semantic analysis and memory integration.
 
 [![Go Version](https://img.shields.io/badge/Go-1.25%2B-blue.svg)](https://golang.org/dl/)
-[![Tests](https://img.shields.io/badge/tests-291%20passing-brightgreen.svg)](#testing)
-[![Phase](https://img.shields.io/badge/phase-2%20complete-success.svg)](#features)
+[![Tests](https://img.shields.io/badge/tests-424%20passing-brightgreen.svg)](#testing)
+[![Phase](https://img.shields.io/badge/phase-3%20complete-success.svg)](#features)
 
 ---
 
@@ -44,7 +44,7 @@ Pedantic Raven combines the specialized context engineering capabilities of ICS 
   - Multi-component layout (editor, context panel, terminal)
   - Focus management across components
 
-### Phase 3: Advanced Editor Features (In Progress)
+### Phase 3: Advanced Editor Features ✅ (Complete)
 
 **Phase 3.1** ✅ Complete:
 - Buffer Manager integration with undo/redo support
@@ -53,15 +53,27 @@ Pedantic Raven combines the specialized context engineering capabilities of ICS 
 
 **Phase 3.2** ✅ Complete:
 - File I/O operations (OpenFile, SaveFile, SaveFileAs)
-- File picker overlay with directory navigation
-- Search filtering in file picker
-- Edit Mode keybindings (Ctrl+O, Ctrl+S, Ctrl+Shift+S)
 - Atomic file saves (temp + rename)
-- All 304 tests passing
+- Error handling and path management
+- Dirty flag tracking
 
-**Coming Soon**:
-- Phase 3.3: Search and replace
-- Phase 3.4: Basic syntax highlighting
+**Phase 3.3** ✅ Complete:
+- Search engine with literal and regex support
+- Case sensitive/insensitive search
+- Whole word matching
+- Replace current match and replace all
+- Multi-line search support
+- Undo integration for replacements
+
+**Phase 3.4** ✅ Complete:
+- Token-based syntax highlighting system
+- Go language full tokenization
+- Markdown formatting support
+- Automatic language detection (by extension and content)
+- Extensible tokenizer architecture
+- 12 token types with default color scheme
+
+**Next Phase**:
 - **Phase 4**: Explore Mode - Memory workspace with graph visualization
 - **Phase 5**: Analyze Mode - Statistical analysis and insights
 - **Phase 6**: Multi-agent orchestration
@@ -238,19 +250,22 @@ go tool cover -html=coverage.out
 |---------|-------|----------|--------|
 | app/events  | 18 | ~70% | ✅ |
 | context | 25 | ~80% | ✅ |
-| editor | 29 | ~75% | ✅ |
+| editor | 78 | ~85% | ✅ |
 | editor/buffer | 52 | ~85% | ✅ |
+| editor/search | 35 | ~90% | ✅ |
 | editor/semantic | 63 | ~90% | ✅ |
+| editor/syntax | 31 | ~85% | ✅ |
 | layout  | 34 | ~65% | ✅ |
 | modes   | 13 | ~92% | ✅ |
 | overlay | 25 | ~70% | ✅ |
 | palette | 19 | ~88% | ✅ |
 | terminal | 38 | ~80% | ✅ |
-| **Total** | **291** | **~80%** | **✅** |
+| **Total** | **424** | **~82%** | **✅** |
 
 All tests passing ✅
 
-📊 **See [docs/PHASE2_SUMMARY.md](docs/PHASE2_SUMMARY.md) for detailed breakdown**
+📊 **See [docs/PHASE3_SUMMARY.md](docs/PHASE3_SUMMARY.md) for Phase 3 details**
+📊 **See [docs/PHASE2_SUMMARY.md](docs/PHASE2_SUMMARY.md) for Phase 2 details**
 
 ---
 
@@ -386,11 +401,11 @@ Tests: 8 new tests for fuzzy matching
 - [x] Edit Mode with auto-analysis
 - [x] 291 tests passing
 
-### Phase 3: Advanced Editor (In Progress - 2-3 weeks)
+### Phase 3: Advanced Editor ✅ (Complete - 8 days)
 - [x] **Phase 3.1**: Buffer Manager integration, undo/redo (Days 1-2) ✅
-- [x] **Phase 3.2**: File operations - open, save, save-as, file picker (Days 3-4) ✅
-- [ ] **Phase 3.3**: Search and replace (Days 5-6)
-- [ ] **Phase 3.4**: Basic syntax highlighting (Days 7-8)
+- [x] **Phase 3.2**: File operations - open, save, save-as (Days 3-4) ✅
+- [x] **Phase 3.3**: Search and replace - literal and regex (Days 5-6) ✅
+- [x] **Phase 3.4**: Syntax highlighting - Go and Markdown (Days 7-8) ✅
 
 ### Phase 4: Explore Mode (3-4 weeks)
 - [ ] Memory workspace
@@ -505,8 +520,8 @@ This project is part of the mnemosyne ecosystem. See repository for license deta
 
 ---
 
-**Status**: Phase 3.2 Complete ✅ | Current: Phase 3.3 (Search and Replace)
+**Status**: Phase 3 Complete ✅ | Next: Phase 4 (Explore Mode)
 
-**Stats**: 304 tests passing | ~5,800 lines of code | 4.8MB binary
+**Stats**: 424 tests passing | ~8,600 lines of code | 5.2MB binary
 
 Built with ❤️ using [Bubble Tea](https://github.com/charmbracelet/bubbletea)
