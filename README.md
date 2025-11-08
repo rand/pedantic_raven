@@ -50,10 +50,16 @@ Pedantic Raven combines the specialized context engineering capabilities of ICS 
 - Buffer Manager integration with undo/redo support
 - Undo/redo keybindings (Ctrl+Z, Ctrl+Y)
 - Cursor position management
-- All 291 tests passing
+
+**Phase 3.2** ✅ Complete:
+- File I/O operations (OpenFile, SaveFile, SaveFileAs)
+- File picker overlay with directory navigation
+- Search filtering in file picker
+- Edit Mode keybindings (Ctrl+O, Ctrl+S, Ctrl+Shift+S)
+- Atomic file saves (temp + rename)
+- All 304 tests passing
 
 **Coming Soon**:
-- Phase 3.2: File operations (open, save, save-as)
 - Phase 3.3: Search and replace
 - Phase 3.4: Basic syntax highlighting
 - **Phase 4**: Explore Mode - Memory workspace with graph visualization
@@ -382,7 +388,7 @@ Tests: 8 new tests for fuzzy matching
 
 ### Phase 3: Advanced Editor (In Progress - 2-3 weeks)
 - [x] **Phase 3.1**: Buffer Manager integration, undo/redo (Days 1-2) ✅
-- [ ] **Phase 3.2**: File operations - open, save, save-as (Days 3-4)
+- [x] **Phase 3.2**: File operations - open, save, save-as, file picker (Days 3-4) ✅
 - [ ] **Phase 3.3**: Search and replace (Days 5-6)
 - [ ] **Phase 3.4**: Basic syntax highlighting (Days 7-8)
 
@@ -499,8 +505,8 @@ This project is part of the mnemosyne ecosystem. See repository for license deta
 
 ---
 
-**Status**: Phase 3.1 Complete ✅ | Current: Phase 3.2 (File Operations)
+**Status**: Phase 3.2 Complete ✅ | Current: Phase 3.3 (Search and Replace)
 
-**Stats**: 291 tests passing | ~4,850 lines of code | 4.5MB binary
+**Stats**: 304 tests passing | ~5,800 lines of code | 4.8MB binary
 
 Built with ❤️ using [Bubble Tea](https://github.com/charmbracelet/bubbletea)
