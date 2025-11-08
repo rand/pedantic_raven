@@ -2,6 +2,7 @@ package semantic
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 )
@@ -10,6 +11,7 @@ import (
 type StreamingAnalyzer struct {
 	mu         sync.RWMutex
 	tokenizer  Tokenizer
+	classifier *EntityClassifier
 	analysis   *Analysis
 	running    bool
 	cancel     context.CancelFunc
@@ -19,7 +21,8 @@ type StreamingAnalyzer struct {
 // NewAnalyzer creates a new streaming analyzer.
 func NewAnalyzer() Analyzer {
 	return &StreamingAnalyzer{
-		tokenizer: NewTokenizer(),
+		tokenizer:  NewTokenizer(),
+		classifier: NewEntityClassifier(),
 	}
 }
 
@@ -89,12 +92,17 @@ func (a *StreamingAnalyzer) IsRunning() bool {
 func (a *StreamingAnalyzer) performAnalysis(ctx context.Context, content string) {
 	startTime := time.Now()
 
+	// Capture the update channel for this analysis run
+	a.mu.RLock()
+	updateChan := a.updateChan
+	a.mu.RUnlock()
+
 	defer func() {
 		a.mu.Lock()
 		a.running = false
 		a.analysis.Duration = time.Since(startTime)
 		a.mu.Unlock()
-		close(a.updateChan)
+		close(updateChan)
 	}()
 
 	// Step 1: Tokenization (10% of progress)
@@ -213,30 +221,52 @@ func (a *StreamingAnalyzer) performAnalysis(ctx context.Context, content string)
 	a.mu.Unlock()
 
 	// Complete - use blocking send for final update
-	a.updateChan <- AnalysisUpdate{
+	updateChan <- AnalysisUpdate{
 		Type:     UpdateComplete,
 		Progress: 1.0,
 	}
 }
 
-// extractEntities extracts entities from tokens.
+// extractEntities extracts entities from tokens with enhanced classification.
 func (a *StreamingAnalyzer) extractEntities(tokens []Token) []Entity {
 	entityMap := make(map[string]*Entity)
 
-	for _, token := range tokens {
+	// Build context for each potential entity
+	for i, token := range tokens {
 		if token.Type == TokenCapitalizedWord || token.Type == TokenProperNoun {
 			key := token.Value
 
 			if existing, ok := entityMap[key]; ok {
 				existing.Count++
 			} else {
-				entityType := classifyEntity(token.Text)
+				// Build classification context
+				context := a.buildContext(tokens, i)
+
+				// Use enhanced classifier
+				entityType := a.classifier.ClassifyEntity(token.Text, context)
+
 				entityMap[key] = &Entity{
 					Text:  token.Text,
 					Type:  entityType,
 					Span:  token.Span,
 					Count: 1,
 				}
+			}
+		}
+	}
+
+	// Also extract multi-word entities
+	multiWordEntities := ExtractMultiWordEntities(tokens, 3)
+	for _, mwe := range multiWordEntities {
+		key := strings.ToLower(mwe.Text)
+		if existing, ok := entityMap[key]; ok {
+			existing.Count += mwe.Count
+		} else {
+			entityMap[key] = &Entity{
+				Text:  mwe.Text,
+				Type:  mwe.Type,
+				Span:  mwe.Span,
+				Count: mwe.Count,
 			}
 		}
 	}
@@ -248,6 +278,30 @@ func (a *StreamingAnalyzer) extractEntities(tokens []Token) []Entity {
 	}
 
 	return entities
+}
+
+// buildContext creates a classification context for a token.
+func (a *StreamingAnalyzer) buildContext(tokens []Token, index int) *ClassificationContext {
+	context := &ClassificationContext{
+		PrecedingWords: []string{},
+		FollowingWords: []string{},
+	}
+
+	// Collect preceding words (up to 3)
+	for i := index - 1; i >= 0 && len(context.PrecedingWords) < 3; i-- {
+		if isWordToken(tokens[i]) {
+			context.PrecedingWords = append([]string{tokens[i].Text}, context.PrecedingWords...)
+		}
+	}
+
+	// Collect following words (up to 3)
+	for i := index + 1; i < len(tokens) && len(context.FollowingWords) < 3; i++ {
+		if isWordToken(tokens[i]) {
+			context.FollowingWords = append(context.FollowingWords, tokens[i].Text)
+		}
+	}
+
+	return context
 }
 
 // extractRelationships extracts relationships from tokens.
@@ -300,31 +354,6 @@ func (a *StreamingAnalyzer) sendUpdate(update AnalysisUpdate) {
 	default:
 		// Channel full, drop update
 	}
-}
-
-// classifyEntity determines the entity type.
-func classifyEntity(text string) EntityType {
-	// Simple heuristics
-	// This can be enhanced with NLP or ML later
-
-	// Common person titles
-	personTitles := []string{"Dr", "Mr", "Mrs", "Ms", "Prof", "Sir", "Dame"}
-	for _, title := range personTitles {
-		if text == title {
-			return EntityPerson
-		}
-	}
-
-	// Common tech terms
-	techTerms := []string{"API", "HTTP", "JSON", "XML", "SQL", "REST", "GraphQL", "gRPC"}
-	for _, term := range techTerms {
-		if text == term {
-			return EntityTechnology
-		}
-	}
-
-	// Default to concept
-	return EntityConcept
 }
 
 // isEntityToken checks if a token represents an entity.
