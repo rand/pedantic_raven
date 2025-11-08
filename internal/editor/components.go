@@ -15,6 +15,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/rand/pedantic-raven/internal/context"
 	"github.com/rand/pedantic-raven/internal/editor/buffer"
+	"github.com/rand/pedantic-raven/internal/editor/search"
 	"github.com/rand/pedantic-raven/internal/editor/semantic"
 	"github.com/rand/pedantic-raven/internal/layout"
 	"github.com/rand/pedantic-raven/internal/terminal"
@@ -43,13 +44,19 @@ var (
 
 // EditorComponent provides text editing functionality with full undo/redo support.
 type EditorComponent struct {
-	buffer buffer.Buffer
+	buffer       buffer.Buffer
+	searchEngine search.Engine
+	searchResult *search.SearchResult
+	currentMatch int // Current match index (-1 if no search active)
 }
 
 // NewEditorComponent creates a new editor component.
 func NewEditorComponent() *EditorComponent {
 	return &EditorComponent{
-		buffer: buffer.NewBuffer("editor-0"),
+		buffer:       buffer.NewBuffer("editor-0"),
+		searchEngine: search.NewEngine(),
+		searchResult: nil,
+		currentMatch: -1,
 	}
 }
 
@@ -194,6 +201,100 @@ func (e *EditorComponent) GetFilePath() string {
 // IsDirty returns true if the buffer has unsaved changes.
 func (e *EditorComponent) IsDirty() bool {
 	return e.buffer.IsDirty()
+}
+
+// --- Search Operations ---
+
+// Search performs a search with the given query and options.
+func (e *EditorComponent) Search(query string, opts search.SearchOptions) error {
+	result, err := e.searchEngine.Search(e.buffer, query, opts)
+	if err != nil {
+		return err
+	}
+
+	e.searchResult = result
+	if len(result.Matches) > 0 {
+		e.currentMatch = 0
+		// Move cursor to first match
+		e.buffer.SetCursor(result.Matches[0].Start)
+	} else {
+		e.currentMatch = -1
+	}
+
+	return nil
+}
+
+// NextMatch navigates to the next search match.
+func (e *EditorComponent) NextMatch() bool {
+	if e.searchResult == nil || len(e.searchResult.Matches) == 0 {
+		return false
+	}
+
+	e.currentMatch = (e.currentMatch + 1) % len(e.searchResult.Matches)
+	e.buffer.SetCursor(e.searchResult.Matches[e.currentMatch].Start)
+	return true
+}
+
+// PreviousMatch navigates to the previous search match.
+func (e *EditorComponent) PreviousMatch() bool {
+	if e.searchResult == nil || len(e.searchResult.Matches) == 0 {
+		return false
+	}
+
+	e.currentMatch--
+	if e.currentMatch < 0 {
+		e.currentMatch = len(e.searchResult.Matches) - 1
+	}
+	e.buffer.SetCursor(e.searchResult.Matches[e.currentMatch].Start)
+	return true
+}
+
+// ReplaceCurrentMatch replaces the current match with the replacement text.
+func (e *EditorComponent) ReplaceCurrentMatch(replacement string) error {
+	if e.searchResult == nil || e.currentMatch < 0 || e.currentMatch >= len(e.searchResult.Matches) {
+		return fmt.Errorf("no current match to replace")
+	}
+
+	match := e.searchResult.Matches[e.currentMatch]
+	err := e.searchEngine.Replace(e.buffer, match, replacement)
+	if err != nil {
+		return err
+	}
+
+	// Re-run search to update match positions
+	return e.Search(e.searchResult.Query, e.searchResult.Options)
+}
+
+// ReplaceAll replaces all matches with the replacement text.
+func (e *EditorComponent) ReplaceAll(replacement string) (int, error) {
+	if e.searchResult == nil {
+		return 0, fmt.Errorf("no active search")
+	}
+
+	count, err := e.searchEngine.ReplaceAll(e.buffer, e.searchResult.Query, replacement, e.searchResult.Options)
+	if err != nil {
+		return count, err
+	}
+
+	// Clear search after replace all
+	e.ClearSearch()
+	return count, nil
+}
+
+// ClearSearch clears the current search state.
+func (e *EditorComponent) ClearSearch() {
+	e.searchResult = nil
+	e.currentMatch = -1
+}
+
+// GetSearchResult returns the current search result.
+func (e *EditorComponent) GetSearchResult() *search.SearchResult {
+	return e.searchResult
+}
+
+// GetCurrentMatchIndex returns the current match index (-1 if no search active).
+func (e *EditorComponent) GetCurrentMatchIndex() int {
+	return e.currentMatch
 }
 
 func (e *EditorComponent) insertRune(r rune) {
