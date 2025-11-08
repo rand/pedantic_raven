@@ -143,7 +143,7 @@ func (e *EditorComponent) OpenFile(path string) error {
 	e.SetContent(content)
 
 	// Mark as clean since we just loaded from disk
-	e.buffer.SetDirty(false)
+	e.buffer.MarkClean()
 
 	return nil
 }
@@ -181,7 +181,7 @@ func (e *EditorComponent) SaveFileAs(path string) error {
 
 	// Update buffer path and mark as clean
 	e.buffer.SetPath(path)
-	e.buffer.SetDirty(false)
+	e.buffer.MarkClean()
 
 	return nil
 }
