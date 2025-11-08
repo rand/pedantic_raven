@@ -80,12 +80,11 @@ func (c *Client) GetMemory(ctx context.Context, memoryID string) (*pb.MemoryNote
 
 // UpdateMemoryOptions holds options for updating a memory.
 type UpdateMemoryOptions struct {
-	MemoryID  string
-	Content   *string
+	MemoryID   string
+	Content    *string
 	Importance *uint32
-	Tags      []string
-	Context   *string
-	AddTags   []string
+	Tags       []string
+	AddTags    []string
 	RemoveTags []string
 }
 
@@ -113,10 +112,6 @@ func (c *Client) UpdateMemory(ctx context.Context, opts UpdateMemoryOptions) (*p
 
 	if len(opts.Tags) > 0 {
 		req.Tags = opts.Tags
-	}
-
-	if opts.Context != nil {
-		req.Context = opts.Context
 	}
 
 	if len(opts.AddTags) > 0 {
@@ -185,9 +180,9 @@ func (c *Client) ListMemories(ctx context.Context, opts ListMemoriesOptions) ([]
 	}
 
 	if opts.MaxResults > 0 {
-		req.MaxResults = opts.MaxResults
+		req.Limit = opts.MaxResults
 	} else {
-		req.MaxResults = 100 // Default limit
+		req.Limit = 100 // Default limit
 	}
 
 	resp, err := c.memoryClient.ListMemories(ctx, req)
