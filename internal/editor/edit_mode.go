@@ -6,7 +6,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rand/pedantic-raven/internal/context"
 	"github.com/rand/pedantic-raven/internal/editor/semantic"
-	"github.com/rand/pedantic-raven/internal/layout"
 	"github.com/rand/pedantic-raven/internal/modes"
 	"github.com/rand/pedantic-raven/internal/terminal"
 )
@@ -43,7 +42,7 @@ func NewEditMode() *EditMode {
 	termComp := NewTerminalComponent(term)
 
 	// Create analyzer
-	analyzer := semantic.NewDefaultAnalyzer()
+	analyzer := semantic.NewAnalyzer()
 
 	mode := &EditMode{
 		BaseMode:         base,
@@ -152,16 +151,13 @@ func (m *EditMode) triggerAnalysis() tea.Cmd {
 		// Run analysis in background
 		updateChan := m.analyzer.Analyze(content)
 
-		var analysis *semantic.Analysis
-
-		// Collect all updates
-		for update := range updateChan {
-			if update.Type == semantic.UpdateComplete {
-				if a, ok := update.Data.(*semantic.Analysis); ok {
-					analysis = a
-				}
-			}
+		// Consume all updates
+		for range updateChan {
+			// Just drain the channel
 		}
+
+		// Get final results
+		analysis := m.analyzer.Results()
 
 		return SemanticAnalysisMsg{Analysis: analysis}
 	}

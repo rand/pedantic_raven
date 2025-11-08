@@ -6,9 +6,11 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	contextpanel "github.com/rand/pedantic-raven/internal/context"
 	"github.com/rand/pedantic-raven/internal/editor/semantic"
 	"github.com/rand/pedantic-raven/internal/layout"
 	"github.com/rand/pedantic-raven/internal/modes"
+	"github.com/rand/pedantic-raven/internal/terminal"
 )
 
 // --- EditMode Tests ---
@@ -210,7 +212,7 @@ func TestEditModeGetters(t *testing.T) {
 func TestEditModeSetAnalyzer(t *testing.T) {
 	mode := NewEditMode()
 
-	customAnalyzer := semantic.NewDefaultAnalyzer()
+	customAnalyzer := semantic.NewAnalyzer()
 	mode.SetAnalyzer(customAnalyzer)
 
 	if mode.analyzer != customAnalyzer {
@@ -321,40 +323,44 @@ func TestEditorComponentViewFocused(t *testing.T) {
 // --- ContextPanelComponent Tests ---
 
 func TestNewContextPanelComponent(t *testing.T) {
-	panel := NewContextPanelComponent(nil)
+	panel := contextpanel.New(contextpanel.DefaultContextPanelConfig())
+	comp := NewContextPanelComponent(panel)
 
-	if panel == nil {
+	if comp == nil {
 		t.Fatal("Expected component to be created")
 	}
 
-	if panel.ID() != layout.PaneSidebar {
-		t.Errorf("Expected ID to be PaneSidebar, got %v", panel.ID())
+	if comp.ID() != layout.PaneSidebar {
+		t.Errorf("Expected ID to be PaneSidebar, got %v", comp.ID())
 	}
 }
 
 func TestContextPanelComponentUpdate(t *testing.T) {
-	panel := NewContextPanelComponent(nil)
+	panel := contextpanel.New(contextpanel.DefaultContextPanelConfig())
+	comp := NewContextPanelComponent(panel)
 
 	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}}
-	_, cmd := panel.Update(keyMsg)
+	_, cmd := comp.Update(keyMsg)
 	_ = cmd
 }
 
 func TestContextPanelComponentView(t *testing.T) {
-	panel := NewContextPanelComponent(nil)
+	panel := contextpanel.New(contextpanel.DefaultContextPanelConfig())
+	comp := NewContextPanelComponent(panel)
 
 	area := layout.Rect{X: 0, Y: 0, Width: 40, Height: 30}
-	view := panel.View(area, false)
+	view := comp.View(area, false)
 
-	// Will panic if panel is nil, but that's expected in this test setup
-	// In real usage, panel should always be initialized
-	_ = view
+	if view == "" {
+		t.Error("Expected non-empty view")
+	}
 }
 
 // --- TerminalComponent Tests ---
 
 func TestNewTerminalComponent(t *testing.T) {
-	termComp := NewTerminalComponent(nil)
+	term := terminal.New(terminal.DefaultTerminalConfig())
+	termComp := NewTerminalComponent(term)
 
 	if termComp == nil {
 		t.Fatal("Expected component to be created")
@@ -366,7 +372,8 @@ func TestNewTerminalComponent(t *testing.T) {
 }
 
 func TestTerminalComponentUpdate(t *testing.T) {
-	termComp := NewTerminalComponent(nil)
+	term := terminal.New(terminal.DefaultTerminalConfig())
+	termComp := NewTerminalComponent(term)
 
 	keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'l'}}
 	_, cmd := termComp.Update(keyMsg)
@@ -374,13 +381,15 @@ func TestTerminalComponentUpdate(t *testing.T) {
 }
 
 func TestTerminalComponentView(t *testing.T) {
-	termComp := NewTerminalComponent(nil)
+	term := terminal.New(terminal.DefaultTerminalConfig())
+	termComp := NewTerminalComponent(term)
 
 	area := layout.Rect{X: 0, Y: 0, Width: 60, Height: 10}
 	view := termComp.View(area, false)
 
-	// Will panic if term is nil, but that's expected in this test setup
-	_ = view
+	if view == "" {
+		t.Error("Expected non-empty view")
+	}
 }
 
 // --- Integration Tests ---
