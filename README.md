@@ -1,4 +1,4 @@
-# Pedantic Raven 🐦
+# Pedantic Raven
 
 > **Interactive Context Engineering Environment**
 
