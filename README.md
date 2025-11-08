@@ -5,8 +5,8 @@
 Pedantic Raven combines the specialized context engineering capabilities of ICS (Integrated Context Studio) with the rich interaction patterns of Crush TUI to create a powerful, production-ready terminal interface for creating, editing, and refining context with semantic analysis and memory integration.
 
 [![Go Version](https://img.shields.io/badge/Go-1.25%2B-blue.svg)](https://golang.org/dl/)
-[![Tests](https://img.shields.io/badge/tests-424%20passing-brightgreen.svg)](#testing)
-[![Phase](https://img.shields.io/badge/phase-3%20complete-success.svg)](#features)
+[![Tests](https://img.shields.io/badge/tests-461%20passing-brightgreen.svg)](#testing)
+[![Phase](https://img.shields.io/badge/phase-4.1%20complete-success.svg)](#features)
 
 ---
 
@@ -73,11 +73,33 @@ Pedantic Raven combines the specialized context engineering capabilities of ICS 
 - Extensible tokenizer architecture
 - 12 token types with default color scheme
 
+### Phase 4.1: mnemosyne RPC Client ✅ (Complete)
+
+- **gRPC Client Library**: Full-featured client for mnemosyne memory system
+  - Connection management with configurable timeouts
+  - Health checks and server statistics
+- **CRUD Operations**: Complete memory lifecycle management
+  - StoreMemory, GetMemory, UpdateMemory, DeleteMemory, ListMemories
+  - Namespace support (Global, Project, Session)
+  - Importance scoring and tagging
+  - Optional LLM enrichment
+- **Search Operations**: Advanced memory retrieval
+  - Recall: Hybrid search (semantic + FTS + graph)
+  - SemanticSearch: Pure embedding-based search
+  - GraphTraverse: Multi-hop graph traversal
+  - GetContext: Retrieve memories with linked context
+- **Streaming Support**: Progressive result delivery
+  - RecallStream, ListMemoriesStream, StoreMemoryStream
+  - Progress updates for long-running operations
+- **Error Handling**: Comprehensive gRPC status mapping
+  - Domain-specific errors (NotFound, InvalidArgument, etc.)
+  - Helper functions for error checking
+
 **Next Phase**:
-- **Phase 4**: Explore Mode - Memory workspace with graph visualization
-- **Phase 5**: Analyze Mode - Statistical analysis and insights
-- **Phase 6**: Multi-agent orchestration
-- **Phase 7**: Live collaborative editing
+- **Phase 4.2**: Memory List Component - TUI display and interaction
+- **Phase 4.3**: Memory Detail View - Rich memory visualization
+- **Phase 4.4**: Graph Visualization - Interactive memory graph
+- **Phase 4.5**: Explore Mode Integration - Complete memory workspace
 
 ---
 
@@ -256,14 +278,16 @@ go tool cover -html=coverage.out
 | editor/semantic | 63 | ~90% | ✅ |
 | editor/syntax | 31 | ~85% | ✅ |
 | layout  | 34 | ~65% | ✅ |
+| mnemosyne | 66 | ~95% | ✅ |
 | modes   | 13 | ~92% | ✅ |
 | overlay | 25 | ~70% | ✅ |
 | palette | 19 | ~88% | ✅ |
 | terminal | 38 | ~80% | ✅ |
-| **Total** | **424** | **~82%** | **✅** |
+| **Total** | **461** | **~84%** | **✅** |
 
 All tests passing ✅
 
+📊 **See [docs/PHASE4.1_SUMMARY.md](docs/PHASE4.1_SUMMARY.md) for Phase 4.1 details**
 📊 **See [docs/PHASE3_SUMMARY.md](docs/PHASE3_SUMMARY.md) for Phase 3 details**
 📊 **See [docs/PHASE2_SUMMARY.md](docs/PHASE2_SUMMARY.md) for Phase 2 details**
 
@@ -407,12 +431,28 @@ Tests: 8 new tests for fuzzy matching
 - [x] **Phase 3.3**: Search and replace - literal and regex (Days 5-6) ✅
 - [x] **Phase 3.4**: Syntax highlighting - Go and Markdown (Days 7-8) ✅
 
-### Phase 4: Explore Mode (3-4 weeks)
-- [ ] Memory workspace
-- [ ] Graph visualization
-- [ ] mnemosyne integration
-- [ ] Triple exploration
-- [ ] Namespace navigation
+### Phase 4: Explore Mode (3-4 weeks) - In Progress
+- [x] **Phase 4.1**: mnemosyne RPC Client (Days 1-3) ✅
+  - gRPC client library with full CRUD operations
+  - Advanced search (Recall, SemanticSearch, GraphTraverse, GetContext)
+  - Streaming support for progressive results
+  - 66 tests, comprehensive error handling
+- [ ] **Phase 4.2**: Memory List Component (Days 4-6)
+  - TUI component for memory display
+  - Filtering and navigation
+  - Integration with mnemosyne client
+- [ ] **Phase 4.3**: Memory Detail View (Days 7-9)
+  - Rich memory visualization
+  - Linked memories display
+  - Editing capabilities
+- [ ] **Phase 4.4**: Graph Visualization (Days 10-14)
+  - Interactive memory graph
+  - Graph traversal UI
+  - Visual link exploration
+- [ ] **Phase 4.5**: Explore Mode Integration (Days 15-16)
+  - Complete workspace integration
+  - Namespace navigation
+  - Triple exploration
 
 ### Phase 5: Analyze Mode (2-3 weeks)
 - [ ] Statistical analysis
@@ -500,7 +540,9 @@ If experiencing lag:
 
 ## License
 
-This project is part of the mnemosyne ecosystem. See repository for license details.
+MIT License - see [LICENSE](LICENSE) file for details.
+
+This project is part of the mnemosyne ecosystem.
 
 ---
 
@@ -520,8 +562,8 @@ This project is part of the mnemosyne ecosystem. See repository for license deta
 
 ---
 
-**Status**: Phase 3 Complete ✅ | Next: Phase 4 (Explore Mode)
+**Status**: Phase 4.1 Complete ✅ | Next: Phase 4.2 (Memory List Component)
 
-**Stats**: 424 tests passing | ~8,600 lines of code | 5.2MB binary
+**Stats**: 461 tests passing | ~11,000 lines of code | 84% coverage
 
 Built with ❤️ using [Bubble Tea](https://github.com/charmbracelet/bubbletea)
