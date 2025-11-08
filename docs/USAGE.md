@@ -71,6 +71,10 @@ go run .
 - `Ctrl+O` - Open file (shows file picker)
 - `Ctrl+S` - Save file
 - `Ctrl+Shift+S` - Save as (shows file picker)
+- `Ctrl+F` - Search (shows search overlay)
+- `Ctrl+H` - Find and replace (shows replace overlay)
+- `F3` - Find next match
+- `Shift+F3` - Find previous match
 
 #### Context Panel (when focused)
 - `j` or `Down` - Scroll down one line
@@ -150,6 +154,55 @@ git status
 echo "hello world"
 ```
 
+## Search and Replace
+
+### Opening Search
+Press `Ctrl+F` to open the search overlay:
+- Type your search query
+- Toggle search options:
+  - `Ctrl+C`: Case sensitive
+  - `Ctrl+W`: Whole word
+  - `Ctrl+R`: Regex mode
+- `Enter`: Perform search
+- `F3`: Find next match
+- `Shift+F3`: Find previous match
+- `Esc`: Close search
+
+### Opening Replace
+Press `Ctrl+H` to open the find and replace overlay:
+- Type your search query in the first field
+- `Tab`: Switch to replacement field
+- Type your replacement text
+- `Enter`: Replace current match
+- `Ctrl+A`: Replace all matches
+- `F3`/`Shift+F3`: Navigate matches
+- `Esc`: Close replace
+
+### Search Options
+
+**Case Sensitive** (`Ctrl+C`):
+- Unchecked: "hello" matches "hello", "Hello", "HELLO"
+- Checked: "hello" only matches "hello"
+
+**Whole Word** (`Ctrl+W`):
+- Unchecked: "hello" matches "hello" and "helloworld"
+- Checked: "hello" only matches "hello" (not "helloworld")
+
+**Regex** (`Ctrl+R`):
+- Unchecked: Plain text search
+- Checked: Regular expression search (e.g., `func test[0-9]+`)
+
+### Match Navigation
+- The overlay shows "Match X of Y" when search is active
+- F3 navigates forward through matches (wraps around)
+- Shift+F3 navigates backward through matches (wraps around)
+- Cursor automatically moves to each match
+
+### Replace Operations
+- **Replace**: Replaces the current highlighted match
+- **Replace All**: Replaces all matches at once
+- All replace operations support undo (`Ctrl+Z`)
+
 ## Command Palette
 
 Press `Ctrl+K` to open the command palette, then type to filter commands:
@@ -207,7 +260,8 @@ Shows RDF-style semantic triples:
 3. **Typed Holes**: Use `??Type` to mark areas needing implementation
 4. **Terminal History**: Press `Up` to recall previous commands
 5. **Section Navigation**: In context panel, use `Tab` to jump between sections
-6. **Filtering**: (Future) Type in context panel to filter by entity type or search
+6. **Search and Replace**: Use `Ctrl+F` for quick search, `Ctrl+H` for replace, `F3`/`Shift+F3` to navigate
+7. **Undo/Redo**: All operations support undo (`Ctrl+Z`) and redo (`Ctrl+Y`)
 
 ## Troubleshooting
 
