@@ -18,7 +18,7 @@ const (
 	TokenOperator
 	TokenIdentifier
 	TokenFunction
-	TokenType
+	TokenTypeName
 	TokenConstant
 	TokenPunctuation
 	TokenWhitespace
@@ -41,7 +41,7 @@ func (t TokenType) String() string {
 		return "identifier"
 	case TokenFunction:
 		return "function"
-	case TokenType:
+	case TokenTypeName:
 		return "type"
 	case TokenConstant:
 		return "constant"
@@ -225,7 +225,7 @@ func (h *Highlighter) styleForToken(tokenType TokenType) lipgloss.Style {
 		return h.scheme.Identifier
 	case TokenFunction:
 		return h.scheme.Function
-	case TokenType:
+	case TokenTypeName:
 		return h.scheme.Type
 	case TokenConstant:
 		return h.scheme.Constant

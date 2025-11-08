@@ -203,8 +203,17 @@ func (g *GoTokenizer) Tokenize(line string, lineNum int) []Token {
 		// Numbers
 		if unicode.IsDigit(rune(line[i])) {
 			start := i
-			for i < len(line) && (unicode.IsDigit(rune(line[i])) || line[i] == '.' || line[i] == 'x' || line[i] == 'e' || line[i] == 'E') {
-				i++
+			// Handle hex numbers (0x...)
+			if i+1 < len(line) && line[i] == '0' && (line[i+1] == 'x' || line[i+1] == 'X') {
+				i += 2
+				for i < len(line) && (unicode.IsDigit(rune(line[i])) || (line[i] >= 'a' && line[i] <= 'f') || (line[i] >= 'A' && line[i] <= 'F')) {
+					i++
+				}
+			} else {
+				// Handle decimal/float numbers
+				for i < len(line) && (unicode.IsDigit(rune(line[i])) || line[i] == '.' || line[i] == 'e' || line[i] == 'E') {
+					i++
+				}
 			}
 			tokens = append(tokens, Token{
 				Type:  TokenNumber,
@@ -236,14 +245,14 @@ func (g *GoTokenizer) Tokenize(line string, lineNum int) []Token {
 			if goKeywords[word] {
 				tokenType = TokenKeyword
 			} else if goTypes[word] {
-				tokenType = TokenType
+				tokenType = TokenTypeName
 			} else if goConstants[word] {
 				tokenType = TokenConstant
 			} else if isFunction {
 				tokenType = TokenFunction
 			} else if unicode.IsUpper(rune(word[0])) {
 				// Exported identifiers might be types
-				tokenType = TokenType
+				tokenType = TokenTypeName
 			}
 
 			tokens = append(tokens, Token{
@@ -259,15 +268,18 @@ func (g *GoTokenizer) Tokenize(line string, lineNum int) []Token {
 		// Operators and punctuation
 		if isOperatorOrPunctuation(line[i]) {
 			start := i
+			isMultiChar := false
 			// Handle multi-character operators
 			if i+1 < len(line) && isMultiCharOperator(line[i:i+2]) {
 				i += 2
+				isMultiChar = true
 			} else {
 				i++
 			}
 
 			tokenType := TokenOperator
-			if isPunctuation(line[start]) {
+			// Only treat as punctuation if it's a single character AND is in punctuation set
+			if !isMultiChar && isPunctuation(line[start]) {
 				tokenType = TokenPunctuation
 			}
 
