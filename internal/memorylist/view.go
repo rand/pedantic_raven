@@ -62,8 +62,16 @@ func (m Model) View() string {
 	b.WriteString(m.renderHeader())
 	b.WriteString("\n")
 
+	// Search input (if in search mode)
+	if m.inputMode == InputModeSearch {
+		b.WriteString(m.renderSearchInput())
+		b.WriteString("\n")
+	}
+
 	// Content area
-	if m.loading {
+	if m.showHelp {
+		b.WriteString(m.renderHelp())
+	} else if m.loading {
 		b.WriteString(m.renderLoading())
 	} else if m.err != nil {
 		b.WriteString(m.renderError())
@@ -390,6 +398,102 @@ func extractTitle(content string) string {
 	title = strings.TrimPrefix(title, "### ")
 
 	return title
+}
+
+// renderSearchInput renders the search input bar.
+func (m Model) renderSearchInput() string {
+	prompt := "Search: "
+	cursor := "█"
+
+	input := m.searchInput + cursor
+
+	style := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("39")).
+		Background(lipgloss.Color("237"))
+
+	line := prompt + input
+
+	// Pad to full width
+	if len(line) < m.width {
+		line += strings.Repeat(" ", m.width-len(line))
+	}
+
+	return style.Width(m.width).Render(line)
+}
+
+// renderHelp renders the help overlay.
+func (m Model) renderHelp() string {
+	lines := m.visibleLines()
+	helpText := []string{
+		"Keyboard Shortcuts",
+		"",
+		"Navigation:",
+		"  j/↓       Move down",
+		"  k/↑       Move up",
+		"  g         Go to top",
+		"  G         Go to bottom",
+		"  Ctrl+D    Page down",
+		"  Ctrl+U    Page up",
+		"  Enter     Select memory",
+		"",
+		"Search & Filters:",
+		"  /         Enter search mode",
+		"  c         Clear search & filters",
+		"  r         Reload/refresh",
+		"",
+		"Other:",
+		"  ?         Toggle this help",
+		"  Esc       Close help/error",
+		"",
+		"Press ? to close",
+	}
+
+	var b strings.Builder
+
+	// Calculate padding
+	startLine := (lines - len(helpText)) / 2
+	if startLine < 0 {
+		startLine = 0
+	}
+
+	// Top padding
+	for i := 0; i < startLine; i++ {
+		b.WriteString("\n")
+	}
+
+	// Help text
+	helpStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("252"))
+
+	titleStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("39")).
+		Bold(true)
+
+	for i, line := range helpText {
+		padding := (m.width - len(line)) / 2
+		if padding < 0 {
+			padding = 0
+		}
+
+		b.WriteString(strings.Repeat(" ", padding))
+
+		if i == 0 {
+			b.WriteString(titleStyle.Render(line))
+		} else {
+			b.WriteString(helpStyle.Render(line))
+		}
+
+		if i < len(helpText)-1 {
+			b.WriteString("\n")
+		}
+	}
+
+	// Bottom padding
+	for i := startLine + len(helpText); i < lines; i++ {
+		b.WriteString("\n")
+	}
+
+	return b.String()
 }
 
 // formatRelativeTime formats a timestamp as relative time.

@@ -513,3 +513,243 @@ func TestSortModeString(t *testing.T) {
 		}
 	}
 }
+
+// --- Input Mode Tests ---
+
+func TestEnterSearchMode(t *testing.T) {
+	m := NewModel()
+	m.searchQuery = "existing query"
+
+	m = m.enterSearchMode()
+
+	if m.inputMode != InputModeSearch {
+		t.Errorf("Expected InputModeSearch, got %v", m.inputMode)
+	}
+
+	if m.searchInput != "existing query" {
+		t.Errorf("Expected searchInput to be initialized with current query, got '%s'", m.searchInput)
+	}
+}
+
+func TestSearchInputTyping(t *testing.T) {
+	m := NewModel()
+	m.inputMode = InputModeSearch
+
+	// Type 'a'
+	m, _ = m.handleSearchInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	if m.searchInput != "a" {
+		t.Errorf("Expected searchInput 'a', got '%s'", m.searchInput)
+	}
+
+	// Type 'u'
+	m, _ = m.handleSearchInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}})
+	if m.searchInput != "au" {
+		t.Errorf("Expected searchInput 'au', got '%s'", m.searchInput)
+	}
+
+	// Type 't'
+	m, _ = m.handleSearchInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'t'}})
+	if m.searchInput != "aut" {
+		t.Errorf("Expected searchInput 'aut', got '%s'", m.searchInput)
+	}
+
+	// Type 'h'
+	m, _ = m.handleSearchInput(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'h'}})
+	if m.searchInput != "auth" {
+		t.Errorf("Expected searchInput 'auth', got '%s'", m.searchInput)
+	}
+}
+
+func TestSearchInputBackspace(t *testing.T) {
+	m := NewModel()
+	m.inputMode = InputModeSearch
+	m.searchInput = "auth"
+
+	// Backspace once
+	m, _ = m.handleSearchInput(tea.KeyMsg{Type: tea.KeyBackspace})
+	if m.searchInput != "aut" {
+		t.Errorf("Expected searchInput 'aut', got '%s'", m.searchInput)
+	}
+
+	// Backspace again
+	m, _ = m.handleSearchInput(tea.KeyMsg{Type: tea.KeyBackspace})
+	if m.searchInput != "au" {
+		t.Errorf("Expected searchInput 'au', got '%s'", m.searchInput)
+	}
+
+	// Backspace on empty should not crash
+	m.searchInput = ""
+	m, _ = m.handleSearchInput(tea.KeyMsg{Type: tea.KeyBackspace})
+	if m.searchInput != "" {
+		t.Errorf("Expected searchInput to remain empty, got '%s'", m.searchInput)
+	}
+}
+
+func TestSearchInputEnter(t *testing.T) {
+	m := NewModel()
+	m.inputMode = InputModeSearch
+	m.searchInput = "auth"
+	memories := []*pb.MemoryNote{
+		createTestMemory("1", "Authentication system", 8, nil, time.Hour),
+		createTestMemory("2", "Database schema", 6, nil, 2*time.Hour),
+	}
+	m.SetMemories(memories, 2)
+
+	// Press Enter to commit search
+	m, _ = m.handleSearchInput(tea.KeyMsg{Type: tea.KeyEnter})
+
+	if m.inputMode != InputModeNormal {
+		t.Errorf("Expected InputModeNormal after Enter, got %v", m.inputMode)
+	}
+
+	if m.searchQuery != "auth" {
+		t.Errorf("Expected searchQuery 'auth', got '%s'", m.searchQuery)
+	}
+
+	// Should filter memories
+	if len(m.filteredMems) != 1 {
+		t.Errorf("Expected 1 filtered memory, got %d", len(m.filteredMems))
+	}
+}
+
+func TestSearchInputEscape(t *testing.T) {
+	m := NewModel()
+	m.inputMode = InputModeSearch
+	m.searchInput = "auth"
+	m.searchQuery = "existing"
+
+	// Press Escape to cancel search
+	m, _ = m.handleSearchInput(tea.KeyMsg{Type: tea.KeyEsc})
+
+	if m.inputMode != InputModeNormal {
+		t.Errorf("Expected InputModeNormal after Escape, got %v", m.inputMode)
+	}
+
+	if m.searchInput != "" {
+		t.Errorf("Expected searchInput to be cleared, got '%s'", m.searchInput)
+	}
+
+	if m.searchQuery != "existing" {
+		t.Errorf("Expected searchQuery to remain unchanged, got '%s'", m.searchQuery)
+	}
+}
+
+// --- Keyboard Shortcut Tests ---
+
+func TestSlashKeyEntersSearchMode(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+
+	if m.inputMode != InputModeSearch {
+		t.Errorf("Expected InputModeSearch after '/', got %v", m.inputMode)
+	}
+}
+
+func TestQuestionMarkTogglesHelp(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	// First press shows help
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'?'}})
+	if !m.showHelp {
+		t.Error("Expected showHelp to be true after first '?'")
+	}
+
+	// Second press hides help
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'?'}})
+	if m.showHelp {
+		t.Error("Expected showHelp to be false after second '?'")
+	}
+}
+
+func TestRKeyReloads(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	m, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+
+	if !m.IsLoading() {
+		t.Error("Expected loading state after 'r' key")
+	}
+
+	if cmd == nil {
+		t.Error("Expected non-nil cmd for reload request")
+	}
+
+	// Execute cmd to check message type
+	msg := cmd()
+	if _, ok := msg.(ReloadRequestMsg); !ok {
+		t.Errorf("Expected ReloadRequestMsg, got %T", msg)
+	}
+}
+
+func TestCKeyClearsFilters(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+	memories := []*pb.MemoryNote{
+		createTestMemory("1", "First", 8, []string{"tag1"}, time.Hour),
+		createTestMemory("2", "Second", 6, []string{"tag2"}, 2*time.Hour),
+	}
+	m.SetMemories(memories, 2)
+	m.searchQuery = "first"
+	m.searchInput = "first"
+	m.SetFilter([]string{"tag1"}, "", 7)
+
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+
+	if m.searchQuery != "" {
+		t.Errorf("Expected searchQuery to be cleared, got '%s'", m.searchQuery)
+	}
+
+	if m.searchInput != "" {
+		t.Errorf("Expected searchInput to be cleared, got '%s'", m.searchInput)
+	}
+
+	if len(m.filteredMems) != 2 {
+		t.Errorf("Expected all 2 memories after clearing filters, got %d", len(m.filteredMems))
+	}
+}
+
+func TestEscapeClosesHelp(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+	m.showHelp = true
+
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+
+	if m.showHelp {
+		t.Error("Expected showHelp to be false after Escape")
+	}
+}
+
+func TestEscapeClearsError(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+	m.err = ErrTestError
+
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+
+	if m.err != nil {
+		t.Error("Expected error to be cleared after Escape")
+	}
+}
+
+func TestSearchModeHandlesKeys(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+	m.inputMode = InputModeSearch
+
+	// In search mode, normal keys should not work
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+
+	// Should add 'j' to search input instead of moving down
+	if m.searchInput != "j" {
+		t.Errorf("Expected searchInput 'j', got '%s'", m.searchInput)
+	}
+
+	if m.selectedIndex != 0 {
+		t.Error("Expected selectedIndex to remain at 0 in search mode")
+	}
+}

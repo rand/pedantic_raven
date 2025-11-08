@@ -93,6 +93,15 @@ func (m Model) reloadCmd() tea.Cmd {
 
 // handleKeyPress processes keyboard input.
 func (m Model) handleKeyPress(msg tea.KeyMsg) (Model, tea.Cmd) {
+	// Handle input modes first
+	switch m.inputMode {
+	case InputModeSearch:
+		return m.handleSearchInput(msg)
+	case InputModeFilter:
+		return m.handleFilterInput(msg)
+	}
+
+	// Normal mode keyboard shortcuts
 	switch msg.String() {
 	case "j", "down":
 		return m.moveDown(), nil
@@ -114,9 +123,109 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (Model, tea.Cmd) {
 
 	case "enter":
 		return m, m.selectCurrent()
+
+	case "/":
+		return m.enterSearchMode(), nil
+
+	case "?":
+		m.showHelp = !m.showHelp
+		return m, nil
+
+	case "r":
+		// Reload/refresh
+		m.SetLoading(true)
+		return m, func() tea.Msg {
+			return ReloadRequestMsg{}
+		}
+
+	case "c":
+		// Clear filters and search
+		m.ClearFilters()
+		m.searchQuery = ""
+		m.searchInput = ""
+		return m, nil
+
+	case "esc":
+		// Clear help or error
+		if m.showHelp {
+			m.showHelp = false
+			return m, nil
+		}
+		if m.err != nil {
+			m.err = nil
+			return m, nil
+		}
 	}
 
 	return m, nil
+}
+
+// handleSearchInput processes keyboard input in search mode.
+func (m Model) handleSearchInput(msg tea.KeyMsg) (Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyEnter:
+		// Commit search
+		m.searchQuery = m.searchInput
+		m.inputMode = InputModeNormal
+		m.applyFilters()
+		// Trigger search if client is available
+		if m.client != nil && m.autoReload {
+			m.SetLoading(true)
+			return m, m.searchCmd()
+		}
+		return m, nil
+
+	case tea.KeyEsc:
+		// Cancel search
+		m.searchInput = ""
+		m.inputMode = InputModeNormal
+		return m, nil
+
+	case tea.KeyBackspace, tea.KeyDelete:
+		// Delete character
+		if len(m.searchInput) > 0 {
+			m.searchInput = m.searchInput[:len(m.searchInput)-1]
+		}
+		return m, nil
+
+	case tea.KeyRunes:
+		// Add character
+		m.searchInput += string(msg.Runes)
+		return m, nil
+	}
+
+	return m, nil
+}
+
+// handleFilterInput processes keyboard input in filter mode.
+func (m Model) handleFilterInput(msg tea.KeyMsg) (Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.KeyEnter:
+		// Commit filter
+		m.inputMode = InputModeNormal
+		m.applyFilters()
+		return m, nil
+
+	case tea.KeyEsc:
+		// Cancel filter
+		m.inputMode = InputModeNormal
+		return m, nil
+	}
+
+	return m, nil
+}
+
+// enterSearchMode switches to search input mode.
+func (m Model) enterSearchMode() Model {
+	m.inputMode = InputModeSearch
+	m.searchInput = m.searchQuery // Start with current query
+	return m
+}
+
+// enterFilterMode switches to filter input mode.
+func (m Model) enterFilterMode() Model {
+	m.inputMode = InputModeFilter
+	return m
 }
 
 // Navigation methods

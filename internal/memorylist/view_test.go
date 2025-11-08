@@ -423,3 +423,149 @@ func TestVisibleLines(t *testing.T) {
 		t.Errorf("Expected 8 visible lines, got %d", visible)
 	}
 }
+
+// --- Search Input Tests ---
+
+func TestRenderSearchInput(t *testing.T) {
+	m := NewModel()
+	m.SetSize(80, 10)
+	m.inputMode = InputModeSearch
+	m.searchInput = "test query"
+
+	result := m.renderSearchInput()
+
+	if !strings.Contains(result, "Search:") {
+		t.Error("Expected search input to contain 'Search:' prompt")
+	}
+
+	if !strings.Contains(result, "test query") {
+		t.Error("Expected search input to contain current input")
+	}
+
+	// Should contain cursor
+	if !strings.Contains(result, "█") {
+		t.Error("Expected search input to contain cursor")
+	}
+}
+
+func TestRenderSearchInputEmpty(t *testing.T) {
+	m := NewModel()
+	m.SetSize(80, 10)
+	m.inputMode = InputModeSearch
+	m.searchInput = ""
+
+	result := m.renderSearchInput()
+
+	if !strings.Contains(result, "Search:") {
+		t.Error("Expected search input to contain 'Search:' prompt")
+	}
+
+	// Should still have cursor
+	if !strings.Contains(result, "█") {
+		t.Error("Expected search input to contain cursor even when empty")
+	}
+}
+
+func TestViewWithSearchInput(t *testing.T) {
+	m := NewModel()
+	m.SetSize(80, 10)
+	m.inputMode = InputModeSearch
+	m.searchInput = "auth"
+
+	view := m.View()
+
+	// Should contain search input bar
+	if !strings.Contains(view, "Search:") {
+		t.Error("Expected view to show search input when in search mode")
+	}
+
+	if !strings.Contains(view, "auth") {
+		t.Error("Expected view to show current search input")
+	}
+}
+
+// --- Help Overlay Tests ---
+
+func TestRenderHelp(t *testing.T) {
+	m := NewModel()
+	m.SetSize(80, 20)
+
+	result := m.renderHelp()
+
+	// Should contain help title
+	if !strings.Contains(result, "Keyboard Shortcuts") {
+		t.Error("Expected help to contain 'Keyboard Shortcuts' title")
+	}
+
+	// Should contain navigation shortcuts
+	if !strings.Contains(result, "j/↓") {
+		t.Error("Expected help to contain 'j/↓' navigation hint")
+	}
+
+	if !strings.Contains(result, "k/↑") {
+		t.Error("Expected help to contain 'k/↑' navigation hint")
+	}
+
+	// Should contain search shortcuts
+	if !strings.Contains(result, "/") {
+		t.Error("Expected help to contain '/' search hint")
+	}
+
+	// Should contain help toggle hint
+	if !strings.Contains(result, "?") {
+		t.Error("Expected help to contain '?' toggle hint")
+	}
+
+	// Should contain reload hint
+	if !strings.Contains(result, "r") {
+		t.Error("Expected help to contain 'r' reload hint")
+	}
+
+	// Should contain clear hint
+	if !strings.Contains(result, "c") {
+		t.Error("Expected help to contain 'c' clear hint")
+	}
+}
+
+func TestViewWithHelp(t *testing.T) {
+	m := NewModel()
+	m.SetSize(80, 20)
+	m.showHelp = true
+
+	view := m.View()
+
+	// Should show help overlay instead of content
+	if !strings.Contains(view, "Keyboard Shortcuts") {
+		t.Error("Expected view to show help overlay when showHelp is true")
+	}
+
+	// Should not show memories when help is active
+	memories := []*pb.MemoryNote{
+		createTestMemory("1", "Test memory", 8, nil, time.Hour),
+	}
+	m.SetMemories(memories, 1)
+
+	view = m.View()
+
+	// Help should take precedence over memory list
+	if !strings.Contains(view, "Keyboard Shortcuts") {
+		t.Error("Expected help overlay to take precedence")
+	}
+}
+
+func TestHelpHidesOnEscape(t *testing.T) {
+	m := NewModel()
+	m.SetSize(80, 20)
+	m.SetFocus(true)
+	m.showHelp = true
+
+	// Press Escape
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+
+	view := m.View()
+
+	// Should not show help anymore
+	if strings.Contains(view, "Keyboard Shortcuts") {
+		t.Error("Expected help to be hidden after Escape")
+	}
+}

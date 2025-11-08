@@ -5,6 +5,15 @@ import (
 	pb "github.com/rand/pedantic-raven/internal/mnemosyne/pb/mnemosyne/v1"
 )
 
+// InputMode defines the current input mode.
+type InputMode int
+
+const (
+	InputModeNormal InputMode = iota
+	InputModeSearch
+	InputModeFilter
+)
+
 // Model represents the memory list component state.
 type Model struct {
 	// Memory data
@@ -19,6 +28,7 @@ type Model struct {
 
 	// Filter/search state
 	searchQuery   string
+	searchInput   string // Temporary input while typing
 	filterTags    []string
 	filterNS      string
 	minImportance uint32
@@ -28,9 +38,11 @@ type Model struct {
 	sortDesc bool
 
 	// UI state
-	loading bool
-	err     error
-	focused bool
+	loading    bool
+	err        error
+	focused    bool
+	inputMode  InputMode
+	showHelp   bool
 
 	// Pagination
 	pageSize   int
