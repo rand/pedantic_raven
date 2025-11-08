@@ -66,6 +66,11 @@ go run .
 - `a-z`, `0-9`, etc. - Type characters
 - `Backspace` - Delete character
 - `Enter` - New line
+- `Ctrl+Z` - Undo
+- `Ctrl+Y` or `Ctrl+Shift+Z` - Redo
+- `Ctrl+O` - Open file (shows file picker)
+- `Ctrl+S` - Save file
+- `Ctrl+Shift+S` - Save as (shows file picker)
 
 #### Context Panel (when focused)
 - `j` or `Down` - Scroll down one line
