@@ -153,19 +153,21 @@ func TestFindNext(t *testing.T) {
 
 	opts := DefaultSearchOptions()
 
-	// Find first match
-	match, err := engine.FindNext(buf, "hello", buffer.Position{Line: 0, Column: 0}, opts)
+	// Find first match (after position before first match)
+	match, err := engine.FindNext(buf, "hello", buffer.Position{Line: 0, Column: -1}, opts)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	if match == nil {
 		t.Fatal("Expected to find match")
 	}
+	// First "hello" is at column 0, but FindNext finds match AFTER position
+	// Since we're at -1 (before 0), we should find the one at column 0
 	if match.Start.Column != 0 {
 		t.Errorf("Expected first match at column 0, got %d", match.Start.Column)
 	}
 
-	// Find second match
+	// Find second match (after first match)
 	match, err = engine.FindNext(buf, "hello", buffer.Position{Line: 0, Column: 5}, opts)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
