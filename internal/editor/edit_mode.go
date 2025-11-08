@@ -131,7 +131,47 @@ func (m *EditMode) Update(msg tea.Msg) (modes.Mode, tea.Cmd) {
 		return m, nil
 	}
 
-	// Handle file operations keybindings (before delegating to base)
+	// Handle search result
+	if result, ok := msg.(overlay.SearchResult); ok {
+		if !result.Canceled {
+			switch result.Action {
+			case overlay.SearchActionFind:
+				// Perform initial search
+				err := m.editor.Search(result.Query, result.Options)
+				if err != nil {
+					// TODO: Show error message
+					_ = err
+				}
+
+			case overlay.SearchActionFindNext:
+				// Find next match
+				m.editor.NextMatch()
+
+			case overlay.SearchActionFindPrevious:
+				// Find previous match
+				m.editor.PreviousMatch()
+
+			case overlay.SearchActionReplace:
+				// Replace current match
+				err := m.editor.ReplaceCurrentMatch(result.Replacement)
+				if err != nil {
+					// TODO: Show error message
+					_ = err
+				}
+
+			case overlay.SearchActionReplaceAll:
+				// Replace all matches
+				_, err := m.editor.ReplaceAll(result.Replacement)
+				if err != nil {
+					// TODO: Show error message
+					_ = err
+				}
+			}
+		}
+		return m, nil
+	}
+
+	// Handle file operations and search keybindings (before delegating to base)
 	if keyMsg, ok := msg.(tea.KeyMsg); ok {
 		switch keyMsg.String() {
 		case "ctrl+o":
@@ -155,6 +195,28 @@ func (m *EditMode) Update(msg tea.Msg) (modes.Mode, tea.Cmd) {
 		case "ctrl+shift+s":
 			// Save as - show file picker
 			return m, m.showFilePicker()
+
+		case "ctrl+f":
+			// Open search overlay
+			return m, m.showSearchOverlay()
+
+		case "ctrl+h":
+			// Open replace overlay
+			return m, m.showReplaceOverlay()
+
+		case "f3":
+			// Find next match
+			if m.editor.GetSearchResult() != nil {
+				m.editor.NextMatch()
+			}
+			return m, nil
+
+		case "shift+f3":
+			// Find previous match
+			if m.editor.GetSearchResult() != nil {
+				m.editor.PreviousMatch()
+			}
+			return m, nil
 		}
 	}
 
@@ -216,6 +278,10 @@ func (m *EditMode) Keybindings() []modes.Keybinding {
 		{"Ctrl+O", "Open file"},
 		{"Ctrl+S", "Save file"},
 		{"Ctrl+Shift+S", "Save as"},
+		{"Ctrl+F", "Search"},
+		{"Ctrl+H", "Replace"},
+		{"F3", "Find next"},
+		{"Shift+F3", "Find previous"},
 		{"Ctrl+A", "Trigger analysis"},
 		{"Ctrl+T", "Focus terminal"},
 		{"Ctrl+E", "Focus editor"},
@@ -252,5 +318,27 @@ func (m *EditMode) showFilePicker() tea.Cmd {
 	// 1. Create a FilePicker overlay
 	// 2. Push it to the overlay manager
 	// 3. Handle the FilePickerResult message
+	return nil
+}
+
+// showSearchOverlay returns a command to display the search overlay.
+// This is a placeholder - actual implementation requires overlay manager integration.
+func (m *EditMode) showSearchOverlay() tea.Cmd {
+	// TODO: This requires integration with the application's overlay manager
+	// For now, return nil. The actual implementation will:
+	// 1. Create a SearchOverlay with mode="search"
+	// 2. Push it to the overlay manager
+	// 3. Handle the SearchResult message
+	return nil
+}
+
+// showReplaceOverlay returns a command to display the replace overlay.
+// This is a placeholder - actual implementation requires overlay manager integration.
+func (m *EditMode) showReplaceOverlay() tea.Cmd {
+	// TODO: This requires integration with the application's overlay manager
+	// For now, return nil. The actual implementation will:
+	// 1. Create a SearchOverlay with mode="replace"
+	// 2. Push it to the overlay manager
+	// 3. Handle the SearchResult message
 	return nil
 }

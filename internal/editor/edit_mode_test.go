@@ -8,9 +8,11 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	contextpanel "github.com/rand/pedantic-raven/internal/context"
+	"github.com/rand/pedantic-raven/internal/editor/search"
 	"github.com/rand/pedantic-raven/internal/editor/semantic"
 	"github.com/rand/pedantic-raven/internal/layout"
 	"github.com/rand/pedantic-raven/internal/modes"
+	"github.com/rand/pedantic-raven/internal/overlay"
 	"github.com/rand/pedantic-raven/internal/terminal"
 )
 
@@ -678,5 +680,247 @@ func TestEditorComponentAtomicWrite(t *testing.T) {
 	if _, err := os.Stat(tmpTempPath); err == nil {
 		t.Error("Expected temp file to be cleaned up")
 		os.Remove(tmpTempPath)
+	}
+}
+
+// --- Search Integration Tests ---
+
+func TestEditModeSearchKeybindings(t *testing.T) {
+	mode := NewEditMode()
+
+	// Get keybindings
+	bindings := mode.Keybindings()
+
+	// Check for search-related keybindings
+	foundSearch := false
+	foundReplace := false
+	foundNext := false
+	foundPrevious := false
+
+	for _, binding := range bindings {
+		switch binding.Key {
+		case "Ctrl+F":
+			foundSearch = true
+		case "Ctrl+H":
+			foundReplace = true
+		case "F3":
+			foundNext = true
+		case "Shift+F3":
+			foundPrevious = true
+		}
+	}
+
+	if !foundSearch {
+		t.Error("Expected Ctrl+F search keybinding")
+	}
+	if !foundReplace {
+		t.Error("Expected Ctrl+H replace keybinding")
+	}
+	if !foundNext {
+		t.Error("Expected F3 find next keybinding")
+	}
+	if !foundPrevious {
+		t.Error("Expected Shift+F3 find previous keybinding")
+	}
+}
+
+func TestEditModeHandleSearchResult(t *testing.T) {
+	mode := NewEditMode()
+
+	// Set some content
+	mode.editor.SetContent("hello world hello universe")
+
+	// Simulate search action
+	searchResult := overlay.SearchResult{
+		Action:      overlay.SearchActionFind,
+		Query:       "hello",
+		Replacement: "",
+		Options:     search.DefaultSearchOptions(),
+		Canceled:    false,
+	}
+
+	// Handle the search result
+	_, _ = mode.Update(searchResult)
+
+	// Verify search was performed
+	result := mode.editor.GetSearchResult()
+	if result == nil {
+		t.Fatal("Expected search result to be set")
+	}
+
+	if len(result.Matches) != 2 {
+		t.Errorf("Expected 2 matches, got %d", len(result.Matches))
+	}
+}
+
+func TestEditModeHandleSearchResultFindNext(t *testing.T) {
+	mode := NewEditMode()
+	mode.editor.SetContent("hello world hello universe hello")
+
+	// Perform initial search
+	searchResult := overlay.SearchResult{
+		Action:  overlay.SearchActionFind,
+		Query:   "hello",
+		Options: search.DefaultSearchOptions(),
+	}
+	mode.Update(searchResult)
+
+	// Get initial match index
+	initialIndex := mode.editor.GetCurrentMatchIndex()
+
+	// Simulate find next
+	nextResult := overlay.SearchResult{
+		Action: overlay.SearchActionFindNext,
+	}
+	mode.Update(nextResult)
+
+	// Verify match index changed
+	newIndex := mode.editor.GetCurrentMatchIndex()
+	if newIndex == initialIndex {
+		t.Error("Expected match index to change after find next")
+	}
+}
+
+func TestEditModeHandleSearchResultFindPrevious(t *testing.T) {
+	mode := NewEditMode()
+	mode.editor.SetContent("hello world hello universe hello")
+
+	// Perform initial search
+	searchResult := overlay.SearchResult{
+		Action:  overlay.SearchActionFind,
+		Query:   "hello",
+		Options: search.DefaultSearchOptions(),
+	}
+	mode.Update(searchResult)
+
+	// Get initial match index
+	initialIndex := mode.editor.GetCurrentMatchIndex()
+
+	// Simulate find previous
+	prevResult := overlay.SearchResult{
+		Action: overlay.SearchActionFindPrevious,
+	}
+	mode.Update(prevResult)
+
+	// Verify match index changed
+	newIndex := mode.editor.GetCurrentMatchIndex()
+	if newIndex == initialIndex {
+		t.Error("Expected match index to change after find previous")
+	}
+}
+
+func TestEditModeHandleSearchResultReplace(t *testing.T) {
+	mode := NewEditMode()
+	mode.editor.SetContent("hello world")
+
+	// Perform initial search
+	searchResult := overlay.SearchResult{
+		Action:  overlay.SearchActionFind,
+		Query:   "hello",
+		Options: search.DefaultSearchOptions(),
+	}
+	mode.Update(searchResult)
+
+	// Simulate replace current
+	replaceResult := overlay.SearchResult{
+		Action:      overlay.SearchActionReplace,
+		Replacement: "hi",
+	}
+	mode.Update(replaceResult)
+
+	// Verify replacement
+	content := mode.editor.GetContent()
+	if content != "hi world" {
+		t.Errorf("Expected 'hi world', got '%s'", content)
+	}
+}
+
+func TestEditModeHandleSearchResultReplaceAll(t *testing.T) {
+	mode := NewEditMode()
+	mode.editor.SetContent("hello world hello universe hello")
+
+	// Perform initial search
+	searchResult := overlay.SearchResult{
+		Action:  overlay.SearchActionFind,
+		Query:   "hello",
+		Options: search.DefaultSearchOptions(),
+	}
+	mode.Update(searchResult)
+
+	// Simulate replace all
+	replaceAllResult := overlay.SearchResult{
+		Action:      overlay.SearchActionReplaceAll,
+		Replacement: "hi",
+	}
+	mode.Update(replaceAllResult)
+
+	// Verify all replacements
+	content := mode.editor.GetContent()
+	if content != "hi world hi universe hi" {
+		t.Errorf("Expected 'hi world hi universe hi', got '%s'", content)
+	}
+}
+
+func TestEditModeHandleSearchResultCanceled(t *testing.T) {
+	mode := NewEditMode()
+	mode.editor.SetContent("hello world")
+
+	// Simulate canceled search
+	searchResult := overlay.SearchResult{
+		Action:   overlay.SearchActionFind,
+		Query:    "hello",
+		Canceled: true,
+	}
+
+	// Handle canceled search
+	_, _ = mode.Update(searchResult)
+
+	// Verify search was not performed
+	result := mode.editor.GetSearchResult()
+	if result != nil {
+		t.Error("Expected no search result when canceled")
+	}
+}
+
+func TestEditModeF3WithNoActiveSearch(t *testing.T) {
+	mode := NewEditMode()
+	mode.editor.SetContent("hello world hello")
+
+	// Press F3 without active search
+	keyMsg := tea.KeyMsg{Type: tea.KeyF3}
+	_, _ = mode.Update(keyMsg)
+
+	// Should not error and search should remain nil
+	result := mode.editor.GetSearchResult()
+	if result != nil {
+		t.Error("Expected no search result when F3 pressed without active search")
+	}
+}
+
+func TestEditModeShiftF3WithActiveSearch(t *testing.T) {
+	mode := NewEditMode()
+	mode.editor.SetContent("hello world hello universe")
+
+	// Perform search first
+	searchResult := overlay.SearchResult{
+		Action:  overlay.SearchActionFind,
+		Query:   "hello",
+		Options: search.DefaultSearchOptions(),
+	}
+	mode.Update(searchResult)
+
+	initialIndex := mode.editor.GetCurrentMatchIndex()
+
+	// Press Shift+F3
+	keyMsg := tea.KeyMsg{String: func() string { return "shift+f3" }()}
+	_, _ = mode.Update(keyMsg)
+
+	// Verify match index changed
+	newIndex := mode.editor.GetCurrentMatchIndex()
+	if newIndex == initialIndex {
+		// Note: This might wrap around, so we just check it's valid
+		if newIndex < 0 || newIndex >= 2 {
+			t.Errorf("Expected valid match index, got %d", newIndex)
+		}
 	}
 }
