@@ -5,8 +5,8 @@
 Pedantic Raven combines the specialized context engineering capabilities of ICS (Integrated Context Studio) with the rich interaction patterns of Crush TUI to create a powerful, production-ready terminal interface for creating, editing, and refining context with semantic analysis and memory integration.
 
 [![Go Version](https://img.shields.io/badge/Go-1.25%2B-blue.svg)](https://golang.org/dl/)
-[![Tests](https://img.shields.io/badge/tests-87%20passing-brightgreen.svg)](#testing)
-[![Coverage](https://img.shields.io/badge/coverage-53%25--92%25-green.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-291%20passing-brightgreen.svg)](#testing)
+[![Phase](https://img.shields.io/badge/phase-2%20complete-success.svg)](#features)
 
 ---
 
@@ -22,12 +22,33 @@ Pedantic Raven combines the specialized context engineering capabilities of ICS 
 - **Focus Management**: Keyboard navigation between panes
 - **Responsive Design**: Adapts to terminal size
 
+### Phase 2: Semantic Analysis & Edit Mode ✅ (Complete)
+
+- **Semantic Analyzer**: Real-time NLP-style text analysis
+  - Entity extraction with 6 types (Person, Place, Thing, Concept, Organization, Technology)
+  - Relationship detection (subject-predicate-object patterns)
+  - Typed holes (??Type and !!constraint markers)
+  - Dependency tracking (imports, requires, references)
+  - Triple generation (RDF-style semantic structures)
+- **Context Panel**: Rich semantic results display
+  - 5 sections (Entities, Relationships, Typed Holes, Dependencies, Triples)
+  - Filtering and navigation
+  - Priority/complexity scoring
+- **Integrated Terminal**: Command execution with history
+  - Built-in commands (:help, :clear, :history)
+  - Shell command execution
+  - mnemosyne CLI integration
+  - Scrollable output buffer
+- **Edit Mode**: Complete context editing environment
+  - Auto-triggered semantic analysis (500ms debounce)
+  - Multi-component layout (editor, context panel, terminal)
+  - Focus management across components
+
 ### Coming Soon
 
-- **Phase 2**: Rich context editing with semantic analysis
-- **Phase 3**: Mnemosyne RPC integration for memory management
-- **Phase 4**: Memory workspace with graph visualization
-- **Phase 5**: Semantic insights and triple analysis
+- **Phase 3**: Advanced editor features (syntax highlighting, file operations, search/replace)
+- **Phase 4**: Explore Mode - Memory workspace with graph visualization
+- **Phase 5**: Analyze Mode - Statistical analysis and insights
 - **Phase 6**: Multi-agent orchestration
 - **Phase 7**: Live collaborative editing
 
@@ -57,16 +78,32 @@ go build -o pedantic_raven .
 
 ### Usage
 
-**Keyboard Shortcuts:**
+**Quick Reference:**
 
 | Key | Action |
 |-----|--------|
 | `1`, `2`, `3` | Switch modes (Edit, Explore, Analyze) |
-| `f` / `s` | Toggle layout (Focus / Standard) |
 | `Tab` | Cycle focus between panes |
 | `Ctrl+K` | Open command palette |
 | `?` | Show about dialog |
-| `q` / `Ctrl+C` | Quit |
+| `Ctrl+C` | Quit |
+
+**Edit Mode (when editor focused):**
+- Type to enter text (triggers automatic semantic analysis)
+- `Backspace` - Delete character
+- `Enter` - New line
+
+**Edit Mode (when context panel focused):**
+- `j`/`k` or `↓`/`↑` - Scroll
+- `PgUp`/`PgDn` - Scroll by page
+- `Enter` - Toggle section
+
+**Edit Mode (when terminal focused):**
+- Type commands and press `Enter`
+- `↑`/`↓` - Command history
+- Built-in commands: `:help`, `:clear`, `:history`, `:exit`
+
+📚 **See [docs/USAGE.md](docs/USAGE.md) for complete keyboard reference and feature guide**
 
 ---
 
@@ -180,16 +217,23 @@ go tool cover -html=coverage.out
 
 ### Test Summary
 
-| Package | Tests | Coverage |
-|---------|-------|----------|
-| events  | 7     | 53.0%    |
-| layout  | 19    | 54.5%    |
-| modes   | 17    | 92.0%    |
-| overlay | 24    | 66.7%    |
-| palette | 20    | 88.3%    |
-| **Total** | **87** | **53-92%** |
+| Package | Tests | Coverage | Status |
+|---------|-------|----------|--------|
+| app/events  | 18 | ~70% | ✅ |
+| context | 25 | ~80% | ✅ |
+| editor | 29 | ~75% | ✅ |
+| editor/buffer | 52 | ~85% | ✅ |
+| editor/semantic | 63 | ~90% | ✅ |
+| layout  | 34 | ~65% | ✅ |
+| modes   | 13 | ~92% | ✅ |
+| overlay | 25 | ~70% | ✅ |
+| palette | 19 | ~88% | ✅ |
+| terminal | 38 | ~80% | ✅ |
+| **Total** | **291** | **~80%** | **✅** |
 
 All tests passing ✅
+
+📊 **See [docs/PHASE2_SUMMARY.md](docs/PHASE2_SUMMARY.md) for detailed breakdown**
 
 ---
 
@@ -292,8 +336,10 @@ Tests: 8 new tests for fuzzy matching
 
 ### Comprehensive Docs
 
-- **[spec.md](spec.md)**: Full specification with requirements and architecture
+- **[USAGE.md](docs/USAGE.md)**: Complete user guide with keyboard shortcuts, features, and examples
+- **[PHASE2_SUMMARY.md](docs/PHASE2_SUMMARY.md)**: Phase 2 completion summary with architecture details
 - **[PHASE1_COMPLETE.md](docs/PHASE1_COMPLETE.md)**: Phase 1 completion summary
+- **[spec.md](spec.md)**: Full specification with requirements and architecture
 - **Package docs**: Each package has detailed comments and examples
 
 ### External Resources
@@ -313,43 +359,55 @@ Tests: 8 new tests for fuzzy matching
 - [x] Overlay system
 - [x] Command palette
 
-### Phase 2: Edit Mode (Next - 3-4 weeks)
-- [ ] Multi-buffer editing
-- [ ] Semantic analysis with streaming
-- [ ] Context panel (notes, triples, dependencies)
-- [ ] Terminal integration
+### Phase 2: Semantic Analysis & Edit Mode ✅ (Complete)
+- [x] Semantic analyzer with streaming
+- [x] Entity extraction (6 types)
+- [x] Relationship detection
+- [x] Typed holes (??Type, !!constraint)
+- [x] Context panel with 5 sections
+- [x] Terminal integration
+- [x] Edit Mode with auto-analysis
+- [x] 291 tests passing
 
-### Phase 3: Mnemosyne RPC (5-7 weeks)
-- [ ] Level 1: Basic CRUD operations
-- [ ] Level 2: Search and streaming
-- [ ] Level 3: Multi-agent orchestration
+### Phase 3: Advanced Editor (Next - 2-3 weeks)
+- [ ] Syntax highlighting
+- [ ] File operations (open, save, save-as)
+- [ ] Search and replace
+- [ ] Multi-cursor editing
+- [ ] Advanced undo/redo
 
-### Phase 4: Explore Mode (4-5 weeks)
+### Phase 4: Explore Mode (3-4 weeks)
 - [ ] Memory workspace
 - [ ] Graph visualization
-- [ ] Search interface
+- [ ] mnemosyne integration
+- [ ] Triple exploration
+- [ ] Namespace navigation
 
-### Phase 5: Analyze Mode (3-4 weeks)
-- [ ] Semantic insights
-- [ ] Triple analysis
-- [ ] Pattern detection
+### Phase 5: Analyze Mode (2-3 weeks)
+- [ ] Statistical analysis
+- [ ] Entity relationship graphs
+- [ ] Typed hole prioritization UI
+- [ ] Dependency tree visualization
 
-### Phase 6: Orchestrate Mode (5-6 weeks)
+### Phase 6: Orchestrate Mode (4-5 weeks)
 - [ ] Agent coordination
 - [ ] Task management
 - [ ] Progress monitoring
+- [ ] Multi-agent workflows
 
-### Phase 7: Collaborate Mode (4-5 weeks)
+### Phase 7: Collaborate Mode (3-4 weeks)
 - [ ] Live multi-user editing
 - [ ] Presence awareness
 - [ ] Conflict resolution
+- [ ] Shared annotations
 
 ### Phase 8: Polish & Production (2-3 weeks)
 - [ ] Performance optimization
 - [ ] Comprehensive documentation
 - [ ] Packaging and distribution
+- [ ] Release 1.0
 
-**Total Timeline**: 6-8 months
+**Estimated Timeline**: 4-6 months remaining
 
 ---
 
@@ -431,6 +489,8 @@ This project is part of the mnemosyne ecosystem. See repository for license deta
 
 ---
 
-**Status**: Phase 1 Complete ✅ | Next: Phase 2 (Edit Mode)
+**Status**: Phase 2 Complete ✅ | Next: Phase 3 (Advanced Editor)
+
+**Stats**: 291 tests passing | ~4,850 lines of code | 4.5MB binary
 
 Built with ❤️ using [Bubble Tea](https://github.com/charmbracelet/bubbletea)
