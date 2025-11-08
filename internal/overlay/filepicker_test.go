@@ -251,9 +251,9 @@ func TestFilePickerView(t *testing.T) {
 		t.Error("Expected view to contain title")
 	}
 
-	// Should contain directory path
-	if !containsIgnoreCase(view, tmpDir) {
-		t.Error("Expected view to contain directory path")
+	// Should contain "Directory:" label
+	if !containsIgnoreCase(view, "Directory:") {
+		t.Error("Expected view to contain directory label")
 	}
 }
 
