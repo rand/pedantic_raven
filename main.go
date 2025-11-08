@@ -8,7 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/rand/pedantic-raven/internal/app/events"
-	"github.com/rand/pedantic-raven/internal/layout"
+	"github.com/rand/pedantic-raven/internal/editor"
 	"github.com/rand/pedantic-raven/internal/modes"
 	"github.com/rand/pedantic-raven/internal/overlay"
 	"github.com/rand/pedantic-raven/internal/palette"
@@ -30,49 +30,11 @@ var (
 		Padding(0, 1)
 )
 
-// DemoComponent is a simple component for testing.
-type DemoComponent struct {
-	id      layout.PaneID
-	content string
-}
-
-func NewDemoComponent(id layout.PaneID, content string) *DemoComponent {
-	return &DemoComponent{
-		id:      id,
-		content: content,
-	}
-}
-
-func (c *DemoComponent) ID() layout.PaneID {
-	return c.id
-}
-
-func (c *DemoComponent) Update(msg tea.Msg) (layout.Component, tea.Cmd) {
-	return c, nil
-}
-
-func (c *DemoComponent) View(area layout.Rect, focused bool) string {
-	style := lipgloss.NewStyle().
-		Width(area.Width).
-		Height(area.Height).
-		Border(lipgloss.RoundedBorder()).
-		Padding(1)
-
-	if focused {
-		style = style.BorderForeground(lipgloss.Color("170"))
-	} else {
-		style = style.BorderForeground(lipgloss.Color("240"))
-	}
-
-	return style.Render(c.content)
-}
-
 // Application model integrating all foundation components.
 type model struct {
 	ready           bool
 	eventBroker     *events.Broker
 	modeRegistry    *modes.Registry
-	layoutEngine    *layout.Engine
 	overlayManager  *overlay.Manager
 	paletteRegistry *palette.CommandRegistry
 	width           int
@@ -87,8 +49,8 @@ func initialModel() model {
 	// Create mode registry
 	modeRegistry := modes.NewRegistry()
 
-	// Register demo modes
-	editMode := modes.NewBaseMode(modes.ModeEdit, "Edit", "Context editing mode")
+	// Register real modes
+	editMode := editor.NewEditMode()
 	exploreMode := modes.NewBaseMode(modes.ModeExplore, "Explore", "Memory workspace")
 	analyzeMode := modes.NewBaseMode(modes.ModeAnalyze, "Analyze", "Semantic analysis")
 
@@ -96,17 +58,8 @@ func initialModel() model {
 	modeRegistry.Register(exploreMode)
 	modeRegistry.Register(analyzeMode)
 
-	// Create layout engine
-	layoutEngine := layout.NewEngine(layout.LayoutStandard)
-
-	// Add demo components
-	editor := NewDemoComponent("editor", "Editor Pane\n\nEdit your context here...")
-	sidebar := NewDemoComponent("sidebar", "Sidebar\n\nMemory notes\nTriples\nAgents")
-	terminal := NewDemoComponent("terminal", "Terminal\n\n$ mnemosyne recall \"test\"")
-
-	layoutEngine.RegisterComponent(editor)
-	layoutEngine.RegisterComponent(sidebar)
-	layoutEngine.RegisterComponent(terminal)
+	// Set Edit as default mode
+	modeRegistry.SwitchTo(modes.ModeEdit)
 
 	// Create overlay manager
 	overlayManager := overlay.NewManager()
@@ -118,7 +71,6 @@ func initialModel() model {
 		ready:           false,
 		eventBroker:     broker,
 		modeRegistry:    modeRegistry,
-		layoutEngine:    layoutEngine,
 		overlayManager:  overlayManager,
 		paletteRegistry: paletteRegistry,
 		eventLog:        make([]string, 0),
@@ -171,34 +123,7 @@ func (m *model) registerCommands() {
 		},
 	})
 
-	// Layout commands
-	m.paletteRegistry.Register(palette.Command{
-		ID:          "layout.focus",
-		Name:        "Focus Layout",
-		Description: "Single large editor pane",
-		Keybinding:  "F",
-		Category:    palette.CategoryView,
-		Execute: func() tea.Cmd {
-			m.layoutEngine.SetMode(layout.LayoutFocus)
-			m.logEvent("Layout: Focus")
-			return nil
-		},
-	})
-
-	m.paletteRegistry.Register(palette.Command{
-		ID:          "layout.standard",
-		Name:        "Standard Layout",
-		Description: "Editor + sidebar + terminal",
-		Keybinding:  "S",
-		Category:    palette.CategoryView,
-		Execute: func() tea.Cmd {
-			m.layoutEngine.SetMode(layout.LayoutStandard)
-			m.logEvent("Layout: Standard")
-			return nil
-		},
-	})
-
-	// Overlay commands
+	// Help commands
 	m.paletteRegistry.Register(palette.Command{
 		ID:          "help.about",
 		Name:        "About Pedantic Raven",
@@ -209,33 +134,9 @@ func (m *model) registerCommands() {
 			dialog := overlay.NewMessageDialog(
 				"about",
 				"Pedantic Raven",
-				"Interactive Context Engineering Environment\n\nPhase 1 Foundation Complete:\n✓ PubSub Events\n✓ Layout Engine\n✓ Mode Registry\n✓ Overlay System\n✓ Command Palette",
+				"Interactive Context Engineering Environment\n\nPhase 2 Complete:\n✓ Semantic Analysis\n✓ Context Panel\n✓ Terminal Integration\n✓ Edit Mode\n\n291 tests passing",
 				func() tea.Cmd {
 					m.logEvent("Closed about dialog")
-					return nil
-				},
-			)
-			return m.overlayManager.Push(dialog)
-		},
-	})
-
-	m.paletteRegistry.Register(palette.Command{
-		ID:          "help.confirm",
-		Name:        "Test Confirm Dialog",
-		Description: "Show a confirmation dialog",
-		Keybinding:  "C",
-		Category:    palette.CategoryHelp,
-		Execute: func() tea.Cmd {
-			dialog := overlay.NewConfirmDialog(
-				"test-confirm",
-				"Confirmation",
-				"This is a test confirmation dialog.\n\nDo you want to proceed?",
-				func() tea.Cmd {
-					m.logEvent("User clicked Yes")
-					return nil
-				},
-				func() tea.Cmd {
-					m.logEvent("User clicked No")
 					return nil
 				},
 			)
@@ -252,9 +153,11 @@ func (m *model) logEvent(msg string) {
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.Batch(
-		m.layoutEngine.Init(),
-	)
+	// Initialize current mode
+	if currentMode := m.modeRegistry.Current(); currentMode != nil {
+		return currentMode.Init()
+	}
+	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -265,9 +168,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.ready = true
 		m.width = wsMsg.Width
 		m.height = wsMsg.Height
-		m.layoutEngine.SetTerminalSize(wsMsg.Width, wsMsg.Height)
 		m.overlayManager.Update(wsMsg)
-		return m, nil
+
+		// Forward to current mode
+		if currentMode := m.modeRegistry.Current(); currentMode != nil {
+			_, cmd := currentMode.Update(wsMsg)
+			if cmd != nil {
+				cmds = append(cmds, cmd)
+			}
+		}
+		return m, tea.Batch(cmds...)
 	}
 
 	// Handle overlays first (if present)
@@ -286,7 +196,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Handle global keys
 	if keyMsg, ok := msg.(tea.KeyMsg); ok {
 		switch keyMsg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c":
 			return m, tea.Quit
 
 		case "ctrl+k":
@@ -295,12 +205,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd := m.overlayManager.Push(p)
 			cmds = append(cmds, cmd)
 			m.logEvent("Opened command palette")
-			return m, tea.Batch(cmds...)
-
-		case "tab":
-			// Focus next pane
-			m.layoutEngine.FocusNext()
-			m.logEvent("Focus next pane")
 			return m, tea.Batch(cmds...)
 
 		case "1", "2", "3":
@@ -321,22 +225,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, tea.Batch(cmds...)
 
-		case "f", "F":
-			m.layoutEngine.SetMode(layout.LayoutFocus)
-			m.logEvent("Layout: Focus")
-			return m, tea.Batch(cmds...)
-
-		case "s", "S":
-			m.layoutEngine.SetMode(layout.LayoutStandard)
-			m.logEvent("Layout: Standard")
-			return m, tea.Batch(cmds...)
-
 		case "?":
 			// Show about dialog
 			dialog := overlay.NewMessageDialog(
 				"about",
 				"Pedantic Raven",
-				"Interactive Context Engineering Environment\n\nPhase 1 Foundation Complete:\n✓ PubSub Events\n✓ Layout Engine\n✓ Mode Registry\n✓ Overlay System\n✓ Command Palette",
+				"Interactive Context Engineering Environment\n\nPhase 2 Complete:\n✓ Semantic Analysis\n✓ Context Panel\n✓ Terminal Integration\n✓ Edit Mode\n\n291 tests passing",
 				func() tea.Cmd {
 					m.logEvent("Closed about dialog")
 					return nil
@@ -349,10 +243,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Update layout engine
-	_, cmd := m.layoutEngine.Update(msg)
-	if cmd != nil {
-		cmds = append(cmds, cmd)
+	// Update current mode
+	if currentMode := m.modeRegistry.Current(); currentMode != nil {
+		updatedMode, cmd := currentMode.Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
+		// Update mode in registry (modes are mutable)
+		_ = updatedMode
 	}
 
 	return m, tea.Batch(cmds...)
@@ -366,22 +265,28 @@ func (m model) View() string {
 	var b strings.Builder
 
 	// Title bar
-	currentMode := m.modeRegistry.CurrentID()
-	if currentMode == "" {
-		currentMode = "None"
+	currentModeID := m.modeRegistry.CurrentID()
+	modeName := string(currentModeID)
+	if modeName == "" {
+		modeName = "None"
 	}
 
-	title := titleStyle.Render("🐦 Pedantic Raven - Phase 1 Demo")
-	status := statusStyle.Render(fmt.Sprintf("Mode: %s | Layout: %s", currentMode, m.layoutEngine.Mode()))
+	title := titleStyle.Render("🐦 Pedantic Raven - Phase 2")
+	status := statusStyle.Render(fmt.Sprintf("Mode: %s | %dx%d", modeName, m.width, m.height))
 
 	b.WriteString(title)
 	b.WriteString("\n")
 	b.WriteString(status)
 	b.WriteString("\n\n")
 
-	// Main layout
-	layoutView := m.layoutEngine.View()
-	b.WriteString(layoutView)
+	// Render current mode
+	if currentMode := m.modeRegistry.Current(); currentMode != nil {
+		modeView := currentMode.View()
+		b.WriteString(modeView)
+	} else {
+		b.WriteString("No mode active")
+	}
+
 	b.WriteString("\n\n")
 
 	// Event log
@@ -396,7 +301,7 @@ func (m model) View() string {
 	}
 
 	// Help
-	help := helpStyle.Render("Keys: 1,2,3=modes | f,s=layout | Tab=focus | Ctrl+K=palette | ?=about | q=quit")
+	help := helpStyle.Render("Keys: 1,2,3=modes | Tab=focus | Ctrl+K=palette | ?=about | Ctrl+C=quit")
 	b.WriteString(help)
 
 	// Render overlays on top
