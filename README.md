@@ -44,9 +44,18 @@ Pedantic Raven combines the specialized context engineering capabilities of ICS 
   - Multi-component layout (editor, context panel, terminal)
   - Focus management across components
 
-### Coming Soon
+### Phase 3: Advanced Editor Features (In Progress)
 
-- **Phase 3**: Advanced editor features (syntax highlighting, file operations, search/replace)
+**Phase 3.1** ✅ Complete:
+- Buffer Manager integration with undo/redo support
+- Undo/redo keybindings (Ctrl+Z, Ctrl+Y)
+- Cursor position management
+- All 291 tests passing
+
+**Coming Soon**:
+- Phase 3.2: File operations (open, save, save-as)
+- Phase 3.3: Search and replace
+- Phase 3.4: Basic syntax highlighting
 - **Phase 4**: Explore Mode - Memory workspace with graph visualization
 - **Phase 5**: Analyze Mode - Statistical analysis and insights
 - **Phase 6**: Multi-agent orchestration
@@ -92,6 +101,8 @@ go build -o pedantic_raven .
 - Type to enter text (triggers automatic semantic analysis)
 - `Backspace` - Delete character
 - `Enter` - New line
+- `Ctrl+Z` - Undo
+- `Ctrl+Y` or `Ctrl+Shift+Z` - Redo
 
 **Edit Mode (when context panel focused):**
 - `j`/`k` or `↓`/`↑` - Scroll
@@ -369,12 +380,11 @@ Tests: 8 new tests for fuzzy matching
 - [x] Edit Mode with auto-analysis
 - [x] 291 tests passing
 
-### Phase 3: Advanced Editor (Next - 2-3 weeks)
-- [ ] Syntax highlighting
-- [ ] File operations (open, save, save-as)
-- [ ] Search and replace
-- [ ] Multi-cursor editing
-- [ ] Advanced undo/redo
+### Phase 3: Advanced Editor (In Progress - 2-3 weeks)
+- [x] **Phase 3.1**: Buffer Manager integration, undo/redo (Days 1-2) ✅
+- [ ] **Phase 3.2**: File operations - open, save, save-as (Days 3-4)
+- [ ] **Phase 3.3**: Search and replace (Days 5-6)
+- [ ] **Phase 3.4**: Basic syntax highlighting (Days 7-8)
 
 ### Phase 4: Explore Mode (3-4 weeks)
 - [ ] Memory workspace
@@ -489,7 +499,7 @@ This project is part of the mnemosyne ecosystem. See repository for license deta
 
 ---
 
-**Status**: Phase 2 Complete ✅ | Next: Phase 3 (Advanced Editor)
+**Status**: Phase 3.1 Complete ✅ | Current: Phase 3.2 (File Operations)
 
 **Stats**: 291 tests passing | ~4,850 lines of code | 4.5MB binary
 
