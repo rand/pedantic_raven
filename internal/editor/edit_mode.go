@@ -7,6 +7,7 @@ import (
 	"github.com/rand/pedantic-raven/internal/context"
 	"github.com/rand/pedantic-raven/internal/editor/semantic"
 	"github.com/rand/pedantic-raven/internal/modes"
+	"github.com/rand/pedantic-raven/internal/overlay"
 	"github.com/rand/pedantic-raven/internal/terminal"
 )
 
@@ -117,6 +118,46 @@ func (m *EditMode) Update(msg tea.Msg) (modes.Mode, tea.Cmd) {
 		return m, nil
 	}
 
+	// Handle file picker result
+	if result, ok := msg.(overlay.FilePickerResult); ok {
+		if !result.Canceled && result.FilePath != "" {
+			// Open the selected file
+			err := m.editor.OpenFile(result.FilePath)
+			if err != nil {
+				// TODO: Show error message overlay
+				_ = err
+			}
+		}
+		return m, nil
+	}
+
+	// Handle file operations keybindings (before delegating to base)
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		switch keyMsg.String() {
+		case "ctrl+o":
+			// Open file picker
+			return m, m.showFilePicker()
+
+		case "ctrl+s":
+			// Save file
+			if m.editor.GetFilePath() != "" {
+				err := m.editor.SaveFile()
+				if err != nil {
+					// TODO: Show error message
+					_ = err
+				}
+			} else {
+				// No file path, show save as dialog
+				return m, m.showFilePicker()
+			}
+			return m, nil
+
+		case "ctrl+shift+s":
+			// Save as - show file picker
+			return m, m.showFilePicker()
+		}
+	}
+
 	// Delegate to base mode for layout updates
 	_, cmd := m.BaseMode.Update(msg)
 	if cmd != nil {
@@ -172,10 +213,12 @@ func (m *EditMode) View() string {
 func (m *EditMode) Keybindings() []modes.Keybinding {
 	return []modes.Keybinding{
 		{"Tab", "Focus next pane"},
+		{"Ctrl+O", "Open file"},
+		{"Ctrl+S", "Save file"},
+		{"Ctrl+Shift+S", "Save as"},
 		{"Ctrl+A", "Trigger analysis"},
 		{"Ctrl+T", "Focus terminal"},
 		{"Ctrl+E", "Focus editor"},
-		{"Ctrl+S", "Focus sidebar"},
 		{"q", "Quit mode"},
 		{"?", "Show help"},
 	}
@@ -199,4 +242,15 @@ func (m *EditMode) GetTerminal() *TerminalComponent {
 // SetAnalyzer sets a custom semantic analyzer.
 func (m *EditMode) SetAnalyzer(analyzer semantic.Analyzer) {
 	m.analyzer = analyzer
+}
+
+// showFilePicker returns a command to display the file picker overlay.
+// This is a placeholder - actual implementation requires overlay manager integration.
+func (m *EditMode) showFilePicker() tea.Cmd {
+	// TODO: This requires integration with the application's overlay manager
+	// For now, return nil. The actual implementation will:
+	// 1. Create a FilePicker overlay
+	// 2. Push it to the overlay manager
+	// 3. Handle the FilePickerResult message
+	return nil
 }
