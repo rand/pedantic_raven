@@ -1,0 +1,48 @@
+# Binaries
+pedantic-raven
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.log
+
+# Local configuration
+.env
+.env.local
+
+# Claude Code context (if user-specific)
+# .claude/
+
+# Beads database (keep in repo for collaboration)
+# .beads/
