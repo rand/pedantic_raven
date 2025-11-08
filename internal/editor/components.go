@@ -12,6 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/rand/pedantic-raven/internal/context"
+	"github.com/rand/pedantic-raven/internal/editor/buffer"
 	"github.com/rand/pedantic-raven/internal/editor/semantic"
 	"github.com/rand/pedantic-raven/internal/layout"
 	"github.com/rand/pedantic-raven/internal/terminal"
@@ -38,19 +39,15 @@ var (
 
 // --- EditorComponent ---
 
-// EditorComponent provides text editing functionality.
+// EditorComponent provides text editing functionality with full undo/redo support.
 type EditorComponent struct {
-	content string
-	cursor  int
-	lines   []string
+	buffer buffer.Buffer
 }
 
 // NewEditorComponent creates a new editor component.
 func NewEditorComponent() *EditorComponent {
 	return &EditorComponent{
-		content: "",
-		cursor:  0,
-		lines:   []string{""},
+		buffer: buffer.NewBuffer("editor-0"),
 	}
 }
 
@@ -62,14 +59,30 @@ func (e *EditorComponent) ID() layout.PaneID {
 // Update implements layout.Component.
 func (e *EditorComponent) Update(msg tea.Msg) (layout.Component, tea.Cmd) {
 	if keyMsg, ok := msg.(tea.KeyMsg); ok {
-		switch keyMsg.Type {
-		case tea.KeyRunes:
-			// Insert character
-			e.insertRune(keyMsg.Runes[0])
-		case tea.KeyBackspace:
+		switch keyMsg.String() {
+		case "ctrl+z":
+			// Undo
+			e.buffer.Undo()
+			return e, nil
+
+		case "ctrl+y", "ctrl+shift+z":
+			// Redo
+			e.buffer.Redo()
+			return e, nil
+
+		case "backspace":
 			e.deleteChar()
-		case tea.KeyEnter:
+
+		case "enter":
 			e.insertNewline()
+
+		default:
+			// Handle regular key presses
+			if keyMsg.Type == tea.KeyRunes {
+				for _, r := range keyMsg.Runes {
+					e.insertRune(r)
+				}
+			}
 		}
 	}
 	return e, nil
@@ -87,15 +100,8 @@ func (e *EditorComponent) View(area layout.Rect, focused bool) string {
 		style = style.BorderForeground(normalBorderColor)
 	}
 
-	// Build content view
-	var lines []string
-	if len(e.lines) == 0 {
-		lines = []string{"(empty)"}
-	} else {
-		lines = e.lines
-	}
-
-	content := strings.Join(lines, "\n")
+	// Get content from buffer
+	content := e.buffer.Content()
 	if content == "" {
 		content = "(empty)"
 	}
@@ -105,39 +111,52 @@ func (e *EditorComponent) View(area layout.Rect, focused bool) string {
 
 // GetContent returns the current editor content.
 func (e *EditorComponent) GetContent() string {
-	return strings.Join(e.lines, "\n")
+	return e.buffer.Content()
 }
 
 // SetContent sets the editor content.
 func (e *EditorComponent) SetContent(content string) {
-	e.content = content
-	e.lines = strings.Split(content, "\n")
-	if len(e.lines) == 0 {
-		e.lines = []string{""}
+	// Clear and recreate buffer with new content
+	e.buffer.Clear()
+	if content != "" {
+		pos := buffer.Position{Line: 0, Column: 0}
+		e.buffer.Insert(pos, content)
 	}
 }
 
 func (e *EditorComponent) insertRune(r rune) {
-	// Simple single-line insertion for now
-	if len(e.lines) == 0 {
-		e.lines = []string{string(r)}
-	} else {
-		e.lines[len(e.lines)-1] += string(r)
-	}
+	pos := e.buffer.Cursor()
+	e.buffer.Insert(pos, string(r))
+	// Move cursor forward after insertion
+	e.buffer.SetCursor(buffer.Position{Line: pos.Line, Column: pos.Column + 1})
 }
 
 func (e *EditorComponent) deleteChar() {
-	if len(e.lines) == 0 {
-		return
-	}
-	lastLine := e.lines[len(e.lines)-1]
-	if len(lastLine) > 0 {
-		e.lines[len(e.lines)-1] = lastLine[:len(lastLine)-1]
+	pos := e.buffer.Cursor()
+
+	// Delete previous character
+	if pos.Column > 0 {
+		from := buffer.Position{Line: pos.Line, Column: pos.Column - 1}
+		to := pos
+		e.buffer.Delete(from, to)
+		// Move cursor back after deletion
+		e.buffer.SetCursor(from)
+	} else if pos.Line > 0 {
+		// Delete newline at end of previous line
+		prevLine := e.buffer.Line(pos.Line - 1)
+		from := buffer.Position{Line: pos.Line - 1, Column: len(prevLine)}
+		to := buffer.Position{Line: pos.Line, Column: 0}
+		e.buffer.Delete(from, to)
+		// Move cursor to end of previous line after deletion
+		e.buffer.SetCursor(from)
 	}
 }
 
 func (e *EditorComponent) insertNewline() {
-	e.lines = append(e.lines, "")
+	pos := e.buffer.Cursor()
+	e.buffer.Insert(pos, "\n")
+	// Move cursor to start of next line after newline insertion
+	e.buffer.SetCursor(buffer.Position{Line: pos.Line + 1, Column: 0})
 }
 
 // --- ContextPanelComponent ---
