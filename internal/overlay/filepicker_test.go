@@ -60,14 +60,12 @@ func TestFilePickerLoadDirectory(t *testing.T) {
 	}
 
 	// Check that directory appears before files
-	foundDir := false
 	foundFile := false
 	for _, entry := range fp.files[1:] { // Skip ".."
 		if entry.isDir {
 			if foundFile {
 				t.Error("Expected directories to appear before files")
 			}
-			foundDir = true
 		} else {
 			foundFile = true
 		}
