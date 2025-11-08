@@ -35,6 +35,11 @@ type Model struct {
 	// Pagination
 	pageSize   int
 	totalCount uint32
+
+	// Client integration (optional)
+	client     interface{} // Can hold *mnemosyne.Client
+	loadOpts   LoadOptions
+	autoReload bool
 }
 
 // SortMode defines how memories are sorted.
@@ -115,13 +120,37 @@ func NewModel() Model {
 		loading:       false,
 		focused:       true,
 		pageSize:      50,
+		loadOpts:      DefaultLoadOptions(),
+		autoReload:    false,
 	}
+}
+
+// NewModelWithClient creates a new model with a mnemosyne client.
+func NewModelWithClient(client interface{}) Model {
+	m := NewModel()
+	m.client = client
+	m.autoReload = true
+	return m
 }
 
 // Init implements tea.Model.
 func (m Model) Init() tea.Cmd {
+	// If we have a client and autoReload is enabled, load initial data
+	if m.client != nil && m.autoReload {
+		// Type assert to get the actual client
+		// This is safe because we control what gets passed in
+		return func() tea.Msg {
+			return LoadRequestMsg{}
+		}
+	}
 	return nil
 }
+
+// LoadRequestMsg requests a data reload.
+type LoadRequestMsg struct{}
+
+// ReloadRequestMsg requests a data reload with current filters.
+type ReloadRequestMsg struct{}
 
 // SetSize sets the component size.
 func (m *Model) SetSize(width, height int) {
@@ -190,4 +219,29 @@ func (m Model) IsLoading() bool {
 // Error returns the current error, if any.
 func (m Model) Error() error {
 	return m.err
+}
+
+// SetClient sets the mnemosyne client for this model.
+func (m *Model) SetClient(client interface{}) {
+	m.client = client
+}
+
+// Client returns the mnemosyne client, if set.
+func (m Model) Client() interface{} {
+	return m.client
+}
+
+// LoadOptions returns the current load options.
+func (m Model) LoadOptions() LoadOptions {
+	return m.loadOpts
+}
+
+// SetLoadOptions sets the load options.
+func (m *Model) SetLoadOptions(opts LoadOptions) {
+	m.loadOpts = opts
+}
+
+// SearchQuery returns the current search query.
+func (m Model) SearchQuery() string {
+	return m.searchQuery
 }

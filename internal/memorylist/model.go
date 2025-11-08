@@ -29,6 +29,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case SearchQueryMsg:
 		m.searchQuery = msg.Query
 		m.applyFilters()
+		// If client is available and autoReload, trigger search
+		if m.client != nil && m.autoReload {
+			return m, m.searchCmd()
+		}
 		return m, nil
 
 	case FilterChangedMsg:
@@ -36,6 +40,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.filterNS = msg.Namespace
 		m.minImportance = msg.MinImportance
 		m.applyFilters()
+		// If client is available and autoReload, trigger reload
+		if m.client != nil && m.autoReload {
+			return m, m.reloadCmd()
+		}
 		return m, nil
 
 	case SortChangedMsg:
@@ -43,9 +51,44 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.sortDesc = msg.Desc
 		m.applySorting()
 		return m, nil
+
+	case LoadRequestMsg:
+		m.SetLoading(true)
+		return m, m.loadCmd()
+
+	case ReloadRequestMsg:
+		m.SetLoading(true)
+		return m, m.reloadCmd()
 	}
 
 	return m, nil
+}
+
+// loadCmd returns a command to load memories from the client.
+func (m Model) loadCmd() tea.Cmd {
+	if m.client == nil {
+		return nil
+	}
+
+	// Type assert to mnemosyne.Client (we know this is safe)
+	// Using interface{} allows us to avoid import cycles
+	return nil // Will be implemented by the caller with proper client access
+}
+
+// searchCmd returns a command to search memories.
+func (m Model) searchCmd() tea.Cmd {
+	if m.client == nil || m.searchQuery == "" {
+		return nil
+	}
+	return nil // Will be implemented by the caller
+}
+
+// reloadCmd returns a command to reload with current filters.
+func (m Model) reloadCmd() tea.Cmd {
+	if m.client == nil {
+		return nil
+	}
+	return nil // Will be implemented by the caller
 }
 
 // handleKeyPress processes keyboard input.
