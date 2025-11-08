@@ -1,19 +1,20 @@
 package memorylist
 
 import (
+	"errors"
 	"testing"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	pb "github.com/rand/pedantic-raven/internal/mnemosyne/pb/mnemosyne/v1"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Test helpers
 
 func createTestMemory(id, content string, importance uint32, tags []string, updatedAgo time.Duration) *pb.MemoryNote {
+	now := time.Now()
 	return &pb.MemoryNote{
-		MemoryId:   id,
+		Id:         id,
 		Content:    content,
 		Importance: importance,
 		Tags:       tags,
@@ -22,11 +23,9 @@ func createTestMemory(id, content string, importance uint32, tags []string, upda
 				Global: &pb.GlobalNamespace{},
 			},
 		},
-		CreatedAt: timestamppb.New(time.Now().Add(-24 * time.Hour)),
-		UpdatedAt: timestamppb.New(time.Now().Add(-updatedAgo)),
-		Metadata: &pb.MemoryMetadata{
-			Links: []*pb.MemoryLink{},
-		},
+		CreatedAt: uint64(now.Add(-24 * time.Hour).Unix()),
+		UpdatedAt: uint64(now.Add(-updatedAgo).Unix()),
+		Links:     []*pb.MemoryLink{},
 	}
 }
 
@@ -145,7 +144,7 @@ func TestSetError(t *testing.T) {
 	}
 }
 
-var ErrTestError = tea.Quit().(error)
+var ErrTestError = errors.New("test error")
 
 // --- Selection Tests ---
 
@@ -163,8 +162,8 @@ func TestSelectedMemory(t *testing.T) {
 		t.Fatal("Expected selected memory")
 	}
 
-	if selected.MemoryId != "1" {
-		t.Errorf("Expected selected memory ID '1', got '%s'", selected.MemoryId)
+	if selected.Id != "1" {
+		t.Errorf("Expected selected memory ID '1', got '%s'", selected.Id)
 	}
 }
 
@@ -380,12 +379,12 @@ func TestSortByImportance(t *testing.T) {
 
 	m.SetSort(SortByImportance, true) // Descending
 
-	if m.filteredMems[0].MemoryId != "2" {
-		t.Errorf("Expected first memory to be ID '2' (importance 9), got '%s'", m.filteredMems[0].MemoryId)
+	if m.filteredMems[0].Id != "2" {
+		t.Errorf("Expected first memory to be ID '2' (importance 9), got '%s'", m.filteredMems[0].Id)
 	}
 
-	if m.filteredMems[2].MemoryId != "1" {
-		t.Errorf("Expected last memory to be ID '1' (importance 5), got '%s'", m.filteredMems[2].MemoryId)
+	if m.filteredMems[2].Id != "1" {
+		t.Errorf("Expected last memory to be ID '1' (importance 5), got '%s'", m.filteredMems[2].Id)
 	}
 }
 
@@ -400,12 +399,12 @@ func TestSortByUpdated(t *testing.T) {
 
 	m.SetSort(SortByUpdated, true) // Most recent first
 
-	if m.filteredMems[0].MemoryId != "2" {
-		t.Errorf("Expected first memory to be ID '2' (most recent), got '%s'", m.filteredMems[0].MemoryId)
+	if m.filteredMems[0].Id != "2" {
+		t.Errorf("Expected first memory to be ID '2' (most recent), got '%s'", m.filteredMems[0].Id)
 	}
 
-	if m.filteredMems[2].MemoryId != "1" {
-		t.Errorf("Expected last memory to be ID '1' (least recent), got '%s'", m.filteredMems[2].MemoryId)
+	if m.filteredMems[2].Id != "1" {
+		t.Errorf("Expected last memory to be ID '1' (least recent), got '%s'", m.filteredMems[2].Id)
 	}
 }
 

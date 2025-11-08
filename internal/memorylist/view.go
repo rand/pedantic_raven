@@ -223,17 +223,15 @@ func (m Model) renderMemoryFooter(mem *pb.MemoryNote, selected bool) string {
 	parts := []string{}
 
 	// Updated time
-	updated := formatRelativeTime(mem.UpdatedAt.AsTime())
+	updated := formatRelativeTime(time.Unix(int64(mem.UpdatedAt), 0))
 	parts = append(parts, "Updated "+updated)
 
-	// Link count (if we have metadata)
-	if mem.Metadata != nil {
-		linkCount := len(mem.Metadata.Links)
-		if linkCount == 1 {
-			parts = append(parts, "1 link")
-		} else {
-			parts = append(parts, fmt.Sprintf("%d links", linkCount))
-		}
+	// Link count
+	linkCount := len(mem.Links)
+	if linkCount == 1 {
+		parts = append(parts, "1 link")
+	} else if linkCount > 0 {
+		parts = append(parts, fmt.Sprintf("%d links", linkCount))
 	}
 
 	line := "  " + strings.Join(parts, " • ")

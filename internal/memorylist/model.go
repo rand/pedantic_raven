@@ -89,7 +89,6 @@ func (m Model) moveDown() Model {
 	}
 
 	// Auto-scroll
-	visibleStart := m.scrollOffset
 	visibleEnd := m.scrollOffset + m.visibleLines()
 
 	if m.selectedIndex >= visibleEnd {
@@ -272,10 +271,10 @@ func (m *Model) applySorting() {
 			less = a.Importance < b.Importance
 
 		case SortByUpdated:
-			less = a.UpdatedAt.AsTime().Before(b.UpdatedAt.AsTime())
+			less = a.UpdatedAt < b.UpdatedAt
 
 		case SortByCreated:
-			less = a.CreatedAt.AsTime().Before(b.CreatedAt.AsTime())
+			less = a.CreatedAt < b.CreatedAt
 
 		case SortByRelevance:
 			// TODO: Implement relevance scoring based on search query

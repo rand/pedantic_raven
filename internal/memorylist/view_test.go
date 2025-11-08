@@ -157,7 +157,7 @@ func TestExtractTitle(t *testing.T) {
 		{
 			name:     "Empty content",
 			content:  "",
-			expected: "(Empty)",
+			expected: "(Untitled)",
 		},
 		{
 			name:     "Whitespace only",
