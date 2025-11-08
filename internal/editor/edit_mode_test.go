@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -274,8 +275,8 @@ func TestEditorComponentInsertNewline(t *testing.T) {
 	keyMsg := tea.KeyMsg{Type: tea.KeyEnter}
 	editor.Update(keyMsg)
 
-	if len(editor.lines) != 2 {
-		t.Errorf("Expected 2 lines, got %d", len(editor.lines))
+	if editor.buffer.LineCount() != 2 {
+		t.Errorf("Expected 2 lines, got %d", editor.buffer.LineCount())
 	}
 }
 
@@ -285,8 +286,8 @@ func TestEditorComponentSetContent(t *testing.T) {
 	content := "Line 1\nLine 2\nLine 3"
 	editor.SetContent(content)
 
-	if len(editor.lines) != 3 {
-		t.Errorf("Expected 3 lines, got %d", len(editor.lines))
+	if editor.buffer.LineCount() != 3 {
+		t.Errorf("Expected 3 lines, got %d", editor.buffer.LineCount())
 	}
 
 	retrieved := editor.GetContent()
@@ -473,5 +474,209 @@ func TestEditModeLifecycle(t *testing.T) {
 	// Analyzer should be stopped
 	if mode.analyzing {
 		t.Error("Expected analyzing to be false after exit")
+	}
+}
+
+// --- File Operations Tests ---
+
+func TestEditorComponentOpenFile(t *testing.T) {
+	editor := NewEditorComponent()
+
+	// Create a temporary test file
+	content := "Line 1\nLine 2\nLine 3"
+	tmpFile, err := os.CreateTemp("", "test-*.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	_, err = tmpFile.WriteString(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpFile.Close()
+
+	// Open the file
+	err = editor.OpenFile(tmpFile.Name())
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Check content
+	loaded := editor.GetContent()
+	if loaded != content {
+		t.Errorf("Expected content %q, got %q", content, loaded)
+	}
+
+	// Check file path
+	if editor.GetFilePath() != tmpFile.Name() {
+		t.Errorf("Expected path %q, got %q", tmpFile.Name(), editor.GetFilePath())
+	}
+
+	// Check dirty flag (should be false after load)
+	if editor.IsDirty() {
+		t.Error("Expected buffer to be clean after loading file")
+	}
+}
+
+func TestEditorComponentOpenFileNonexistent(t *testing.T) {
+	editor := NewEditorComponent()
+
+	// Try to open non-existent file
+	err := editor.OpenFile("/nonexistent/path/file.txt")
+	if err == nil {
+		t.Error("Expected error when opening nonexistent file")
+	}
+}
+
+func TestEditorComponentSaveFile(t *testing.T) {
+	editor := NewEditorComponent()
+
+	// Try to save without path set
+	err := editor.SaveFile()
+	if err == nil {
+		t.Error("Expected error when saving without path")
+	}
+
+	// Set content and path
+	content := "Test content\nSecond line"
+	tmpFile, err := os.CreateTemp("", "test-save-*.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpFile.Close()
+	defer os.Remove(tmpFile.Name())
+
+	editor.SetContent(content)
+	editor.buffer.SetPath(tmpFile.Name())
+
+	// Save file
+	err = editor.SaveFile()
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Verify file contents
+	saved, err := os.ReadFile(tmpFile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(saved) != content {
+		t.Errorf("Expected saved content %q, got %q", content, string(saved))
+	}
+
+	// Check dirty flag (should be false after save)
+	if editor.IsDirty() {
+		t.Error("Expected buffer to be clean after saving")
+	}
+}
+
+func TestEditorComponentSaveFileAs(t *testing.T) {
+	editor := NewEditorComponent()
+
+	content := "New file content"
+	editor.SetContent(content)
+
+	// Create temp file path
+	tmpFile, err := os.CreateTemp("", "test-saveas-*.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpPath := tmpFile.Name()
+	tmpFile.Close()
+	os.Remove(tmpPath) // Remove so we can test creation
+	defer os.Remove(tmpPath)
+
+	// Save as new file
+	err = editor.SaveFileAs(tmpPath)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Verify file contents
+	saved, err := os.ReadFile(tmpPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(saved) != content {
+		t.Errorf("Expected saved content %q, got %q", content, string(saved))
+	}
+
+	// Check path updated
+	if editor.GetFilePath() != tmpPath {
+		t.Errorf("Expected path %q, got %q", tmpPath, editor.GetFilePath())
+	}
+
+	// Check dirty flag
+	if editor.IsDirty() {
+		t.Error("Expected buffer to be clean after SaveFileAs")
+	}
+}
+
+func TestEditorComponentDirtyFlag(t *testing.T) {
+	editor := NewEditorComponent()
+
+	// Initially clean
+	if editor.IsDirty() {
+		t.Error("Expected buffer to start clean")
+	}
+
+	// Modify content
+	editor.SetContent("Some content")
+	if !editor.IsDirty() {
+		t.Error("Expected buffer to be dirty after modification")
+	}
+
+	// Create and save to file
+	tmpFile, err := os.CreateTemp("", "test-dirty-*.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpPath := tmpFile.Name()
+	tmpFile.Close()
+	defer os.Remove(tmpPath)
+
+	err = editor.SaveFileAs(tmpPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Should be clean after save
+	if editor.IsDirty() {
+		t.Error("Expected buffer to be clean after save")
+	}
+
+	// Modify again
+	editor.insertRune('x')
+	if !editor.IsDirty() {
+		t.Error("Expected buffer to be dirty after modification")
+	}
+}
+
+func TestEditorComponentAtomicWrite(t *testing.T) {
+	editor := NewEditorComponent()
+	editor.SetContent("Test content for atomic write")
+
+	tmpFile, err := os.CreateTemp("", "test-atomic-*.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpPath := tmpFile.Name()
+	tmpFile.Close()
+	defer os.Remove(tmpPath)
+
+	// Save the file
+	err = editor.SaveFileAs(tmpPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify no temp file left behind
+	tmpTempPath := tmpPath + ".tmp"
+	if _, err := os.Stat(tmpTempPath); err == nil {
+		t.Error("Expected temp file to be cleaned up")
+		os.Remove(tmpTempPath)
 	}
 }

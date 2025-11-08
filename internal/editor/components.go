@@ -7,6 +7,8 @@
 package editor
 
 import (
+	"fmt"
+	"os"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -122,6 +124,76 @@ func (e *EditorComponent) SetContent(content string) {
 		pos := buffer.Position{Line: 0, Column: 0}
 		e.buffer.Insert(pos, content)
 	}
+}
+
+// OpenFile opens a file from disk and loads it into the editor.
+// Returns an error if the file cannot be read or if there are encoding issues.
+func (e *EditorComponent) OpenFile(path string) error {
+	// Read file contents
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// TODO: Detect encoding - for now assume UTF-8
+	content := string(data)
+
+	// Set buffer path and content
+	e.buffer.SetPath(path)
+	e.SetContent(content)
+
+	// Mark as clean since we just loaded from disk
+	e.buffer.SetDirty(false)
+
+	return nil
+}
+
+// SaveFile saves the current buffer to its associated file path.
+// Returns an error if the buffer has no path or if writing fails.
+func (e *EditorComponent) SaveFile() error {
+	path := e.buffer.Path()
+	if path == "" {
+		return fmt.Errorf("no file path set, use SaveFileAs")
+	}
+
+	return e.SaveFileAs(path)
+}
+
+// SaveFileAs saves the current buffer to the specified path using atomic write.
+// Uses a temporary file and rename to ensure atomic writes.
+func (e *EditorComponent) SaveFileAs(path string) error {
+	content := e.buffer.Content()
+
+	// Write to temporary file first (atomic write)
+	tmpPath := path + ".tmp"
+	err := os.WriteFile(tmpPath, []byte(content), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write temp file: %w", err)
+	}
+
+	// Rename temp file to target (atomic on most filesystems)
+	err = os.Rename(tmpPath, path)
+	if err != nil {
+		// Clean up temp file on failure
+		os.Remove(tmpPath)
+		return fmt.Errorf("failed to rename temp file: %w", err)
+	}
+
+	// Update buffer path and mark as clean
+	e.buffer.SetPath(path)
+	e.buffer.SetDirty(false)
+
+	return nil
+}
+
+// GetFilePath returns the current file path associated with the buffer.
+func (e *EditorComponent) GetFilePath() string {
+	return e.buffer.Path()
+}
+
+// IsDirty returns true if the buffer has unsaved changes.
+func (e *EditorComponent) IsDirty() bool {
+	return e.buffer.IsDirty()
 }
 
 func (e *EditorComponent) insertRune(r rune) {
