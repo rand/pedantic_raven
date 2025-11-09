@@ -85,6 +85,14 @@ func (m *AnalyzeMode) SetAnalysis(analysis *semantic.Analysis) {
 
 // SetSize sets the component size.
 func (m *AnalyzeMode) SetSize(width, height int) {
+	// Validate dimensions
+	if width < 20 {
+		width = 20 // Minimum width for readable output
+	}
+	if height < 10 {
+		height = 10 // Minimum height for header/footer/content
+	}
+
 	m.width = width
 	m.height = height
 	m.tripleGraphView.SetSize(width, height-4) // Reserve space for header/footer
@@ -92,6 +100,10 @@ func (m *AnalyzeMode) SetSize(width, height int) {
 
 // SwitchView changes the current view mode.
 func (m *AnalyzeMode) SwitchView(view ViewMode) {
+	// Validate view mode
+	if view < ViewTripleGraph || view > ViewTypedHoles {
+		return // Ignore invalid view modes
+	}
 	m.currentView = view
 }
 
@@ -189,12 +201,30 @@ func (m *AnalyzeMode) handleKeyPress(msg tea.KeyMsg) (*AnalyzeMode, tea.Cmd) {
 
 // View implements tea.Model.
 func (m *AnalyzeMode) View() string {
+	// Handle error state with detailed message
 	if m.err != nil {
-		return errorStyle.Render(fmt.Sprintf("Error: %v", m.err))
+		errorMsg := fmt.Sprintf("⚠️  Error: %v\n\nPress [r] to reset or [q] to quit", m.err)
+		return errorStyle.Render(errorMsg)
 	}
 
+	// Handle no analysis state with helpful guidance
 	if m.analysis == nil {
-		return helpStyle.Render("No analysis data available")
+		helpMsg := "No analysis data available\n\n" +
+			"To use Analyze Mode:\n" +
+			"1. Open a document\n" +
+			"2. Run semantic analysis\n" +
+			"3. Enter Analyze Mode\n\n" +
+			"Press [q] to return to editor"
+		return helpStyle.Render(helpMsg)
+	}
+
+	// Handle empty analysis gracefully
+	if m.isAnalysisEmpty() {
+		emptyMsg := "Analysis complete, but no data found\n\n" +
+			"The analyzed content may be too short or\n" +
+			"may not contain recognizable entities.\n\n" +
+			"Try analyzing a different document."
+		return helpStyle.Render(emptyMsg)
 	}
 
 	// Render header with tabs
@@ -211,6 +241,9 @@ func (m *AnalyzeMode) View() string {
 		content = m.renderPatterns()
 	case ViewTypedHoles:
 		content = m.renderTypedHoles()
+	default:
+		// Fallback for invalid view mode
+		content = helpStyle.Render(fmt.Sprintf("Invalid view mode: %d", m.currentView))
 	}
 
 	// Render footer with shortcuts
@@ -279,7 +312,9 @@ func (m *AnalyzeMode) renderFooter() string {
 // renderEntityFrequency renders the entity frequency analysis view.
 func (m *AnalyzeMode) renderEntityFrequency() string {
 	if len(m.entityFreqs) == 0 {
-		return helpStyle.Render("No entities found")
+		return helpStyle.Render("No entities found in analysis\n\n" +
+			"Entities are key terms extracted from the content.\n" +
+			"Try analyzing content with more recognizable terms.")
 	}
 
 	// Sort by frequency
@@ -354,7 +389,10 @@ func (m *AnalyzeMode) renderEntityFrequency() string {
 // renderPatterns renders the relationship patterns view.
 func (m *AnalyzeMode) renderPatterns() string {
 	if len(m.patterns) == 0 {
-		return helpStyle.Render("No patterns discovered")
+		return helpStyle.Render("No relationship patterns discovered\n\n" +
+			"Patterns emerge from repeated relationship structures.\n" +
+			"Try analyzing content with more entity relationships\n" +
+			"(e.g., 'Alice works at Acme', 'Bob works at Tech Inc').")
 	}
 
 	// Render pattern table
@@ -371,7 +409,10 @@ func (m *AnalyzeMode) renderPatterns() string {
 // renderTypedHoles renders the typed holes prioritization view.
 func (m *AnalyzeMode) renderTypedHoles() string {
 	if m.holeAnalysis == nil || len(m.holeAnalysis.Holes) == 0 {
-		return helpStyle.Render("No typed holes found")
+		return helpStyle.Render("No typed holes found in analysis\n\n" +
+			"Typed holes are placeholders for future implementation.\n" +
+			"They appear as ?Type in the content.\n\n" +
+			"Example: ?[UserService: Authentication interface]")
 	}
 
 	// Render priority table (simple inline rendering to avoid import cycle)
@@ -448,9 +489,35 @@ type (
 
 // Helper functions.
 
+// isAnalysisEmpty checks if the analysis has no meaningful data.
+func (m *AnalyzeMode) isAnalysisEmpty() bool {
+	return len(m.analysis.Entities) == 0 &&
+		len(m.analysis.Relationships) == 0 &&
+		len(m.analysis.TypedHoles) == 0
+}
+
+// viewName returns a human-readable name for a view mode.
+func (m *AnalyzeMode) viewName() string {
+	switch m.currentView {
+	case ViewTripleGraph:
+		return "Triple Graph"
+	case ViewEntityFrequency:
+		return "Entity Frequency"
+	case ViewPatterns:
+		return "Relationship Patterns"
+	case ViewTypedHoles:
+		return "Typed Holes"
+	default:
+		return "Unknown"
+	}
+}
+
 func truncate(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
+	}
+	if maxLen < 3 {
+		return s[:maxLen]
 	}
 	return s[:maxLen-3] + "..."
 }
