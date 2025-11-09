@@ -23,6 +23,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case GraphErrorMsg:
 		m.SetError(msg.Err)
 		return m, nil
+
+	case ExpandNodeMsg:
+		m.ExpandNode(msg.NodeID)
+		return m, nil
+
+	case CollapseNodeMsg:
+		m.CollapseNode(msg.NodeID)
+		return m, nil
 	}
 
 	return m, nil
@@ -215,4 +223,100 @@ func (m Model) collapseNodeCmd(nodeID string) tea.Cmd {
 			NodeID: nodeID,
 		}
 	}
+}
+
+// ExpandNode expands a node to show its children.
+func (m *Model) ExpandNode(nodeID string) {
+	if m.graph == nil {
+		return
+	}
+
+	node := m.graph.Nodes[nodeID]
+	if node == nil {
+		return
+	}
+
+	node.IsExpanded = true
+}
+
+// CollapseNode collapses a node to hide its children.
+func (m *Model) CollapseNode(nodeID string) {
+	if m.graph == nil {
+		return
+	}
+
+	node := m.graph.Nodes[nodeID]
+	if node == nil {
+		return
+	}
+
+	node.IsExpanded = false
+}
+
+// IsNodeVisible returns whether a node should be visible based on parent expansion.
+func (m Model) IsNodeVisible(nodeID string) bool {
+	if m.graph == nil {
+		return false
+	}
+
+	node := m.graph.Nodes[nodeID]
+	if node == nil {
+		return false
+	}
+
+	// Root nodes (nodes with no incoming edges) are always visible
+	incomingEdges := m.graph.GetEdgesTo(nodeID)
+	if len(incomingEdges) == 0 {
+		return true
+	}
+
+	// Node is visible if ALL parent nodes are expanded
+	for _, edge := range incomingEdges {
+		parent := m.graph.Nodes[edge.SourceID]
+		if parent == nil {
+			continue
+		}
+
+		// If parent is not expanded, this node is hidden
+		if !parent.IsExpanded {
+			return false
+		}
+
+		// Also check if the parent itself is visible (recursive)
+		if !m.IsNodeVisible(parent.ID) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// IsEdgeVisible returns whether an edge should be visible based on node expansion.
+func (m Model) IsEdgeVisible(edge *Edge) bool {
+	if m.graph == nil || edge == nil {
+		return false
+	}
+
+	source := m.graph.Nodes[edge.SourceID]
+	target := m.graph.Nodes[edge.TargetID]
+
+	if source == nil || target == nil {
+		return false
+	}
+
+	// Edge is visible if:
+	// 1. Source node is visible
+	// 2. Target node is visible
+	// 3. Source node is expanded (to show its children)
+	return m.IsNodeVisible(source.ID) && m.IsNodeVisible(target.ID) && source.IsExpanded
+}
+
+// HasChildren returns whether a node has outgoing edges (children).
+func (m Model) HasChildren(nodeID string) bool {
+	if m.graph == nil {
+		return false
+	}
+
+	edges := m.graph.GetEdgesFrom(nodeID)
+	return len(edges) > 0
 }

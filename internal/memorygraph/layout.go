@@ -195,6 +195,8 @@ func (m *Model) InitializeLayout() {
 		node.VX = 0
 		node.VY = 0
 		node.Mass = 1.0
+		// Initialize nodes as expanded by default
+		node.IsExpanded = true
 		i++
 	}
 }

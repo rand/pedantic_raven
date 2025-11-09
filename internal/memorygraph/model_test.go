@@ -605,3 +605,326 @@ func TestUnhandledMessage(t *testing.T) {
 		t.Error("Expected state unchanged for unhandled message")
 	}
 }
+
+// Test ExpandNode expands a node.
+func TestExpandNode(t *testing.T) {
+	m := NewModel()
+	m.graph.AddNode(&Node{ID: "test-node", IsExpanded: false})
+
+	m.ExpandNode("test-node")
+
+	node := m.graph.Nodes["test-node"]
+	if !node.IsExpanded {
+		t.Error("Expected node to be expanded")
+	}
+}
+
+// Test ExpandNode with nil graph.
+func TestExpandNodeNilGraph(t *testing.T) {
+	m := NewModel()
+	m.graph = nil
+
+	// Should not panic
+	m.ExpandNode("test-node")
+}
+
+// Test ExpandNode with nonexistent node.
+func TestExpandNodeNonexistent(t *testing.T) {
+	m := NewModel()
+
+	// Should not panic
+	m.ExpandNode("nonexistent")
+}
+
+// Test CollapseNode collapses a node.
+func TestCollapseNode(t *testing.T) {
+	m := NewModel()
+	m.graph.AddNode(&Node{ID: "test-node", IsExpanded: true})
+
+	m.CollapseNode("test-node")
+
+	node := m.graph.Nodes["test-node"]
+	if node.IsExpanded {
+		t.Error("Expected node to be collapsed")
+	}
+}
+
+// Test CollapseNode with nil graph.
+func TestCollapseNodeNilGraph(t *testing.T) {
+	m := NewModel()
+	m.graph = nil
+
+	// Should not panic
+	m.CollapseNode("test-node")
+}
+
+// Test CollapseNode with nonexistent node.
+func TestCollapseNodeNonexistent(t *testing.T) {
+	m := NewModel()
+
+	// Should not panic
+	m.CollapseNode("nonexistent")
+}
+
+// Test ExpandNodeMsg updates node state.
+func TestExpandNodeMsg(t *testing.T) {
+	m := NewModel()
+	m.graph.AddNode(&Node{ID: "test-node", IsExpanded: false})
+
+	msg := ExpandNodeMsg{NodeID: "test-node"}
+	newModel, cmd := m.Update(msg)
+	m = newModel
+
+	if cmd != nil {
+		t.Error("Expected no command from ExpandNodeMsg")
+	}
+
+	node := m.graph.Nodes["test-node"]
+	if !node.IsExpanded {
+		t.Error("Expected node to be expanded after ExpandNodeMsg")
+	}
+}
+
+// Test CollapseNodeMsg updates node state.
+func TestCollapseNodeMsg(t *testing.T) {
+	m := NewModel()
+	m.graph.AddNode(&Node{ID: "test-node", IsExpanded: true})
+
+	msg := CollapseNodeMsg{NodeID: "test-node"}
+	newModel, cmd := m.Update(msg)
+	m = newModel
+
+	if cmd != nil {
+		t.Error("Expected no command from CollapseNodeMsg")
+	}
+
+	node := m.graph.Nodes["test-node"]
+	if node.IsExpanded {
+		t.Error("Expected node to be collapsed after CollapseNodeMsg")
+	}
+}
+
+// Test IsNodeVisible for root nodes.
+func TestIsNodeVisibleRoot(t *testing.T) {
+	m := NewModel()
+	m.graph.AddNode(&Node{ID: "root", IsExpanded: true})
+
+	// Root nodes (no incoming edges) are always visible
+	if !m.IsNodeVisible("root") {
+		t.Error("Expected root node to be visible")
+	}
+}
+
+// Test IsNodeVisible with expanded parent.
+func TestIsNodeVisibleExpandedParent(t *testing.T) {
+	m := NewModel()
+	m.graph.AddNode(&Node{ID: "parent", IsExpanded: true})
+	m.graph.AddNode(&Node{ID: "child", IsExpanded: true})
+	m.graph.AddEdge(&Edge{SourceID: "parent", TargetID: "child"})
+
+	// Child should be visible when parent is expanded
+	if !m.IsNodeVisible("child") {
+		t.Error("Expected child to be visible when parent is expanded")
+	}
+}
+
+// Test IsNodeVisible with collapsed parent.
+func TestIsNodeVisibleCollapsedParent(t *testing.T) {
+	m := NewModel()
+	m.graph.AddNode(&Node{ID: "parent", IsExpanded: false})
+	m.graph.AddNode(&Node{ID: "child", IsExpanded: true})
+	m.graph.AddEdge(&Edge{SourceID: "parent", TargetID: "child"})
+
+	// Child should be hidden when parent is collapsed
+	if m.IsNodeVisible("child") {
+		t.Error("Expected child to be hidden when parent is collapsed")
+	}
+}
+
+// Test IsNodeVisible with multiple parents.
+func TestIsNodeVisibleMultipleParents(t *testing.T) {
+	m := NewModel()
+	m.graph.AddNode(&Node{ID: "parent1", IsExpanded: true})
+	m.graph.AddNode(&Node{ID: "parent2", IsExpanded: false})
+	m.graph.AddNode(&Node{ID: "child", IsExpanded: true})
+	m.graph.AddEdge(&Edge{SourceID: "parent1", TargetID: "child"})
+	m.graph.AddEdge(&Edge{SourceID: "parent2", TargetID: "child"})
+
+	// Child should be hidden if ANY parent is collapsed
+	if m.IsNodeVisible("child") {
+		t.Error("Expected child to be hidden when any parent is collapsed")
+	}
+}
+
+// Test IsNodeVisible with nested hierarchy.
+func TestIsNodeVisibleNestedHierarchy(t *testing.T) {
+	m := NewModel()
+	m.graph.AddNode(&Node{ID: "grandparent", IsExpanded: true})
+	m.graph.AddNode(&Node{ID: "parent", IsExpanded: false})
+	m.graph.AddNode(&Node{ID: "child", IsExpanded: true})
+	m.graph.AddEdge(&Edge{SourceID: "grandparent", TargetID: "parent"})
+	m.graph.AddEdge(&Edge{SourceID: "parent", TargetID: "child"})
+
+	// Parent is visible (grandparent expanded)
+	if !m.IsNodeVisible("parent") {
+		t.Error("Expected parent to be visible")
+	}
+
+	// Child is hidden (parent collapsed)
+	if m.IsNodeVisible("child") {
+		t.Error("Expected child to be hidden when parent is collapsed")
+	}
+}
+
+// Test IsNodeVisible with nil graph.
+func TestIsNodeVisibleNilGraph(t *testing.T) {
+	m := NewModel()
+	m.graph = nil
+
+	if m.IsNodeVisible("test") {
+		t.Error("Expected false for nil graph")
+	}
+}
+
+// Test IsNodeVisible with nonexistent node.
+func TestIsNodeVisibleNonexistent(t *testing.T) {
+	m := NewModel()
+
+	if m.IsNodeVisible("nonexistent") {
+		t.Error("Expected false for nonexistent node")
+	}
+}
+
+// Test IsEdgeVisible with expanded source.
+func TestIsEdgeVisibleExpanded(t *testing.T) {
+	m := NewModel()
+	m.graph.AddNode(&Node{ID: "A", IsExpanded: true})
+	m.graph.AddNode(&Node{ID: "B", IsExpanded: true})
+	edge := &Edge{SourceID: "A", TargetID: "B"}
+	m.graph.AddEdge(edge)
+
+	// Edge should be visible when source is expanded
+	if !m.IsEdgeVisible(edge) {
+		t.Error("Expected edge to be visible when source is expanded")
+	}
+}
+
+// Test IsEdgeVisible with collapsed source.
+func TestIsEdgeVisibleCollapsed(t *testing.T) {
+	m := NewModel()
+	m.graph.AddNode(&Node{ID: "A", IsExpanded: false})
+	m.graph.AddNode(&Node{ID: "B", IsExpanded: true})
+	edge := &Edge{SourceID: "A", TargetID: "B"}
+	m.graph.AddEdge(edge)
+
+	// Edge should be hidden when source is collapsed
+	if m.IsEdgeVisible(edge) {
+		t.Error("Expected edge to be hidden when source is collapsed")
+	}
+}
+
+// Test IsEdgeVisible with hidden target.
+func TestIsEdgeVisibleHiddenTarget(t *testing.T) {
+	m := NewModel()
+	m.graph.AddNode(&Node{ID: "root", IsExpanded: true})
+	m.graph.AddNode(&Node{ID: "parent", IsExpanded: false})
+	m.graph.AddNode(&Node{ID: "child", IsExpanded: true})
+	m.graph.AddEdge(&Edge{SourceID: "root", TargetID: "parent"})
+	edge := &Edge{SourceID: "parent", TargetID: "child"}
+	m.graph.AddEdge(edge)
+
+	// Edge should be hidden when target is not visible
+	if m.IsEdgeVisible(edge) {
+		t.Error("Expected edge to be hidden when target is not visible")
+	}
+}
+
+// Test IsEdgeVisible with nil edge.
+func TestIsEdgeVisibleNilEdge(t *testing.T) {
+	m := NewModel()
+
+	if m.IsEdgeVisible(nil) {
+		t.Error("Expected false for nil edge")
+	}
+}
+
+// Test IsEdgeVisible with missing nodes.
+func TestIsEdgeVisibleMissingNodes(t *testing.T) {
+	m := NewModel()
+	edge := &Edge{SourceID: "nonexistent-1", TargetID: "nonexistent-2"}
+
+	if m.IsEdgeVisible(edge) {
+		t.Error("Expected false when edge nodes don't exist")
+	}
+}
+
+// Test HasChildren returns true for nodes with edges.
+func TestHasChildren(t *testing.T) {
+	m := NewModel()
+	m.graph.AddNode(&Node{ID: "parent"})
+	m.graph.AddNode(&Node{ID: "child"})
+	m.graph.AddEdge(&Edge{SourceID: "parent", TargetID: "child"})
+
+	if !m.HasChildren("parent") {
+		t.Error("Expected parent to have children")
+	}
+}
+
+// Test HasChildren returns false for leaf nodes.
+func TestHasChildrenLeaf(t *testing.T) {
+	m := NewModel()
+	m.graph.AddNode(&Node{ID: "leaf"})
+
+	if m.HasChildren("leaf") {
+		t.Error("Expected leaf node to have no children")
+	}
+}
+
+// Test HasChildren with nil graph.
+func TestHasChildrenNilGraph(t *testing.T) {
+	m := NewModel()
+	m.graph = nil
+
+	if m.HasChildren("test") {
+		t.Error("Expected false for nil graph")
+	}
+}
+
+// Test expand/collapse workflow.
+func TestExpandCollapseWorkflow(t *testing.T) {
+	m := NewModel()
+
+	// Create hierarchy: root -> parent -> child
+	m.graph.AddNode(&Node{ID: "root", IsExpanded: true})
+	m.graph.AddNode(&Node{ID: "parent", IsExpanded: true})
+	m.graph.AddNode(&Node{ID: "child", IsExpanded: true})
+	m.graph.AddEdge(&Edge{SourceID: "root", TargetID: "parent"})
+	m.graph.AddEdge(&Edge{SourceID: "parent", TargetID: "child"})
+
+	// Initially all visible
+	if !m.IsNodeVisible("root") || !m.IsNodeVisible("parent") || !m.IsNodeVisible("child") {
+		t.Error("Expected all nodes visible initially")
+	}
+
+	// Collapse parent
+	m.CollapseNode("parent")
+
+	// Root and parent still visible, child hidden
+	if !m.IsNodeVisible("root") {
+		t.Error("Expected root to remain visible")
+	}
+	if !m.IsNodeVisible("parent") {
+		t.Error("Expected parent to remain visible")
+	}
+	if m.IsNodeVisible("child") {
+		t.Error("Expected child to be hidden after collapsing parent")
+	}
+
+	// Expand parent again
+	m.ExpandNode("parent")
+
+	// All visible again
+	if !m.IsNodeVisible("child") {
+		t.Error("Expected child to be visible after expanding parent")
+	}
+}

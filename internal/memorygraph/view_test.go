@@ -676,3 +676,121 @@ func TestViewIntegration(t *testing.T) {
 		t.Errorf("Expected at least 10 lines, got %d", len(lines))
 	}
 }
+
+// Test drawNode with expansion indicators.
+func TestDrawNodeExpansionIndicators(t *testing.T) {
+	m := NewModel()
+	m.SetSize(80, 20)
+
+	// Node with children, expanded
+	m.graph.AddNode(&Node{ID: "parent", X: 0, Y: 0, IsExpanded: true})
+	m.graph.AddNode(&Node{ID: "child", X: 0, Y: 5, IsExpanded: true})
+	m.graph.AddEdge(&Edge{SourceID: "parent", TargetID: "child"})
+
+	canvas := newCanvas(80, 17)
+	m.drawNode(canvas, m.graph.Nodes["parent"])
+
+	// Should contain [-] indicator
+	rendered := canvas.Render()
+	if !strings.Contains(rendered, "[-]") {
+		t.Error("Expected [-] indicator for expanded node with children")
+	}
+
+	// Collapse the node
+	m.graph.Nodes["parent"].IsExpanded = false
+	canvas = newCanvas(80, 17)
+	m.drawNode(canvas, m.graph.Nodes["parent"])
+
+	// Should contain [+] indicator
+	rendered = canvas.Render()
+	if !strings.Contains(rendered, "[+]") {
+		t.Error("Expected [+] indicator for collapsed node with children")
+	}
+}
+
+// Test drawNode without expansion indicators for leaf nodes.
+func TestDrawNodeLeafNoIndicator(t *testing.T) {
+	m := NewModel()
+	m.SetSize(80, 20)
+
+	// Leaf node (no children)
+	m.graph.AddNode(&Node{ID: "leaf", X: 0, Y: 0, IsExpanded: true})
+
+	canvas := newCanvas(80, 17)
+	m.drawNode(canvas, m.graph.Nodes["leaf"])
+
+	rendered := canvas.Render()
+	// Should NOT contain expansion indicators
+	if strings.Contains(rendered, "[-]") || strings.Contains(rendered, "[+]") {
+		t.Error("Expected no expansion indicator for leaf node")
+	}
+}
+
+// Test renderGraph filters hidden nodes.
+func TestRenderGraphFiltersHiddenNodes(t *testing.T) {
+	m := NewModel()
+	m.SetSize(80, 20)
+
+	// Create hierarchy with collapsed parent
+	m.graph.AddNode(&Node{ID: "root", X: 0, Y: 0, IsExpanded: false})
+	m.graph.AddNode(&Node{ID: "child", X: 0, Y: 10, IsExpanded: true})
+	m.graph.AddEdge(&Edge{SourceID: "root", TargetID: "child"})
+	m.InitializeLayout()
+
+	// Set root as collapsed
+	m.graph.Nodes["root"].IsExpanded = false
+
+	content := m.renderGraph()
+
+	// Root should be visible
+	lines := strings.Split(content, "\n")
+	hasRootContent := false
+	for _, line := range lines {
+		if strings.Contains(line, "root") {
+			hasRootContent = true
+			break
+		}
+	}
+	if !hasRootContent {
+		t.Error("Expected root node to be visible in rendering")
+	}
+
+	// Child should not be visible (parent collapsed)
+	// Since we can't easily check for absence in ASCII art, just verify
+	// that visibility logic is working through direct method calls
+	if m.IsNodeVisible("child") {
+		t.Error("Expected child to be hidden when parent is collapsed")
+	}
+}
+
+// Test renderGraph filters hidden edges.
+func TestRenderGraphFiltersHiddenEdges(t *testing.T) {
+	m := NewModel()
+	m.SetSize(80, 20)
+
+	// Create hierarchy: root -> parent (collapsed) -> child
+	// The edge from parent to child should be hidden when parent is collapsed
+	m.graph.AddNode(&Node{ID: "root", X: 0, Y: 0})
+	m.graph.AddNode(&Node{ID: "parent", X: 0, Y: 5})
+	m.graph.AddNode(&Node{ID: "child", X: 0, Y: 10})
+	m.graph.AddEdge(&Edge{SourceID: "root", TargetID: "parent"})
+	edge := &Edge{SourceID: "parent", TargetID: "child"}
+	m.graph.AddEdge(edge)
+	m.InitializeLayout()
+
+	// Now collapse parent (after InitializeLayout which sets all to expanded)
+	m.graph.Nodes["parent"].IsExpanded = false
+
+	// Verify edge is not visible when source is collapsed
+	if m.IsEdgeVisible(edge) {
+		t.Error("Expected edge to be hidden when source is collapsed")
+	}
+
+	// Expand parent
+	m.graph.Nodes["parent"].IsExpanded = true
+
+	// Now edge should be visible
+	if !m.IsEdgeVisible(edge) {
+		t.Error("Expected edge to be visible when source is expanded")
+	}
+}

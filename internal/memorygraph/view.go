@@ -114,13 +114,19 @@ func (m Model) renderGraph() string {
 	canvas := newCanvas(m.width, contentHeight)
 
 	// Draw edges first (so they appear behind nodes)
+	// Only draw visible edges
 	for _, edge := range m.graph.Edges {
-		m.drawEdge(canvas, edge)
+		if m.IsEdgeVisible(edge) {
+			m.drawEdge(canvas, edge)
+		}
 	}
 
 	// Draw nodes on top of edges
+	// Only draw visible nodes
 	for _, node := range m.graph.Nodes {
-		m.drawNode(canvas, node)
+		if m.IsNodeVisible(node.ID) {
+			m.drawNode(canvas, node)
+		}
 	}
 
 	return canvas.Render()
@@ -152,6 +158,15 @@ func (m Model) drawNode(canvas *Canvas, node *Node) {
 	label := node.ID
 	if len(label) > 10 {
 		label = label[:10] + "…"
+	}
+
+	// Add expansion indicator if node has children
+	if m.HasChildren(node.ID) {
+		if node.IsExpanded {
+			label = "[-] " + label
+		} else {
+			label = "[+] " + label
+		}
 	}
 
 	// Choose style based on selection
