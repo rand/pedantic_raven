@@ -106,6 +106,26 @@ Pedantic Raven is an interactive terminal-based context engineering environment 
 - `internal/terminal/` - Terminal component
 - `internal/editor/` - Edit mode implementation
 
+**Enhancement: GLiNER ML Integration** (Added 2025-11-09):
+- ✅ GLiNER2 machine learning for entity extraction (85-95% accuracy vs 60-70% pattern matching)
+- ✅ Zero-shot NER with custom entity types
+- ✅ Pluggable extractor interface (PatternExtractor, GLiNERExtractor, HybridExtractor)
+- ✅ Python GLiNER service (FastAPI + GLiNER2 model, 340M parameters)
+- ✅ Go client library with exponential backoff retry
+- ✅ Automatic fallback to pattern matcher when service unavailable
+- ✅ Configuration system (TOML + environment variables)
+- ✅ 60 new tests (994 total tests)
+- ✅ Docker Compose deployment
+- ✅ Optional feature (disabled by default, zero breaking changes)
+
+Components:
+- `internal/gliner/` - GLiNER HTTP client
+- `internal/editor/semantic/extractor.go` - Extractor interface
+- `internal/editor/semantic/gliner_extractor.go` - ML implementation
+- `internal/editor/semantic/pattern_extractor.go` - Pattern matching implementation
+- `internal/config/` - Configuration loading
+- `services/gliner/` - Python GLiNER service
+
 ---
 
 ### Phase 3: Advanced Editor Features ✅
@@ -511,7 +531,7 @@ Pedantic Raven is an interactive terminal-based context engineering environment 
 - Memory footprint <100MB
 
 **Quality**:
-- 934+ tests passing (currently at 934)
+- 994+ tests passing (currently at 994)
 - 80%+ code coverage
 - Zero critical bugs
 - Comprehensive documentation
