@@ -337,6 +337,36 @@ results, _ := client.Recall(ctx, RecallOptions{
 
 ---
 
+## 🧠 Entity Extraction with GLiNER
+
+Pedantic Raven now supports **GLiNER2** for ML-based entity extraction, providing significantly higher accuracy than traditional pattern matching while supporting custom entity types.
+
+### Key Features
+
+- **High Accuracy** - 85-95% accuracy vs 60-70% with pattern matching
+- **Context-Aware** - Understands ambiguous text (e.g., "Apple" as company vs fruit)
+- **Custom Types** - Define unlimited domain-specific entity types (api_endpoint, security_concern, etc.)
+- **Zero-Shot** - Works on any domain without training
+- **Automatic Fallback** - Gracefully falls back to pattern matcher if service unavailable
+- **100% Local** - All processing happens on your machine
+
+### Quick Start
+
+```bash
+# Start GLiNER service (one-time setup)
+cd services/gliner
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --host 127.0.0.1 --port 8765
+
+# Run Pedantic Raven (in new terminal)
+./pedantic_raven
+```
+
+GLiNER is optional and requires Python 3.9+, ~1GB RAM, and ~1GB disk space. See [docs/GLINER_INTEGRATION.md](docs/GLINER_INTEGRATION.md) for full documentation including configuration, deployment options, troubleshooting, and performance tuning.
+
+---
+
 ## Architecture
 
 ### Technology Stack

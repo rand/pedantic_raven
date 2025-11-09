@@ -1,0 +1,56 @@
+# Docker Compose for Pedantic Raven + GLiNER Service
+
+version: '3.8'
+
+services:
+  # GLiNER NER Service
+  gliner:
+    build:
+      context: ./services/gliner
+      dockerfile: Dockerfile
+    container_name: pedantic-raven-gliner
+    ports:
+      - "8765:8765"
+    environment:
+      - LOG_LEVEL=info
+    volumes:
+      # Cache HuggingFace models (persist across restarts)
+      - huggingface-cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8765/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - pedantic-raven-net
+
+  # Pedantic Raven (TUI - run locally, not in container)
+  # This is just for reference - Pedantic Raven runs on host
+  # It connects to gliner service via http://localhost:8765
+
+volumes:
+  huggingface-cache:
+    driver: local
+
+networks:
+  pedantic-raven-net:
+    driver: bridge
+
+# Usage:
+#
+# Start services:
+#   docker-compose up -d
+#
+# View logs:
+#   docker-compose logs -f gliner
+#
+# Stop services:
+#   docker-compose down
+#
+# Rebuild after code changes:
+#   docker-compose up -d --build
+#
+# Remove everything (including model cache):
+#   docker-compose down -v

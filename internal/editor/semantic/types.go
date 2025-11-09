@@ -11,7 +11,15 @@
 package semantic
 
 import (
+	"errors"
 	"time"
+)
+
+// Errors related to entity extraction.
+var (
+	ErrNoExtractorAvailable = errors.New("semantic: no entity extractor available")
+	ErrExtractorDisabled    = errors.New("semantic: entity extractor disabled")
+	ErrExtractorUnavailable = errors.New("semantic: entity extractor unavailable")
 )
 
 // EntityType classifies entities.

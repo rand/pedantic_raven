@@ -42,28 +42,32 @@ func ParseTypedHoleConstraints(hole TypedHole) []HoleConstraint {
 func parseConstraintString(constraint string) HoleConstraint {
 	constraint = strings.TrimSpace(constraint)
 
-	// Common constraint patterns
-	patterns := map[string]string{
-		"implements": "Interface implementation required",
-		"extends":    "Type extension required",
-		"requires":   "Dependency required",
-		"thread":     "Thread-safety requirement",
-		"async":      "Asynchronous execution required",
-		"sync":       "Synchronous execution required",
-		"immutable":  "Immutability required",
-		"mutable":    "Mutability allowed",
-		"pure":       "Pure function required (no side effects)",
-		"idempotent": "Idempotent operation required",
-		"atomic":     "Atomic operation required",
-		"concurrent": "Concurrent execution support required",
+	// Common constraint patterns (ordered: check longer/more-specific patterns first)
+	type patternPair struct {
+		pattern     string
+		description string
+	}
+	patterns := []patternPair{
+		{"implements", "Interface implementation required"},
+		{"idempotent", "Idempotent operation required"},
+		{"immutable", "Immutability required"},
+		{"concurrent", "Concurrent execution support required"},
+		{"async", "Asynchronous execution required"}, // Check before "sync"
+		{"extends", "Type extension required"},
+		{"requires", "Dependency required"},
+		{"thread", "Thread-safety requirement"},
+		{"sync", "Synchronous execution required"},
+		{"mutable", "Mutability allowed"},
+		{"pure", "Pure function required (no side effects)"},
+		{"atomic", "Atomic operation required"},
 	}
 
-	for pattern, description := range patterns {
-		if strings.Contains(strings.ToLower(constraint), pattern) {
+	for _, p := range patterns {
+		if strings.Contains(strings.ToLower(constraint), p.pattern) {
 			return HoleConstraint{
-				Type:        pattern,
+				Type:        p.pattern,
 				Value:       constraint,
-				Description: description,
+				Description: p.description,
 				Satisfied:   false,
 			}
 		}

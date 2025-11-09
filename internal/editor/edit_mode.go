@@ -27,8 +27,14 @@ type EditMode struct {
 	analysisDebounce time.Duration
 }
 
-// NewEditMode creates a new Edit mode with integrated components.
+// NewEditMode creates a new Edit mode with integrated components using the default analyzer.
 func NewEditMode() *EditMode {
+	return NewEditModeWithAnalyzer(semantic.NewAnalyzer())
+}
+
+// NewEditModeWithAnalyzer creates a new Edit mode with a custom semantic analyzer.
+// This allows configuring different entity extraction strategies (Pattern, GLiNER, Hybrid).
+func NewEditModeWithAnalyzer(analyzer semantic.Analyzer) *EditMode {
 	base := modes.NewBaseMode(modes.ModeEdit, "Edit", "Context editing with semantic analysis")
 
 	// Create components
@@ -41,9 +47,6 @@ func NewEditMode() *EditMode {
 	termConfig := terminal.DefaultTerminalConfig()
 	term := terminal.New(termConfig)
 	termComp := NewTerminalComponent(term)
-
-	// Create analyzer
-	analyzer := semantic.NewAnalyzer()
 
 	mode := &EditMode{
 		BaseMode:         base,
