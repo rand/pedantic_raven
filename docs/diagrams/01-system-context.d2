@@ -1,0 +1,172 @@
+# Pedantic Raven System Context
+# Shows the high-level ecosystem and external integrations
+
+direction: right
+
+user: {
+  shape: person
+  label: "User\n(AI Engineer,\nWriter, Architect)"
+  style: {
+    fill: "#E8F4F8"
+    stroke: "#2C5F7C"
+    stroke-width: 2
+  }
+}
+
+pedantic_raven: {
+  label: "Pedantic Raven\n(Go TUI)"
+  shape: rectangle
+  style: {
+    fill: "#2C3E50"
+    stroke: "#34495E"
+    stroke-width: 3
+    font-color: "#ECF0F1"
+  }
+
+  edit_mode: {
+    label: "Edit Mode\n(Semantic Analysis)"
+    shape: rectangle
+    style: {
+      fill: "#3498DB"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  explore_mode: {
+    label: "Explore Mode\n(Memory Workspace)"
+    shape: rectangle
+    style: {
+      fill: "#2ECC71"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  analyze_mode: {
+    label: "Analyze Mode\n(Graph & Patterns)"
+    shape: rectangle
+    style: {
+      fill: "#E67E22"
+      font-color: "#FFFFFF"
+    }
+  }
+}
+
+mnemosyne: {
+  label: "mnemosyne Server\n(Rust + gRPC)"
+  shape: cylinder
+  style: {
+    fill: "#C0392B"
+    stroke: "#E74C3C"
+    stroke-width: 2
+    font-color: "#FFFFFF"
+  }
+}
+
+gliner_service: {
+  label: "GLiNER Service\n(Python/FastAPI)\nOptional ML Enhancement"
+  shape: rectangle
+  style: {
+    fill: "#27AE60"
+    stroke: "#2ECC71"
+    stroke-width: 2
+    font-color: "#FFFFFF"
+  }
+}
+
+vector_db: {
+  label: "Vector Database\n(768d/1536d Embeddings)"
+  shape: cylinder
+  style: {
+    fill: "#8E44AD"
+    stroke: "#9B59B6"
+    stroke-width: 2
+    font-color: "#FFFFFF"
+  }
+}
+
+graph_db: {
+  label: "Graph Storage\n(Links & Relationships)"
+  shape: cylinder
+  style: {
+    fill: "#16A085"
+    stroke: "#1ABC9C"
+    stroke-width: 2
+    font-color: "#FFFFFF"
+  }
+}
+
+# User interactions
+user -> pedantic_raven.edit_mode: "Types context\nCreates memories" {
+  style: {
+    stroke: "#2C5F7C"
+    stroke-width: 2
+  }
+}
+
+user -> pedantic_raven.explore_mode: "Searches memories\nNavigates graph" {
+  style: {
+    stroke: "#2C5F7C"
+    stroke-width: 2
+  }
+}
+
+user -> pedantic_raven.analyze_mode: "Views patterns\nExports reports" {
+  style: {
+    stroke: "#2C5F7C"
+    stroke-width: 2
+  }
+}
+
+# Pedantic Raven integrations
+pedantic_raven -> mnemosyne: "gRPC API\n(CRUD, Search, Stream)" {
+  style: {
+    stroke: "#34495E"
+    stroke-width: 3
+    stroke-dash: 0
+  }
+}
+
+pedantic_raven -> gliner_service: "HTTP REST\n(Entity Extraction)" {
+  style: {
+    stroke: "#95A5A6"
+    stroke-width: 2
+    stroke-dash: 3
+  }
+}
+
+# mnemosyne storage
+mnemosyne -> vector_db: "Store embeddings\nSemantic search" {
+  style: {
+    stroke: "#C0392B"
+    stroke-width: 2
+  }
+}
+
+mnemosyne -> graph_db: "Store links\nGraph traversal" {
+  style: {
+    stroke: "#C0392B"
+    stroke-width: 2
+  }
+}
+
+# Legend
+legend: {
+  near: bottom-right
+  label: "Legend"
+  shape: rectangle
+  style: {
+    fill: "#FFFFFF"
+    stroke: "#BDC3C7"
+    stroke-width: 1
+  }
+
+  solid: {
+    label: "──── Required Connection"
+    shape: text
+  }
+
+  dashed: {
+    label: "- - - - Optional Connection"
+    shape: text
+  }
+}

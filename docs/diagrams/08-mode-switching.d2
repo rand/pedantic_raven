@@ -1,0 +1,308 @@
+# Mode Switching Diagram
+# Shows the 5 application modes and keyboard transitions
+
+direction: down
+
+# Central mode hub
+mode_hub: {
+  label: "Mode Registry\n(Central coordination)"
+  shape: hexagon
+  style: {
+    fill: "#34495E"
+    stroke: "#2C3E50"
+    stroke-width: 3
+    font-color: "#ECF0F1"
+  }
+}
+
+# Edit Mode
+edit_mode: {
+  label: "Edit Mode\n(Semantic Analysis)\n\nFeatures:\n• Text editing\n• Syntax highlighting\n• Real-time analysis\n• Context panel\n• Integrated terminal\n\nShortcut: Ctrl+E"
+  shape: rectangle
+  style: {
+    fill: "#3498DB"
+    stroke: "#2874A6"
+    stroke-width: 2
+    font-color: "#FFFFFF"
+  }
+}
+
+# Explore Mode
+explore_mode: {
+  label: "Explore Mode\n(Memory Workspace)\n\nFeatures:\n• Memory list\n• Memory detail\n• Graph visualization\n• CRUD operations\n• Link management\n\nShortcut: Ctrl+L"
+  shape: rectangle
+  style: {
+    fill: "#27AE60"
+    stroke: "#1E8449"
+    stroke-width: 2
+    font-color: "#FFFFFF"
+  }
+}
+
+# Analyze Mode
+analyze_mode: {
+  label: "Analyze Mode\n(Patterns & Insights)\n\nFeatures:\n• Triple graph viz\n• Entity frequency\n• Pattern mining\n• Typed holes\n• Export reports\n\nShortcut: Ctrl+A"
+  shape: rectangle
+  style: {
+    fill: "#E67E22"
+    stroke: "#CA6F1E"
+    stroke-width: 2
+    font-color: "#FFFFFF"
+  }
+}
+
+# Orchestrate Mode (Planned)
+orchestrate_mode: {
+  label: "Orchestrate Mode\n(Multi-Agent) [Phase 7]\n\nFeatures:\n• Task queue\n• Agent DAG\n• Execution logs\n• Resource monitoring\n• Manual control\n\nShortcut: Ctrl+O"
+  shape: rectangle
+  style: {
+    fill: "#8E44AD"
+    stroke: "#6C3483"
+    stroke-width: 2
+    stroke-dash: 3
+    font-color: "#FFFFFF"
+  }
+}
+
+# Collaborate Mode (Planned)
+collaborate_mode: {
+  label: "Collaborate Mode\n(Multi-User) [Phase 8]\n\nFeatures:\n• Live editing\n• Presence awareness\n• Activity feed\n• Conflict resolution\n• Shared cursors\n\nShortcut: Ctrl+K"
+  shape: rectangle
+  style: {
+    fill: "#16A085"
+    stroke: "#117A65"
+    stroke-width: 2
+    stroke-dash: 3
+    font-color: "#FFFFFF"
+  }
+}
+
+# Mode hub connections
+mode_hub -> edit_mode: "Ctrl+E" {
+  style: {
+    stroke: "#3498DB"
+    stroke-width: 2
+  }
+}
+
+mode_hub -> explore_mode: "Ctrl+L" {
+  style: {
+    stroke: "#27AE60"
+    stroke-width: 2
+  }
+}
+
+mode_hub -> analyze_mode: "Ctrl+A" {
+  style: {
+    stroke: "#E67E22"
+    stroke-width: 2
+  }
+}
+
+mode_hub -> orchestrate_mode: "Ctrl+O\n(Planned)" {
+  style: {
+    stroke: "#8E44AD"
+    stroke-width: 2
+    stroke-dash: 3
+  }
+}
+
+mode_hub -> collaborate_mode: "Ctrl+K\n(Planned)" {
+  style: {
+    stroke: "#16A085"
+    stroke-width: 2
+    stroke-dash: 3
+  }
+}
+
+# Direct mode-to-mode transitions (shared context)
+edit_mode -> explore_mode: "Store to mnemosyne" {
+  style: {
+    stroke: "#95A5A6"
+    stroke-width: 1
+    stroke-dash: 3
+  }
+}
+
+explore_mode -> analyze_mode: "Analyze memories" {
+  style: {
+    stroke: "#95A5A6"
+    stroke-width: 1
+    stroke-dash: 3
+  }
+}
+
+analyze_mode -> edit_mode: "Edit content" {
+  style: {
+    stroke: "#95A5A6"
+    stroke-width: 1
+    stroke-dash: 3
+  }
+}
+
+explore_mode -> edit_mode: "Edit memory" {
+  style: {
+    stroke: "#95A5A6"
+    stroke-width: 1
+    stroke-dash: 3
+  }
+}
+
+# Layout changes per mode
+edit_layout: {
+  near: edit_mode
+  label: "Layout:\n• Editor (70%)\n• Context panel (30%)\n• Terminal (bottom)"
+  shape: rectangle
+  style: {
+    fill: "#EBF5FB"
+    stroke: "#3498DB"
+    stroke-width: 1
+  }
+}
+
+explore_layout: {
+  near: explore_mode
+  label: "Layout Options:\n• Standard: List + Detail\n• Graph: Full-screen viz\n• Switch with Tab"
+  shape: rectangle
+  style: {
+    fill: "#EAFAF1"
+    stroke: "#27AE60"
+    stroke-width: 1
+  }
+}
+
+analyze_layout: {
+  near: analyze_mode
+  label: "Layout:\n• Visualization (80%)\n• Controls (20%)\n• Tab to switch views"
+  shape: rectangle
+  style: {
+    fill: "#FEF5E7"
+    stroke: "#E67E22"
+    stroke-width: 1
+  }
+}
+
+# Mode lifecycle
+lifecycle: {
+  near: bottom-center
+  label: "Mode Lifecycle"
+  style: {
+    fill: "#FFFFFF"
+    stroke: "#BDC3C7"
+    stroke-width: 1
+  }
+
+  init: {
+    label: "1. Init()\nInitialize state"
+    shape: rectangle
+    style: {
+      fill: "#D5DBDB"
+    }
+  }
+
+  update: {
+    label: "2. Update(msg)\nHandle events"
+    shape: rectangle
+    style: {
+      fill: "#D5DBDB"
+    }
+  }
+
+  view: {
+    label: "3. View()\nRender UI"
+    shape: rectangle
+    style: {
+      fill: "#D5DBDB"
+    }
+  }
+
+  init -> update -> view -> update {
+    style: {
+      stroke: "#7F8C8D"
+    }
+  }
+}
+
+# Global shortcuts
+global_shortcuts: {
+  near: top-right
+  label: "Global Shortcuts"
+  shape: rectangle
+  style: {
+    fill: "#FFFACD"
+    stroke: "#F39C12"
+    stroke-width: 2
+  }
+
+  help: {
+    label: "?: Help overlay"
+    shape: text
+  }
+
+  quit: {
+    label: "Ctrl+Q: Quit"
+    shape: text
+  }
+
+  palette: {
+    label: "Ctrl+P: Command palette"
+    shape: text
+  }
+
+  search: {
+    label: "Ctrl+F: Search"
+    shape: text
+  }
+}
+
+# Phase completion status
+status: {
+  near: top-left
+  label: "Implementation Status"
+  shape: rectangle
+  style: {
+    fill: "#ECF0F1"
+    stroke: "#34495E"
+    stroke-width: 1
+  }
+
+  phase2: {
+    label: "✓ Phase 2: Edit Mode"
+    shape: text
+    style: {
+      font-color: "#27AE60"
+    }
+  }
+
+  phase5: {
+    label: "✓ Phase 5: Explore Mode"
+    shape: text
+    style: {
+      font-color: "#27AE60"
+    }
+  }
+
+  phase6: {
+    label: "⚠ Phase 6: Analyze Mode (30%)"
+    shape: text
+    style: {
+      font-color: "#E67E22"
+    }
+  }
+
+  phase7: {
+    label: "○ Phase 7: Orchestrate Mode"
+    shape: text
+    style: {
+      font-color: "#95A5A6"
+    }
+  }
+
+  phase8: {
+    label: "○ Phase 8: Collaborate Mode"
+    shape: text
+    style: {
+      font-color: "#95A5A6"
+    }
+  }
+}

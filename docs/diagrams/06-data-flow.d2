@@ -1,0 +1,329 @@
+# Complete Data Flow: Edit → mnemosyne → Explore
+# Shows the full lifecycle of semantic memory creation and retrieval
+
+direction: down
+
+# Phase 1: Edit Mode - Content Creation
+edit_phase: {
+  label: "Phase 1: Edit Mode - Content Creation"
+  style: {
+    fill: "#EBF5FB"
+    stroke: "#3498DB"
+    stroke-width: 2
+  }
+
+  user_typing: {
+    label: "User Types Context\n(Architecture decisions,\nrequirements, etc.)"
+    shape: rectangle
+    style: {
+      fill: "#ECF0F1"
+      stroke: "#2C3E50"
+    }
+  }
+
+  semantic_analysis: {
+    label: "Semantic Analysis\n(500ms debounce)"
+    shape: rectangle
+    style: {
+      fill: "#3498DB"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  context_panel: {
+    label: "Context Panel Display\n• Entities\n• Relationships\n• Typed Holes"
+    shape: rectangle
+    style: {
+      fill: "#5DADE2"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  user_typing -> semantic_analysis: "Text stream"
+  semantic_analysis -> context_panel: "Live results"
+}
+
+# Storage decision
+storage_decision: {
+  label: "User Action"
+  shape: diamond
+  style: {
+    fill: "#F39C12"
+    font-color: "#FFFFFF"
+  }
+}
+
+# Phase 2: Store to mnemosyne
+store_phase: {
+  label: "Phase 2: Store to mnemosyne"
+  style: {
+    fill: "#EAFAF1"
+    stroke: "#27AE60"
+    stroke-width: 2
+  }
+
+  store_command: {
+    label: "Store Command\n(Ctrl+S or Terminal)"
+    shape: rectangle
+    style: {
+      fill: "#ECF0F1"
+      stroke: "#2C3E50"
+    }
+  }
+
+  grpc_request: {
+    label: "gRPC Store Request\n• Content\n• Namespace\n• Tags\n• Importance"
+    shape: rectangle
+    style: {
+      fill: "#27AE60"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  mnemosyne_server: {
+    label: "mnemosyne Server\n(Rust)"
+    shape: cylinder
+    style: {
+      fill: "#C0392B"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  embedding: {
+    label: "Generate Embedding\n(768d/1536d vector)"
+    shape: rectangle
+    style: {
+      fill: "#8E44AD"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  vector_store: {
+    label: "Vector Database\n(Semantic search)"
+    shape: cylinder
+    style: {
+      fill: "#9B59B6"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  graph_store: {
+    label: "Graph Database\n(Links & relationships)"
+    shape: cylinder
+    style: {
+      fill: "#16A085"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  store_command -> grpc_request
+  grpc_request -> mnemosyne_server: "gRPC call"
+  mnemosyne_server -> embedding
+  embedding -> vector_store: "Store"
+  embedding -> graph_store: "Store"
+}
+
+# Phase 3: Search and Recall
+search_phase: {
+  label: "Phase 3: Explore Mode - Search & Recall"
+  style: {
+    fill: "#FEF5E7"
+    stroke: "#E67E22"
+    stroke-width: 2
+  }
+
+  user_search: {
+    label: "User Searches\n(Query in Explore Mode)"
+    shape: rectangle
+    style: {
+      fill: "#ECF0F1"
+      stroke: "#2C3E50"
+    }
+  }
+
+  search_mode: {
+    label: "Search Mode Selector\n(Hybrid/Semantic/FTS/Graph)"
+    shape: diamond
+    style: {
+      fill: "#E67E22"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  grpc_search: {
+    label: "gRPC Search Request\n• Query\n• Search mode\n• Filters\n• Limit"
+    shape: rectangle
+    style: {
+      fill: "#E67E22"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  hybrid_search: {
+    label: "Hybrid Search Engine\n• Vector similarity (70%)\n• Full-text search (20%)\n• Graph traversal (10%)"
+    shape: rectangle
+    style: {
+      fill: "#D68910"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  search_results: {
+    label: "Search Results\n(Ranked by relevance)"
+    shape: rectangle
+    style: {
+      fill: "#F8C471"
+      font-color: "#7D6608"
+    }
+  }
+
+  user_search -> search_mode
+  search_mode -> grpc_search
+  grpc_search -> mnemosyne_server: "gRPC call"
+  mnemosyne_server -> hybrid_search
+  hybrid_search -> vector_store: "Query"
+  hybrid_search -> graph_store: "Query"
+  hybrid_search -> search_results
+}
+
+# Phase 4: Display and Interact
+display_phase: {
+  label: "Phase 4: Display & Interaction"
+  style: {
+    fill: "#F4ECF7"
+    stroke: "#8E44AD"
+    stroke-width: 2
+  }
+
+  memory_list: {
+    label: "Memory List View\n(Search results)"
+    shape: rectangle
+    style: {
+      fill: "#8E44AD"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  memory_detail: {
+    label: "Memory Detail View\n(Full content + metadata)"
+    shape: rectangle
+    style: {
+      fill: "#A569BD"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  graph_viz: {
+    label: "Graph Visualization\n(Force-directed layout)"
+    shape: rectangle
+    style: {
+      fill: "#BB8FCE"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  user_actions: {
+    label: "User Actions\n• Edit\n• Delete\n• Create links\n• Navigate graph"
+    shape: rectangle
+    style: {
+      fill: "#D7BDE2"
+      font-color: "#6C3483"
+    }
+  }
+
+  search_results -> memory_list
+  memory_list -> memory_detail: "Select memory"
+  memory_list -> graph_viz: "Switch to graph view"
+  memory_detail -> user_actions
+  graph_viz -> user_actions
+}
+
+# Offline handling
+offline_branch: {
+  label: "Offline Mode"
+  style: {
+    fill: "#FDEDEC"
+    stroke: "#E74C3C"
+    stroke-width: 2
+    stroke-dash: 3
+  }
+
+  local_cache: {
+    label: "Local Cache\n(In-memory)"
+    shape: cylinder
+    style: {
+      fill: "#EC7063"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  sync_queue: {
+    label: "Sync Queue\n(Pending operations)"
+    shape: rectangle
+    style: {
+      fill: "#E74C3C"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  auto_sync: {
+    label: "Auto-Sync\n(On reconnection)"
+    shape: rectangle
+    style: {
+      fill: "#C0392B"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  local_cache -> sync_queue: "Queue changes"
+  sync_queue -> auto_sync: "When online"
+  auto_sync -> mnemosyne_server: "Batch sync"
+}
+
+# Main flow connections
+edit_phase -> storage_decision: "Content ready"
+storage_decision -> store_phase: "Save"
+storage_decision -> edit_phase: "Continue editing" {
+  style: {
+    stroke-dash: 3
+  }
+}
+
+store_phase -> search_phase: "Later session"
+
+# Offline branch
+storage_decision -> offline_branch: "If offline" {
+  style: {
+    stroke: "#E74C3C"
+    stroke-dash: 3
+  }
+}
+
+search_phase -> offline_branch: "If offline" {
+  style: {
+    stroke: "#E74C3C"
+    stroke-dash: 3
+  }
+}
+
+# Connections from mnemosyne server
+mnemosyne_server -> search_phase.hybrid_search
+store_phase.vector_store -> search_phase.hybrid_search
+store_phase.graph_store -> search_phase.hybrid_search
+
+search_phase -> display_phase
+
+# Feedback loop
+display_phase.user_actions -> edit_phase: "Edit memory" {
+  style: {
+    stroke: "#95A5A6"
+    stroke-dash: 3
+  }
+}
+
+display_phase.user_actions -> store_phase: "Update" {
+  style: {
+    stroke: "#95A5A6"
+    stroke-dash: 3
+  }
+}

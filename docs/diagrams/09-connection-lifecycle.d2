@@ -1,0 +1,438 @@
+# Connection Management Lifecycle
+# Health checks, reconnection, and error handling
+
+direction: down
+
+# Application start
+app_start: {
+  label: "Application Start"
+  shape: oval
+  style: {
+    fill: "#34495E"
+    font-color: "#ECF0F1"
+  }
+}
+
+# Initial connection attempt
+initial_connect: {
+  label: "Initial Connection Attempt\nmnemosyne gRPC client"
+  shape: rectangle
+  style: {
+    fill: "#3498DB"
+    font-color: "#FFFFFF"
+  }
+}
+
+# Connection success/failure decision
+conn_decision: {
+  label: "Connection\nSuccessful?"
+  shape: diamond
+  style: {
+    fill: "#F39C12"
+    font-color: "#FFFFFF"
+  }
+}
+
+# Connected state
+connected_state: {
+  label: "Connected State"
+  style: {
+    fill: "#EAFAF1"
+    stroke: "#27AE60"
+    stroke-width: 3
+  }
+
+  health_monitor: {
+    label: "Health Monitor\n(30s intervals)"
+    shape: rectangle
+    style: {
+      fill: "#27AE60"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  health_check: {
+    label: "Health Check gRPC"
+    shape: rectangle
+    style: {
+      fill: "#52BE80"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  health_ok: {
+    label: "Health OK?"
+    shape: diamond
+    style: {
+      fill: "#58D68D"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  health_monitor -> health_check: "Every 30s"
+  health_check -> health_ok
+}
+
+# Offline state
+offline_state: {
+  label: "Offline State"
+  style: {
+    fill: "#FEF5E7"
+    stroke: "#E67E22"
+    stroke-width: 3
+  }
+
+  offline_mode: {
+    label: "Enter Offline Mode\n• Use local cache\n• Queue operations\n• Display status"
+    shape: rectangle
+    style: {
+      fill: "#E67E22"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  user_operations: {
+    label: "User Operations\n(Queued for sync)"
+    shape: rectangle
+    style: {
+      fill: "#F39C12"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  offline_mode -> user_operations
+}
+
+# Reconnection logic
+reconnect_logic: {
+  label: "Reconnection Logic"
+  style: {
+    fill: "#FEF9E7"
+    stroke: "#F39C12"
+    stroke-width: 3
+  }
+
+  start_reconnect: {
+    label: "Start Reconnection\n(Exponential backoff)"
+    shape: rectangle
+    style: {
+      fill: "#F39C12"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  backoff_wait: {
+    label: "Wait (Backoff)\n1s → 2s → 4s → 8s → 16s → 30s"
+    shape: rectangle
+    style: {
+      fill: "#F8C471"
+      font-color: "#7D6608"
+    }
+  }
+
+  retry_connect: {
+    label: "Retry Connection\ngRPC dial"
+    shape: rectangle
+    style: {
+      fill: "#F39C12"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  retry_decision: {
+    label: "Connected?"
+    shape: diamond
+    style: {
+      fill: "#F5B041"
+      font-color: "#7D6608"
+    }
+  }
+
+  retry_count: {
+    label: "Retries < 10?"
+    shape: diamond
+    style: {
+      fill: "#EB984E"
+      font-color: "#7D6608"
+    }
+  }
+
+  start_reconnect -> backoff_wait
+  backoff_wait -> retry_connect
+  retry_connect -> retry_decision
+}
+
+# Sync process
+sync_process: {
+  label: "Sync Process"
+  style: {
+    fill: "#EBF5FB"
+    stroke: "#3498DB"
+    stroke-width: 3
+  }
+
+  check_queue: {
+    label: "Check Sync Queue\n(Pending operations)"
+    shape: rectangle
+    style: {
+      fill: "#3498DB"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  queue_empty: {
+    label: "Queue\nEmpty?"
+    shape: diamond
+    style: {
+      fill: "#5DADE2"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  process_batch: {
+    label: "Process Batch\n(FIFO order)"
+    shape: rectangle
+    style: {
+      fill: "#2E86C1"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  validate_ops: {
+    label: "Validate Operations\n(SHA256 check)"
+    shape: rectangle
+    style: {
+      fill: "#2874A6"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  send_grpc: {
+    label: "Send gRPC Requests\n(Create/Update/Delete)"
+    shape: rectangle
+    style: {
+      fill: "#1B4F72"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  sync_success: {
+    label: "All\nSuccessful?"
+    shape: diamond
+    style: {
+      fill: "#5DADE2"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  check_queue -> queue_empty
+  queue_empty -> process_batch: "No"
+  process_batch -> validate_ops
+  validate_ops -> send_grpc
+  send_grpc -> sync_success
+}
+
+# Error handling
+error_handling: {
+  label: "Error Handling"
+  style: {
+    fill: "#FDEDEC"
+    stroke: "#E74C3C"
+    stroke-width: 3
+  }
+
+  log_error: {
+    label: "Log Error\n(With context)"
+    shape: rectangle
+    style: {
+      fill: "#E74C3C"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  categorize: {
+    label: "Categorize Error\n• Network\n• Server\n• Validation\n• Unknown"
+    shape: rectangle
+    style: {
+      fill: "#EC7063"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  retry_decision_err: {
+    label: "Retryable?"
+    shape: diamond
+    style: {
+      fill: "#F1948A"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  notify_user: {
+    label: "Notify User\n(Status bar)"
+    shape: rectangle
+    style: {
+      fill: "#F5B7B1"
+      font-color: "#922B21"
+    }
+  }
+
+  log_error -> categorize
+  categorize -> retry_decision_err
+  retry_decision_err -> notify_user
+}
+
+# Max retries exceeded
+max_retries: {
+  label: "Max Retries Exceeded\n⚠ Manual intervention required"
+  shape: rectangle
+  style: {
+    fill: "#C0392B"
+    stroke: "#922B21"
+    stroke-width: 2
+    font-color: "#FFFFFF"
+  }
+}
+
+# Flow connections
+app_start -> initial_connect
+
+initial_connect -> conn_decision
+
+conn_decision -> connected_state: "Yes" {
+  style: {
+    stroke: "#27AE60"
+    stroke-width: 2
+  }
+}
+
+conn_decision -> offline_state: "No" {
+  style: {
+    stroke: "#E67E22"
+    stroke-width: 2
+  }
+}
+
+# Health monitoring loop
+connected_state.health_ok -> connected_state.health_monitor: "Yes - Continue monitoring" {
+  style: {
+    stroke: "#27AE60"
+    stroke-width: 2
+  }
+}
+
+connected_state.health_ok -> offline_state: "No - Connection lost" {
+  style: {
+    stroke: "#E67E22"
+    stroke-width: 2
+  }
+}
+
+# Offline to reconnect
+offline_state -> reconnect_logic: "Start reconnection" {
+  style: {
+    stroke: "#F39C12"
+    stroke-width: 2
+  }
+}
+
+# Reconnection outcomes
+reconnect_logic.retry_decision -> sync_process: "Yes - Check queue" {
+  style: {
+    stroke: "#3498DB"
+    stroke-width: 2
+  }
+}
+
+reconnect_logic.retry_decision -> reconnect_logic.retry_count: "No - Check retries" {
+  style: {
+    stroke: "#E67E22"
+    stroke-width: 2
+  }
+}
+
+reconnect_logic.retry_count -> reconnect_logic.backoff_wait: "Yes - Retry" {
+  style: {
+    stroke: "#F39C12"
+    stroke-width: 2
+    stroke-dash: 3
+  }
+}
+
+reconnect_logic.retry_count -> max_retries: "No - Give up" {
+  style: {
+    stroke: "#C0392B"
+    stroke-width: 2
+  }
+}
+
+# Sync outcomes
+sync_process.queue_empty -> connected_state: "Yes - Sync complete" {
+  style: {
+    stroke: "#27AE60"
+    stroke-width: 2
+  }
+}
+
+sync_process.sync_success -> sync_process.check_queue: "Yes - Next batch" {
+  style: {
+    stroke: "#3498DB"
+    stroke-width: 2
+    stroke-dash: 3
+  }
+}
+
+sync_process.sync_success -> error_handling: "No - Handle error" {
+  style: {
+    stroke: "#E74C3C"
+    stroke-width: 2
+  }
+}
+
+# Error handling outcomes
+error_handling.retry_decision_err -> reconnect_logic: "Yes - Reconnect" {
+  style: {
+    stroke: "#F39C12"
+    stroke-width: 2
+    stroke-dash: 3
+  }
+}
+
+error_handling.retry_decision_err -> max_retries: "No - Fatal error" {
+  style: {
+    stroke: "#C0392B"
+    stroke-width: 2
+  }
+}
+
+# Statistics
+stats: {
+  near: bottom-right
+  label: "Connection Statistics"
+  shape: rectangle
+  style: {
+    fill: "#ECF0F1"
+    stroke: "#34495E"
+    stroke-width: 1
+  }
+
+  health_interval: {
+    label: "Health Check: 30s"
+    shape: text
+  }
+
+  max_retry: {
+    label: "Max Retries: 10"
+    shape: text
+  }
+
+  max_backoff: {
+    label: "Max Backoff: 30s"
+    shape: text
+  }
+
+  timeout: {
+    label: "gRPC Timeout: 10s"
+    shape: text
+  }
+}

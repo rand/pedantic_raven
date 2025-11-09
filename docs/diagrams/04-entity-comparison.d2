@@ -1,0 +1,185 @@
+# Entity Extraction Strategy Comparison
+# Pattern vs GLiNER vs Hybrid approaches
+
+direction: down
+
+sample_text: {
+  label: "Sample Text:\n\"Alice is implementing a FastAPI service using PostgreSQL.\nShe needs to add JWT authentication before the Q3 launch.\""
+  shape: rectangle
+  style: {
+    fill: "#ECF0F1"
+    stroke: "#2C3E50"
+    stroke-width: 2
+    font-color: "#2C3E50"
+  }
+}
+
+# Pattern Extractor Path
+pattern_path: {
+  label: "Pattern Extractor"
+  style: {
+    fill: "#E8F8F5"
+    stroke: "#27AE60"
+    stroke-width: 2
+  }
+
+  pattern_extractor: {
+    label: "Pattern Matching\nKeyword Classification"
+    shape: rectangle
+    style: {
+      fill: "#52BE80"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  pattern_results: {
+    label: "Results:\n• Person: Alice\n• Technology: FastAPI, PostgreSQL, JWT\n• Concept: authentication\n\nAccuracy: ~65%\nLatency: <1ms\nDependencies: None"
+    shape: rectangle
+    style: {
+      fill: "#ABEBC6"
+      stroke: "#27AE60"
+      font-color: "#1E8449"
+    }
+  }
+
+  pattern_extractor -> pattern_results
+}
+
+# GLiNER Path
+gliner_path: {
+  label: "GLiNER Extractor"
+  style: {
+    fill: "#EBF5FB"
+    stroke: "#3498DB"
+    stroke-width: 2
+  }
+
+  gliner_extractor: {
+    label: "ML-Based Extraction\nContext-Aware Classification"
+    shape: rectangle
+    style: {
+      fill: "#3498DB"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  gliner_service: {
+    label: "GLiNER2 Model\n(340M params)"
+    shape: cylinder
+    style: {
+      fill: "#2874A6"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  gliner_results: {
+    label: "Results:\n• Person: Alice\n• Technology: FastAPI, PostgreSQL, JWT\n• Concept: authentication\n• Organization: (none - correct)\n• Time_Reference: Q3 launch\n• Action: implementing, add\n\nAccuracy: ~90%\nLatency: 150ms\nDependencies: Python service"
+    shape: rectangle
+    style: {
+      fill: "#AED6F1"
+      stroke: "#3498DB"
+      font-color: "#1B4F72"
+    }
+  }
+
+  gliner_extractor -> gliner_service: "HTTP request"
+  gliner_service -> gliner_results
+}
+
+# Hybrid Path
+hybrid_path: {
+  label: "Hybrid Strategy (Default)"
+  style: {
+    fill: "#FEF9E7"
+    stroke: "#F39C12"
+    stroke-width: 3
+  }
+
+  hybrid_strategy: {
+    label: "Hybrid Extractor\nAutomatic Fallback"
+    shape: diamond
+    style: {
+      fill: "#F39C12"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  try_gliner: {
+    label: "Try GLiNER First"
+    shape: rectangle
+    style: {
+      fill: "#F8C471"
+      font-color: "#7D6608"
+    }
+  }
+
+  gliner_available: {
+    label: "GLiNER Available?"
+    shape: diamond
+    style: {
+      fill: "#F5B041"
+      font-color: "#7D6608"
+    }
+  }
+
+  use_gliner: {
+    label: "Use GLiNER Results\n90% accuracy"
+    shape: rectangle
+    style: {
+      fill: "#3498DB"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  fallback_pattern: {
+    label: "Fall Back to Pattern\n65% accuracy"
+    shape: rectangle
+    style: {
+      fill: "#52BE80"
+      font-color: "#FFFFFF"
+    }
+  }
+
+  hybrid_results: {
+    label: "Benefits:\n✓ High accuracy when available\n✓ Always functional\n✓ Zero data loss\n✓ Graceful degradation\n✓ No user intervention needed"
+    shape: rectangle
+    style: {
+      fill: "#FCF3CF"
+      stroke: "#F39C12"
+      stroke-width: 2
+      font-color: "#7D6608"
+    }
+  }
+
+  hybrid_strategy -> try_gliner
+  try_gliner -> gliner_available
+  gliner_available -> use_gliner: "Yes"
+  gliner_available -> fallback_pattern: "No / Timeout / Error"
+  use_gliner -> hybrid_results
+  fallback_pattern -> hybrid_results
+}
+
+# Main flow
+sample_text -> pattern_path.pattern_extractor: "Input"
+sample_text -> gliner_path.gliner_extractor: "Input"
+sample_text -> hybrid_path.hybrid_strategy: "Input (Default)"
+
+# Comparison table (as a shape)
+comparison: {
+  label: "Comparison Matrix"
+  near: bottom-center
+  shape: rectangle
+  style: {
+    fill: "#FFFFFF"
+    stroke: "#34495E"
+    stroke-width: 2
+  }
+
+  table: {
+    label: "┌──────────────┬──────────┬─────────┬─────────────┐\n│  Strategy    │ Accuracy │ Latency │ Dependencies│\n├──────────────┼──────────┼─────────┼─────────────┤\n│  Pattern     │ 60-70%   │ <1ms    │ None        │\n│  GLiNER      │ 85-95%   │ 100-300ms│ Python svc │\n│  Hybrid      │ 85-95%*  │ Variable│ Optional    │\n└──────────────┴──────────┴─────────┴─────────────┘\n* Falls back to 60-70% if GLiNER unavailable"
+    shape: text
+    style: {
+      font: mono
+    }
+  }
+}
