@@ -227,7 +227,7 @@ func TestRenderMetadataWithLinks(t *testing.T) {
 	memory := createTestMemory("test-1", "Content", 8, nil)
 	memory.Links = []*pb.MemoryLink{
 		{TargetId: "link-1", LinkType: pb.LinkType_LINK_TYPE_REFERENCES},
-		{TargetId: "link-2", LinkType: pb.LinkType_LINK_TYPE_DEPENDS_ON},
+		{TargetId: "link-2", LinkType: pb.LinkType_LINK_TYPE_BUILDS_UPON},
 	}
 	m.SetMemory(memory)
 
