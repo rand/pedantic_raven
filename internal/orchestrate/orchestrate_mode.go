@@ -433,45 +433,46 @@ func (m *OrchestrateMode) renderFooter() string {
 // renderHelp renders the help overlay.
 func (m *OrchestrateMode) renderHelp() string {
 	helpText := `
-ORCHESTRATE MODE - KEYBOARD SHORTCUTS
+Orchestrate Mode - Keyboard Shortcuts
 
-Global Controls:
-  q           Exit Orchestrate Mode (stops orchestration if running)
-  ?           Toggle this help overlay
-  Tab         Next view (Editor → Dashboard → Graph → Logs)
-  Shift+Tab   Previous view
-  1           Plan Editor view
-  2           Dashboard view
-  3           Task Graph view
-  4           Agent Logs view
+VIEW SWITCHING
+  1 / 2 / 3 / 4      Plan/Dashboard/Graph/Log
+  Tab / Shift+Tab    Next/previous view
+  p                  Plan editor
+  d                  Dashboard
+  g                  Task graph
+  l                  Agent logs
 
-Plan Editor (when in Editor view):
-  Ctrl+S      Save current plan to file
-  Ctrl+O      Open plan from file
-  Ctrl+N      Create new plan (template)
-  Ctrl+L      Launch orchestration (if plan is valid)
+ORCHESTRATION CONTROL
+  Space              Pause/resume
+  Ctrl+Enter         Launch orchestration
+  Ctrl+C             Stop orchestration
+  r                  Restart
 
-Orchestration Controls (when running):
-  Space       Pause/Resume orchestration
-  r           Restart orchestration (stop + start)
-  x           Cancel orchestration (stop + cleanup)
+AGENT INTERACTION
+  ↑↓                 Select agent
+  Enter              View agent details
+  k                  Kill agent
+  d                  View agent logs
 
-Dashboard View:
-  (Automatic updates from mnemosyne orchestrate)
+PLAN EDITING
+  e                  Edit plan
+  Ctrl+S             Save plan
+  Ctrl+L             Load plan
 
-Task Graph View:
-  +/-         Zoom in/out
-  h/j/k/l     Pan viewport (left/down/up/right)
-  Arrow keys  Pan viewport
+NAVIGATION
+  ↑↓←→               Pan/navigate
+  +/-                Zoom in/out
+  Tab                Select next item
 
-Agent Logs View:
-  e           Export logs to file
-  /           Search logs (enter query)
-  Up/Down     Scroll through logs
-  f           Filter by agent type
-  l           Filter by log level
+MODE SWITCHING
+  Tab / Shift+Tab    Next/previous mode
+  1-4                Jump to mode number
 
-Press ? again to close this help.
+OTHER
+  Cmd+P              Command palette
+  Esc                Close help
+  ?                  Toggle this help
 `
 
 	return orchestrateModeHelpStyle.Render(helpText)

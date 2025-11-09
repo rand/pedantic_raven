@@ -201,9 +201,9 @@ func (m Model) renderStats() string {
 // renderHelp renders help text footer.
 func (m Model) renderHelp() string {
 	if m.selectedNodeID != "" {
-		return helpStyle.Render("[hjkl] Pan  [+-] Zoom  [esc] Clear  [c] Center  [s] Stabilize")
+		return helpStyle.Render("[↑↓←→] Pan  [+/-] Zoom  [Enter] View  [c] Center  [Esc] Clear  [?] Help")
 	}
-	return helpStyle.Render("[hjkl] Pan  [+-] Zoom  [enter] Select  [c] Center  [r] Reset  [s] Stabilize")
+	return helpStyle.Render("[↑↓←→] Pan  [+/-] Zoom  [Enter] Select  [c] Center  [r] Reset  [?] Help")
 }
 
 // toScreen converts graph coordinates to screen coordinates.
