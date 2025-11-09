@@ -145,17 +145,18 @@ func (c *Client) ExtractEntities(
 
 	url := fmt.Sprintf("%s/extract", c.config.ServiceURL)
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, wrapError("ExtractEntities", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	// Retry logic
+	// Retry logic with fresh request on each attempt
 	var resp *http.Response
 	var lastErr error
 
 	for attempt := 0; attempt <= c.config.MaxRetries; attempt++ {
+		// Create fresh request with new body for each attempt
+		req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+		if err != nil {
+			return nil, wrapError("ExtractEntities", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+
 		resp, lastErr = c.httpClient.Do(req)
 		if lastErr == nil && resp.StatusCode == http.StatusOK {
 			break
