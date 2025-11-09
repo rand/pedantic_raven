@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -8,7 +9,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/rand/pedantic-raven/internal/app/events"
+	"github.com/rand/pedantic-raven/internal/config"
 	"github.com/rand/pedantic-raven/internal/editor"
+	"github.com/rand/pedantic-raven/internal/editor/semantic"
+	"github.com/rand/pedantic-raven/internal/gliner"
 	"github.com/rand/pedantic-raven/internal/modes"
 	"github.com/rand/pedantic-raven/internal/overlay"
 	"github.com/rand/pedantic-raven/internal/palette"
@@ -43,14 +47,24 @@ type model struct {
 }
 
 func initialModel() model {
+	// Load configuration
+	cfg, err := config.Load("config.toml")
+	if err != nil {
+		// Fall back to default config if file doesn't exist or can't be loaded
+		cfg = config.DefaultConfig()
+	}
+
+	// Create semantic analyzer with configured extractor
+	analyzer := createAnalyzer(cfg)
+
 	// Create event broker
 	broker := events.NewBroker(100)
 
 	// Create mode registry
 	modeRegistry := modes.NewRegistry()
 
-	// Register real modes
-	editMode := editor.NewEditMode()
+	// Register real modes with configured analyzer
+	editMode := editor.NewEditModeWithAnalyzer(analyzer)
 	exploreMode := modes.NewExploreMode()
 	analyzeMode := modes.NewBaseMode(modes.ModeAnalyze, "Analyze", "Semantic analysis")
 
@@ -80,6 +94,56 @@ func initialModel() model {
 	m.registerCommands()
 
 	return m
+}
+
+// createAnalyzer creates a semantic analyzer based on configuration.
+func createAnalyzer(cfg *config.Config) semantic.Analyzer {
+	// Always create pattern extractor as fallback
+	patternExtractor := semantic.NewPatternExtractor()
+
+	// If GLiNER is disabled, use pattern extractor only
+	if !cfg.GLiNER.Enabled {
+		return semantic.NewAnalyzerWithExtractor(patternExtractor)
+	}
+
+	// Create GLiNER client with config
+	glinerConfig := &gliner.Config{
+		ServiceURL:        cfg.GLiNER.ServiceURL,
+		Timeout:           cfg.GLiNER.Timeout,
+		MaxRetries:        cfg.GLiNER.MaxRetries,
+		Enabled:           cfg.GLiNER.Enabled,
+		FallbackToPattern: cfg.GLiNER.FallbackToPattern,
+	}
+
+	glinerClient := gliner.NewClient(glinerConfig)
+
+	// Combine default and custom entity types
+	defaultTypes := cfg.GLiNER.EntityTypes.Default
+	if len(cfg.GLiNER.EntityTypes.Custom) > 0 {
+		defaultTypes = append(defaultTypes, cfg.GLiNER.EntityTypes.Custom...)
+	}
+
+	// Create GLiNER extractor
+	glinerExtractor := semantic.NewGLiNERExtractor(
+		glinerClient,
+		defaultTypes,
+		cfg.GLiNER.ScoreThreshold,
+	)
+
+	// Check if GLiNER is actually available
+	ctx := context.Background()
+	if glinerExtractor.IsAvailable(ctx) {
+		// GLiNER is available - use hybrid with GLiNER as primary
+		if cfg.GLiNER.FallbackToPattern {
+			hybridExtractor := semantic.NewHybridExtractor(glinerExtractor, patternExtractor, true)
+			return semantic.NewAnalyzerWithExtractor(hybridExtractor)
+		}
+		// GLiNER only, no fallback
+		return semantic.NewAnalyzerWithExtractor(glinerExtractor)
+	}
+
+	// GLiNER not available - use pattern extractor
+	return semantic.NewAnalyzerWithExtractor(patternExtractor)
 }
 
 func (m *model) registerCommands() {

@@ -1,0 +1,53 @@
+# Pedantic Raven Configuration
+
+# GLiNER Integration Settings
+[gliner]
+# Enable or disable GLiNER machine learning entity extraction
+# If disabled, falls back to pattern-based extraction
+enabled = true
+
+# GLiNER service URL (Python FastAPI service)
+# Start service with: cd services/gliner && uvicorn main:app --host 127.0.0.1 --port 8765
+service_url = "http://localhost:8765"
+
+# Request timeout in seconds
+timeout = 5
+
+# Maximum retry attempts for failed requests
+max_retries = 2
+
+# Fallback to pattern matcher if GLiNER is unavailable
+fallback_to_pattern = true
+
+# Minimum confidence score for entity extraction (0.0 to 1.0)
+# Lower values = more entities but lower precision
+# Higher values = fewer entities but higher precision
+# Typical values: 0.2-0.4 for broad extraction, 0.4-0.6 for precise extraction
+score_threshold = 0.3
+
+# Entity Types Configuration
+[gliner.entity_types]
+# Default entity types to extract (used if none specified)
+default = [
+    "person",
+    "organization",
+    "location",
+    "technology",
+    "concept",
+    "product"
+]
+
+# Custom entity types for domain-specific extraction
+# Examples:
+# - API-related: ["api_endpoint", "http_method", "status_code"]
+# - Database: ["table", "column", "index", "constraint"]
+# - Architecture: ["service", "component", "layer", "pattern"]
+custom = []
+
+# Environment variables can override these settings:
+# - GLINER_ENABLED=true|false
+# - GLINER_SERVICE_URL=http://localhost:8765
+# - GLINER_TIMEOUT=5
+# - GLINER_MAX_RETRIES=2
+# - GLINER_FALLBACK_TO_PATTERN=true|false
+# - GLINER_SCORE_THRESHOLD=0.3
