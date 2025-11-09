@@ -14,7 +14,7 @@
 - [Repository Structure](#repository-structure)
 - [Development Workflows](#development-workflows)
 - [Testing Strategy](#testing-strategy)
-- [Documentation Management (Zensical)](#documentation-management-zensical)
+- [Documentation Management](#documentation-management)
 - [Common Tasks](#common-tasks)
 - [Resources](#resources)
 
@@ -413,316 +413,68 @@ go clean -testcache
 
 ---
 
-## Documentation Management (Zensical)
+## Documentation Management
 
-### Documentation Structure
-
-Pedantic Raven uses **Zensical** for documentation site generation with shared infrastructure.
+### Structure
 
 ```
-docs/
-├── index.md                   # Documentation homepage
-├── whitepaper.md              # Technical whitepaper
-├── USAGE.md                   # User guide
-├── DEVELOPMENT.md             # Developer guide
-├── CONTRIBUTING.md            # Contribution guidelines
-├── TESTING.md                 # Testing framework
-├── PERFORMANCE.md             # Performance benchmarks
-├── STYLE_GUIDE.md             # Code style guide
-├── architecture.md            # Architecture documentation
-├── edit-mode-guide.md         # Edit mode guide
-├── analyze-mode-guide.md      # Analyze mode guide
-├── orchestrate-mode-guide.md  # Orchestrate mode guide
-├── CHANGELOG.md               # Version history
-├── PHASE*.md                  # Phase completion summaries
-│
-├── assets/                    # Images, diagrams, icons
-│   ├── diagrams/              # Architecture diagrams
-│   ├── favicon.svg            # Site favicon (teal glyph ⟡)
-│   └── og-image.png           # Social sharing image
-│
-├── stylesheets/               # CSS for documentation site
-│   ├── shared.css             # Shared base styles (from shared-docs-base)
-│   └── teal.css               # Teal theme overrides (#16A085)
-│
-├── javascripts/               # JavaScript for documentation site
-│   └── theme.js               # Theme switching logic
-│
-└── overrides/                 # Zensical theme overrides
+docs/                     # Markdown source files
+├── index.md             # Home page
+├── whitepaper.md        # Technical documentation
+├── css/styles.css       # Custom design (project-specific colors)
+├── js/                  # Theme toggle, sidebar behavior
+└── assets/              # Images, diagrams, favicons
+
+templates/               # Jinja2 HTML templates
+├── base.html           # Navbar, sidebar, theme toggle
+├── index.html          # Home page layout
+└── whitepaper.html     # Documentation layout
+
+scripts/build-docs.py   # Python build script
+site/                    # Generated static HTML (ignored by git)
 ```
 
-### Shared Infrastructure
+### Updating Documentation
 
-**Location**: `/Users/rand/src/shared-docs-base`
+1. **Edit markdown files** in `docs/` (index.md, whitepaper.md, etc.)
+2. **Test locally** (optional):
+   ```bash
+   python scripts/build-docs.py
+   cd site && python -m http.server 8000
+   ```
+3. **Commit and push** to main
+4. **Verify deployment**: GitHub Actions builds and deploys automatically (~1-2 min)
 
-**Shared Resources**:
-- **Base Styles**: `shared.css` - Typography, layout, component styles
-- **Theme System**: Color schemes, dark/light mode
-- **Scripts**: Documentation generation utilities
-- **Configuration**: Zensical base configuration
+### Design System
 
-**Updating Shared CSS**:
-1. Edit `/Users/rand/src/shared-docs-base/stylesheets/shared.css`
-2. Update version number in comment header
-3. Copy to project: `cp /Users/rand/src/shared-docs-base/stylesheets/shared.css docs/stylesheets/`
-4. Test locally: `zensical serve`
-5. Commit changes in **both** repositories
+**Project-specific**:
+- **Glyph**: ⟡ (White square) in navbar
+- **Colors**: Accent color in `docs/css/styles.css` (`:root` CSS variables)
+- **Tagline**: "// Context Engineering" in fixed right sidebar
 
-### Building and Serving Documentation
+**Shared features**:
+- Geist font + JetBrains Mono for code
+- Theme toggle (light/dark)
+- Responsive design (sidebar hides <1200px)
+- SVG diagrams with light/dark variants
 
-**Prerequisites**:
-- Python 3.12+
-- UV package manager (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
-- Zensical (`uv add zensical`)
+### Build Process
 
-**Local Development**:
-```bash
-# Serve documentation locally (with live reload)
-/Users/rand/src/shared-docs-base/.venv/bin/zensical serve
-
-# Build static site
-/Users/rand/src/shared-docs-base/.venv/bin/zensical build --clean
-
-# Preview built site
-cd site && python -m http.server 8000
-```
-
-**Configuration** (`zensical.toml`):
-```toml
-[project]
-site_name = "Pedantic Raven"
-site_url = "https://rand.github.io/pedantic_raven/"
-site_description = "Terminal-Based Context Engineering - Semantic memory editor with real-time entity extraction"
-docs_dir = "docs"
-site_dir = "site"
-
-[project.theme]
-variant = "modern"
-favicon = "assets/favicon.svg"
-primary = "custom"    # Teal (#16A085)
-accent = "custom"
-
-extra_css = [
-  "stylesheets/shared.css",
-  "stylesheets/teal.css",
-]
-
-extra_javascript = [
-  "javascripts/theme.js",
-]
-```
-
-### Theme
-
-**Primary Color**: Teal (#16A085)
-**Glyph**: ⟡ (semantic boundary marker)
-**Fonts**:
-- Text: Geist
-- Code: JetBrains Mono
-
-**Custom CSS** (`docs/stylesheets/teal.css`):
-```css
-:root {
-  --md-primary-fg-color: #16A085;
-  --md-accent-fg-color: #1ABC9C;
-}
-
-[data-md-color-scheme="slate"] {
-  --md-primary-fg-color: #1ABC9C;
-  --md-accent-fg-color: #16A085;
-}
-```
-
-### Deployment
-
-**Automatic via GitHub Actions**:
-- **Trigger**: Push to `main` branch
-- **Workflow**: `.github/workflows/docs.yml`
-- **Build**: Zensical generates static site
-- **Deploy**: GitHub Pages serves from `site/` directory
-- **URL**: https://rand.github.io/pedantic_raven/
-- **Time**: ~2-3 minutes from push to live
-
-**GitHub Actions Workflow** (`.github/workflows/docs.yml`):
-```yaml
-name: Deploy Zensical Docs
-
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Install UV and Zensical
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          uv init --no-workspace || true
-          uv add zensical
-      - name: Build site
-        run: uv run zensical build --clean
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./site
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - uses: actions/deploy-pages@v4
-```
-
-### Documentation Update Workflow
-
-#### Standard Update Process
-```bash
-# 1. Edit documentation files
-vim docs/architecture.md
-vim docs/whitepaper.md
-
-# 2. Test locally
-/Users/rand/src/shared-docs-base/.venv/bin/zensical serve
-# Open http://localhost:8000 in browser
-
-# 3. Verify rendering and navigation
-# - Check all links work
-# - Verify images load
-# - Test search functionality
-# - Validate syntax highlighting
-
-# 4. Commit changes
-git add docs/
-git commit -m "docs: Update architecture documentation
-
-- Added force-directed graph algorithm details
-- Updated performance benchmarks
-- Added memory workspace screenshots"
-
-# 5. Push to main
-git push origin main
-
-# 6. Verify GitHub Pages deployment
-# Wait 2-3 minutes, then visit:
-# https://rand.github.io/pedantic_raven/
-```
-
-#### Quick Documentation Update (Minor Changes)
-```bash
-# For typos, clarifications, small improvements
-vim docs/USAGE.md
-git add docs/USAGE.md
-git commit -m "docs: Fix typo in keyboard shortcuts"
-git push
-```
-
-#### Major Documentation Overhaul
-```bash
-# 1. Create feature branch
-git checkout -b docs/major-restructure
-
-# 2. Make all documentation updates
-# (multiple files, restructuring, etc.)
-
-# 3. Test locally
-/Users/rand/src/shared-docs-base/.venv/bin/zensical serve
-
-# 4. Commit and create PR
-git add docs/
-git commit -m "docs: Major documentation restructure
-
-- Reorganized guides by user role
-- Added troubleshooting section
-- Updated all cross-references
-- Improved navigation structure"
-
-git push -u origin docs/major-restructure
-gh pr create --title "Major Documentation Restructure"
-```
-
-### Documentation Update Triggers
-
-**ALWAYS update documentation when**:
-
-| Change Type | Primary Docs | Secondary Docs | Notes |
-|-------------|--------------|----------------|-------|
-| **New Feature** | README.md, docs/USAGE.md | CHANGELOG.md, ROADMAP.md | Add to feature list |
-| **Architecture Change** | docs/architecture.md, docs/whitepaper.md | README.md | Update diagrams |
-| **API Modification** | docs/DEVELOPMENT.md | docs/architecture.md | Update code examples |
-| **Workflow Change** | AGENT_GUIDE.md, docs/DEVELOPMENT.md | README.md | Update command sequences |
-| **Dependency Addition** | README.md, docs/DEVELOPMENT.md | docs/CONTRIBUTING.md | Update installation |
-| **Release** | CHANGELOG.md, ROADMAP.md | README.md (version) | Follow release protocol |
-| **Configuration Change** | README.md, config.toml | docs/DEVELOPMENT.md | Update examples |
-| **Bug Fix** | CHANGELOG.md | docs/troubleshooting (if applicable) | Document fix |
-| **Performance Improvement** | README.md, docs/PERFORMANCE.md | CHANGELOG.md | Update benchmarks |
+1. Python-Markdown parses `.md` files
+2. YAML front matter stripped automatically
+3. Jinja2 templates apply HTML structure
+4. Static HTML + CSS/JS copied to `site/`
+5. GitHub Actions deploys to GitHub Pages
 
 ### Troubleshooting
 
-| Issue | Diagnosis | Solution |
-|-------|-----------|----------|
-| **Site not updating** | GitHub Actions failed | Check Actions tab, review build logs |
-| **Broken links** | Relative paths incorrect | Use `[text](file.md)` for same-directory links |
-| **CSS not loading** | Path incorrect in zensical.toml | Verify `extra_css` paths relative to `docs/` |
-| **Search not working** | Zensical build incomplete | Rebuild with `zensical build --clean` |
-| **Images not showing** | Path incorrect or missing | Verify images in `docs/assets/` |
-| **Theme not applied** | CSS cache issue | Hard refresh (Ctrl+Shift+R) or clear cache |
-| **Local serve fails** | UV/Zensical not installed | Run `uv add zensical` |
-
-### Shared CSS Updates Process
-
-**When updating shared styles**:
-
-1. **Edit base styles**:
-```bash
-vim /Users/rand/src/shared-docs-base/stylesheets/shared.css
-```
-
-2. **Update version number** in CSS header:
-```css
-/* Shared Documentation Styles v1.2.0 */
-```
-
-3. **Copy to pedantic_raven**:
-```bash
-cp /Users/rand/src/shared-docs-base/stylesheets/shared.css \
-   /Users/rand/src/pedantic_raven/docs/stylesheets/
-```
-
-4. **Test locally**:
-```bash
-cd /Users/rand/src/pedantic_raven
-/Users/rand/src/shared-docs-base/.venv/bin/zensical serve
-```
-
-5. **Commit in both repositories**:
-```bash
-# In shared-docs-base
-cd /Users/rand/src/shared-docs-base
-git add stylesheets/shared.css
-git commit -m "style: Update typography scale"
-git push
-
-# In pedantic_raven
-cd /Users/rand/src/pedantic_raven
-git add docs/stylesheets/shared.css
-git commit -m "docs: Update shared styles to v1.2.0"
-git push
-```
+| Issue | Solution |
+|-------|----------|
+| Build fails | Check Python dependencies: `pip install markdown jinja2 pygments` |
+| Styles missing | Verify `docs/css/styles.css` exists |
+| Theme toggle broken | Check `docs/js/theme.js` loaded |
+| Diagrams missing | Verify SVG files in `docs/assets/diagrams/` |
+| Old content showing | Hard refresh browser (Cmd+Shift+R) |
 
 ---
 
