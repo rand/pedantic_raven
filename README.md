@@ -148,6 +148,21 @@ go build -o pedantic_raven .
 - `↑` / `↓` - Command history
 - `:help` - Show built-in commands
 
+**Explore Mode** (memory workspace):
+- `g` - Toggle between list/detail and graph views
+- `Tab` - Switch focus (list ↔ detail) in standard layout
+- `?` - Show context-aware help overlay
+- **Standard Layout:**
+  - `j/k` - Navigate list or scroll detail
+  - `Enter` - Select memory or navigate link
+  - `/` - Search memories (when list focused)
+  - `r` - Refresh data
+- **Graph Layout:**
+  - `h/j/k/l` - Pan graph viewport
+  - `+/-` - Zoom in/out, `0` - Reset view
+  - `Tab` - Select nodes, `e/x` - Expand/collapse
+  - `c` - Center on selected, `r` - Re-layout
+
 📖 **Full guide**: [docs/USAGE.md](docs/USAGE.md)
 
 ---
