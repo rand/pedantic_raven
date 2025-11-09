@@ -1,7 +1,10 @@
 package modes
 
 import (
+	"strings"
+
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/rand/pedantic-raven/internal/memorydetail"
 	"github.com/rand/pedantic-raven/internal/memorygraph"
 	"github.com/rand/pedantic-raven/internal/memorylist"
@@ -36,6 +39,9 @@ type ExploreMode struct {
 	// Layout state
 	layoutMode  LayoutMode
 	focusTarget FocusTarget
+
+	// UI state
+	showHelp bool
 
 	// Size tracking
 	width  int
@@ -122,14 +128,28 @@ func (m *ExploreMode) Update(msg tea.Msg) (Mode, tea.Cmd) {
 	// Handle global keybindings
 	if keyMsg, ok := msg.(tea.KeyMsg); ok {
 		switch keyMsg.String() {
-		case "g":
-			// Toggle layout mode
-			m.toggleLayout()
+		case "?":
+			// Toggle help overlay
+			m.showHelp = !m.showHelp
 			return m, nil
 
+		case "esc":
+			// Close help if open
+			if m.showHelp {
+				m.showHelp = false
+				return m, nil
+			}
+
+		case "g":
+			// Toggle layout mode (not when help is showing)
+			if !m.showHelp {
+				m.toggleLayout()
+				return m, nil
+			}
+
 		case "tab":
-			// Cycle focus (only in standard layout)
-			if m.layoutMode == LayoutModeStandard {
+			// Cycle focus (only in standard layout, not when help is showing)
+			if m.layoutMode == LayoutModeStandard && !m.showHelp {
 				m.cycleFocus()
 				return m, nil
 			}
@@ -181,33 +201,35 @@ func (m *ExploreMode) Update(msg tea.Msg) (Mode, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 	}
 
-	// Forward keyboard input to focused component based on layout
-	if m.layoutMode == LayoutModeGraph {
-		// In graph mode, all input goes to graph
-		if m.graph != nil {
-			updated, cmd := m.graph.Update(msg)
-			*m.graph = updated
-			if cmd != nil {
-				cmds = append(cmds, cmd)
-			}
-		}
-	} else {
-		// In standard mode, input goes to focused component
-		switch m.focusTarget {
-		case FocusTargetList:
-			if m.memoryList != nil {
-				updated, cmd := m.memoryList.Update(msg)
-				*m.memoryList = updated
+	// Forward keyboard input to focused component (only if help is not showing)
+	if !m.showHelp {
+		if m.layoutMode == LayoutModeGraph {
+			// In graph mode, all input goes to graph
+			if m.graph != nil {
+				updated, cmd := m.graph.Update(msg)
+				*m.graph = updated
 				if cmd != nil {
 					cmds = append(cmds, cmd)
 				}
 			}
-		case FocusTargetDetail:
-			if m.memoryDetail != nil {
-				updated, cmd := m.memoryDetail.Update(msg)
-				*m.memoryDetail = updated
-				if cmd != nil {
-					cmds = append(cmds, cmd)
+		} else {
+			// In standard mode, input goes to focused component
+			switch m.focusTarget {
+			case FocusTargetList:
+				if m.memoryList != nil {
+					updated, cmd := m.memoryList.Update(msg)
+					*m.memoryList = updated
+					if cmd != nil {
+						cmds = append(cmds, cmd)
+					}
+				}
+			case FocusTargetDetail:
+				if m.memoryDetail != nil {
+					updated, cmd := m.memoryDetail.Update(msg)
+					*m.memoryDetail = updated
+					if cmd != nil {
+						cmds = append(cmds, cmd)
+					}
 				}
 			}
 		}
@@ -298,8 +320,34 @@ func (m *ExploreMode) cycleFocus() {
 	}
 }
 
+// Styles for Explore mode
+var (
+	listBorderStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("39")). // Blue
+			Padding(0, 1)
+
+	detailBorderStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("35")). // Green
+				Padding(0, 1)
+
+	helpTitleStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("39")).
+			Padding(1, 0)
+
+	helpTextStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("252"))
+)
+
 // View renders the explore mode.
 func (m *ExploreMode) View() string {
+	// Show help overlay if requested
+	if m.showHelp {
+		return m.renderHelp()
+	}
+
 	if m.layoutMode == LayoutModeGraph {
 		// Full screen graph
 		if m.graph == nil {
@@ -313,12 +361,156 @@ func (m *ExploreMode) View() string {
 		return "Initializing memory workspace..."
 	}
 
+	// Get the views from components
 	listView := m.memoryList.View()
 	detailView := m.memoryDetail.View()
 
-	// Simple side-by-side layout
-	// TODO: Use lipgloss for better rendering with borders
-	return listView + " │ " + detailView
+	// Calculate dimensions (40/60 split with borders)
+	listWidth := (m.width * 4 / 10) - 4 // -4 for borders
+	detailWidth := m.width - listWidth - 8 // -8 for both borders
+
+	if listWidth < 10 {
+		listWidth = 10
+	}
+	if detailWidth < 10 {
+		detailWidth = 10
+	}
+
+	// Wrap in bordered containers
+	listContainer := listBorderStyle.Width(listWidth).Render(listView)
+	detailContainer := detailBorderStyle.Width(detailWidth).Render(detailView)
+
+	// Join horizontally with a gap
+	return lipgloss.JoinHorizontal(lipgloss.Top, listContainer, " ", detailContainer)
+}
+
+// renderHelp renders the help overlay.
+func (m *ExploreMode) renderHelp() string {
+	var helpLines []string
+
+	if m.layoutMode == LayoutModeStandard {
+		helpLines = []string{
+			"Explore Mode - Standard Layout",
+			"",
+			"Layout:",
+			"  g         Toggle to graph view",
+			"  Tab       Switch focus (list/detail)",
+			"",
+			"Navigation (List focused):",
+			"  j/k, ↓/↑  Move up/down",
+			"  g/G       Go to top/bottom",
+			"  Ctrl+D/U  Page down/up",
+			"  Enter     Select memory",
+			"",
+			"Navigation (Detail focused):",
+			"  j/k, ↓/↑  Scroll up/down",
+			"  g/G       Scroll to top/bottom",
+			"  l         Enter link navigation",
+			"  Tab/n     Next link",
+			"  Enter     Navigate to link",
+			"  m         Toggle metadata",
+			"",
+			"Actions:",
+			"  /         Search (when list focused)",
+			"  r         Refresh data",
+			"  c         Clear filters",
+			"",
+			"Other:",
+			"  ?         Toggle this help",
+			"  Esc       Close help",
+			"",
+			"Press ? or Esc to close",
+		}
+	} else {
+		helpLines = []string{
+			"Explore Mode - Graph Layout",
+			"",
+			"Layout:",
+			"  g         Toggle to list view",
+			"",
+			"Navigation:",
+			"  h/j/k/l   Pan graph (left/down/up/right)",
+			"  +/-       Zoom in/out",
+			"  0         Reset view",
+			"  Tab       Select next node",
+			"  Shift+Tab Select previous node",
+			"",
+			"Node Actions:",
+			"  Enter     Navigate to selected node",
+			"  e         Expand selected node",
+			"  x         Collapse selected node",
+			"  c         Center on selected node",
+			"",
+			"Graph Actions:",
+			"  r         Re-layout graph",
+			"  Space     Single layout step",
+			"",
+			"Other:",
+			"  ?         Toggle this help",
+			"  Esc       Close help",
+			"",
+			"Press ? or Esc to close",
+		}
+	}
+
+	// Calculate centering
+	maxWidth := 0
+	for _, line := range helpLines {
+		if len(line) > maxWidth {
+			maxWidth = len(line)
+		}
+	}
+
+	// Build the help content
+	var lines []string
+	for _, line := range helpLines {
+		if line == "" {
+			lines = append(lines, "")
+			continue
+		}
+
+		// Check if it's a title (first line or ends with "Layout")
+		if strings.HasSuffix(line, "Layout") || strings.HasPrefix(line, "Explore Mode") {
+			lines = append(lines, helpTitleStyle.Render(line))
+		} else {
+			lines = append(lines, helpTextStyle.Render(line))
+		}
+	}
+
+	content := strings.Join(lines, "\n")
+
+	// Create bordered box
+	boxStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("39")).
+		Padding(1, 2).
+		Width(maxWidth + 4)
+
+	box := boxStyle.Render(content)
+
+	// Center the box on screen
+	if m.height > 0 {
+		boxHeight := strings.Count(box, "\n") + 1
+		verticalPadding := (m.height - boxHeight) / 2
+		if verticalPadding > 0 {
+			topPadding := strings.Repeat("\n", verticalPadding)
+			box = topPadding + box
+		}
+	}
+
+	if m.width > 0 {
+		horizontalPadding := (m.width - (maxWidth + 8)) / 2
+		if horizontalPadding > 0 {
+			padding := strings.Repeat(" ", horizontalPadding)
+			boxLines := strings.Split(box, "\n")
+			for i, line := range boxLines {
+				boxLines[i] = padding + line
+			}
+			box = strings.Join(boxLines, "\n")
+		}
+	}
+
+	return box
 }
 
 // Keybindings returns the keybindings for explore mode.
