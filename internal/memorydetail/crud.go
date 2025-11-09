@@ -481,3 +481,60 @@ func (es *EditState) detectChanges() bool {
 	currentHash := hashMemory(es.editedMemory)
 	return currentHash != es.originalHash
 }
+
+// parseNamespaceString parses a namespace string into a protobuf Namespace.
+// Supports formats: "global" or "project:name"
+func parseNamespaceString(ns string) *pb.Namespace {
+	if ns == "global" {
+		return mnemosyne.GlobalNamespace()
+	}
+
+	// Simple parsing - checks for project: prefix
+	if len(ns) > 8 && ns[:8] == "project:" {
+		projectName := ns[8:]
+		return mnemosyne.ProjectNamespace(projectName)
+	}
+
+	// Default to treating as project namespace
+	return mnemosyne.ProjectNamespace(ns)
+}
+
+// LoadMemory loads a memory by ID from the mnemosyne server.
+// This is a Bubble Tea command that returns MemoryLoadedMsg with the result.
+func LoadMemory(client *mnemosyne.Client, memoryID string) tea.Cmd {
+	return func() tea.Msg {
+		if client == nil {
+			return MemoryLoadedMsg{
+				Memory: nil,
+			}
+		}
+
+		if !client.IsConnected() {
+			return MemoryErrorMsg{
+				Err: mnemosyne.ErrNotConnected,
+			}
+		}
+
+		if memoryID == "" {
+			return MemoryErrorMsg{
+				Err: fmt.Errorf("%w: memory ID is required", mnemosyne.ErrInvalidArgument),
+			}
+		}
+
+		// Create context with timeout
+		ctx, cancel := context.WithTimeout(context.Background(), OperationTimeout)
+		defer cancel()
+
+		// Load memory from server
+		memory, err := client.GetMemory(ctx, memoryID)
+		if err != nil {
+			return MemoryErrorMsg{
+				Err: err,
+			}
+		}
+
+		return MemoryLoadedMsg{
+			Memory: memory,
+		}
+	}
+}

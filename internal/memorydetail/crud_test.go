@@ -746,3 +746,131 @@ func TestDetectChanges(t *testing.T) {
 		t.Error("Should detect changes after importance modification")
 	}
 }
+
+// ============================================================================
+// Namespace Helper Tests
+// ============================================================================
+
+func TestFormatNamespaceGlobal(t *testing.T) {
+	ns := &pb.Namespace{
+		Namespace: &pb.Namespace_Global{
+			Global: &pb.GlobalNamespace{},
+		},
+	}
+
+	result := formatNamespace(ns)
+	if result != "global" {
+		t.Errorf("Expected 'global', got '%s'", result)
+	}
+}
+
+func TestFormatNamespaceProject(t *testing.T) {
+	ns := &pb.Namespace{
+		Namespace: &pb.Namespace_Project{
+			Project: &pb.ProjectNamespace{
+				Name: "myproject",
+			},
+		},
+	}
+
+	result := formatNamespace(ns)
+	if result != "project:myproject" {
+		t.Errorf("Expected 'project:myproject', got '%s'", result)
+	}
+}
+
+func TestFormatNamespaceSession(t *testing.T) {
+	ns := &pb.Namespace{
+		Namespace: &pb.Namespace_Session{
+			Session: &pb.SessionNamespace{
+				Project:   "myproject",
+				SessionId: "sess-123",
+			},
+		},
+	}
+
+	result := formatNamespace(ns)
+	expected := "project:myproject:session:sess-123"
+	if result != expected {
+		t.Errorf("Expected '%s', got '%s'", expected, result)
+	}
+}
+
+func TestFormatNamespaceNil(t *testing.T) {
+	result := formatNamespace(nil)
+	if result != "" {
+		t.Errorf("Expected empty string for nil namespace, got '%s'", result)
+	}
+}
+
+func TestParseNamespaceStringGlobal(t *testing.T) {
+	ns := parseNamespaceString("global")
+
+	if ns == nil {
+		t.Fatal("Expected non-nil namespace")
+	}
+
+	_, ok := ns.Namespace.(*pb.Namespace_Global)
+	if !ok {
+		t.Errorf("Expected Global namespace type, got %T", ns.Namespace)
+	}
+}
+
+func TestParseNamespaceStringProject(t *testing.T) {
+	ns := parseNamespaceString("project:myproject")
+
+	if ns == nil {
+		t.Fatal("Expected non-nil namespace")
+	}
+
+	proj, ok := ns.Namespace.(*pb.Namespace_Project)
+	if !ok {
+		t.Errorf("Expected Project namespace type, got %T", ns.Namespace)
+	}
+
+	if proj.Project.Name != "myproject" {
+		t.Errorf("Expected project name 'myproject', got '%s'", proj.Project.Name)
+	}
+}
+
+func TestParseNamespaceStringWithoutPrefix(t *testing.T) {
+	// Should default to treating as project namespace
+	ns := parseNamespaceString("myproject")
+
+	if ns == nil {
+		t.Fatal("Expected non-nil namespace")
+	}
+
+	proj, ok := ns.Namespace.(*pb.Namespace_Project)
+	if !ok {
+		t.Errorf("Expected Project namespace type, got %T", ns.Namespace)
+	}
+
+	if proj.Project.Name != "myproject" {
+		t.Errorf("Expected project name 'myproject', got '%s'", proj.Project.Name)
+	}
+}
+
+func TestFormatParseRoundTrip(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"global", "global"},
+		{"project", "project:testproj"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Parse the string
+			ns := parseNamespaceString(tt.input)
+
+			// Format it back
+			result := formatNamespace(ns)
+
+			if result != tt.input {
+				t.Errorf("Round trip failed: expected '%s', got '%s'", tt.input, result)
+			}
+		})
+	}
+}
