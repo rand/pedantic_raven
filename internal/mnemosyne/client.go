@@ -4,6 +4,8 @@ package mnemosyne
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	"google.golang.org/grpc"
@@ -33,6 +35,10 @@ type Config struct {
 
 	// MaxRetries is the maximum number of retry attempts
 	MaxRetries int
+
+	// Enabled determines if mnemosyne integration is enabled
+	// If false, applications should fall back to sample/offline mode
+	Enabled bool
 }
 
 // DefaultConfig returns a default configuration.
@@ -41,7 +47,40 @@ func DefaultConfig() Config {
 		ServerAddr: "localhost:50051",
 		Timeout:    30 * time.Second,
 		MaxRetries: 3,
+		Enabled:    true,
 	}
+}
+
+// ConfigFromEnv creates a Config from environment variables.
+// Falls back to defaults for any missing values.
+func ConfigFromEnv() Config {
+	config := DefaultConfig()
+
+	// MNEMOSYNE_ENABLED - enable/disable real integration
+	if enabled := os.Getenv("MNEMOSYNE_ENABLED"); enabled != "" {
+		config.Enabled = enabled == "true" || enabled == "1"
+	}
+
+	// MNEMOSYNE_ADDR - server address (host:port)
+	if addr := os.Getenv("MNEMOSYNE_ADDR"); addr != "" {
+		config.ServerAddr = addr
+	}
+
+	// MNEMOSYNE_TIMEOUT - operation timeout in seconds
+	if timeoutStr := os.Getenv("MNEMOSYNE_TIMEOUT"); timeoutStr != "" {
+		if timeout, err := strconv.Atoi(timeoutStr); err == nil && timeout > 0 {
+			config.Timeout = time.Duration(timeout) * time.Second
+		}
+	}
+
+	// MNEMOSYNE_MAX_RETRIES - maximum retry attempts
+	if retriesStr := os.Getenv("MNEMOSYNE_MAX_RETRIES"); retriesStr != "" {
+		if retries, err := strconv.Atoi(retriesStr); err == nil && retries >= 0 {
+			config.MaxRetries = retries
+		}
+	}
+
+	return config
 }
 
 // NewClient creates a new mnemosyne client.

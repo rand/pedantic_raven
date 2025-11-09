@@ -2,6 +2,7 @@ package mnemosyne
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 )
@@ -70,6 +71,121 @@ func TestDefaultConfig(t *testing.T) {
 
 	if cfg.MaxRetries != 3 {
 		t.Errorf("Expected default max retries 3, got %d", cfg.MaxRetries)
+	}
+
+	if !cfg.Enabled {
+		t.Error("Expected mnemosyne to be enabled by default")
+	}
+}
+
+func TestConfigFromEnv(t *testing.T) {
+	// Save original environment
+	origAddr := os.Getenv("MNEMOSYNE_ADDR")
+	origTimeout := os.Getenv("MNEMOSYNE_TIMEOUT")
+	origRetries := os.Getenv("MNEMOSYNE_MAX_RETRIES")
+	origEnabled := os.Getenv("MNEMOSYNE_ENABLED")
+
+	// Restore after test
+	defer func() {
+		os.Setenv("MNEMOSYNE_ADDR", origAddr)
+		os.Setenv("MNEMOSYNE_TIMEOUT", origTimeout)
+		os.Setenv("MNEMOSYNE_MAX_RETRIES", origRetries)
+		os.Setenv("MNEMOSYNE_ENABLED", origEnabled)
+	}()
+
+	tests := []struct {
+		name     string
+		envVars  map[string]string
+		validate func(*testing.T, Config)
+	}{
+		{
+			name:    "no environment variables",
+			envVars: map[string]string{},
+			validate: func(t *testing.T, c Config) {
+				if c.ServerAddr != "localhost:50051" {
+					t.Errorf("Expected default addr, got %s", c.ServerAddr)
+				}
+				if !c.Enabled {
+					t.Error("Expected enabled=true by default")
+				}
+			},
+		},
+		{
+			name: "custom server address",
+			envVars: map[string]string{
+				"MNEMOSYNE_ADDR": "example.com:8080",
+			},
+			validate: func(t *testing.T, c Config) {
+				if c.ServerAddr != "example.com:8080" {
+					t.Errorf("Expected addr example.com:8080, got %s", c.ServerAddr)
+				}
+			},
+		},
+		{
+			name: "custom timeout",
+			envVars: map[string]string{
+				"MNEMOSYNE_TIMEOUT": "60",
+			},
+			validate: func(t *testing.T, c Config) {
+				if c.Timeout != 60*time.Second {
+					t.Errorf("Expected timeout 60s, got %v", c.Timeout)
+				}
+			},
+		},
+		{
+			name: "custom max retries",
+			envVars: map[string]string{
+				"MNEMOSYNE_MAX_RETRIES": "5",
+			},
+			validate: func(t *testing.T, c Config) {
+				if c.MaxRetries != 5 {
+					t.Errorf("Expected max retries 5, got %d", c.MaxRetries)
+				}
+			},
+		},
+		{
+			name: "disable mnemosyne",
+			envVars: map[string]string{
+				"MNEMOSYNE_ENABLED": "false",
+			},
+			validate: func(t *testing.T, c Config) {
+				if c.Enabled {
+					t.Error("Expected mnemosyne to be disabled")
+				}
+			},
+		},
+		{
+			name: "enable with 1",
+			envVars: map[string]string{
+				"MNEMOSYNE_ENABLED": "1",
+			},
+			validate: func(t *testing.T, c Config) {
+				if !c.Enabled {
+					t.Error("Expected mnemosyne to be enabled")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Clear environment
+			os.Unsetenv("MNEMOSYNE_ADDR")
+			os.Unsetenv("MNEMOSYNE_TIMEOUT")
+			os.Unsetenv("MNEMOSYNE_MAX_RETRIES")
+			os.Unsetenv("MNEMOSYNE_ENABLED")
+
+			// Set test environment
+			for key, value := range tt.envVars {
+				os.Setenv(key, value)
+			}
+
+			// Get config from environment
+			config := ConfigFromEnv()
+
+			// Validate
+			tt.validate(t, config)
+		})
 	}
 }
 
