@@ -1,0 +1,1859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedantic Raven: Terminal-Based Context Engineering - Whitepaper</title>
+    <meta name="description" content="Complete technical whitepaper for Pedantic Raven semantic memory editor with real-time entity extraction, graph visualization, and mnemosyne integration.">
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://rand.github.io/pedantic_raven/whitepaper.html">
+    <meta property="og:title" content="Pedantic Raven Whitepaper: Context Engineering for AI Systems">
+    <meta property="og:description" content="Complete technical whitepaper: architecture, implementation, validation, and roadmap for terminal-based semantic memory editing.">
+    <meta property="og:image" content="https://rand.github.io/pedantic_raven/og-image.png">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://rand.github.io/pedantic_raven/whitepaper.html">
+    <meta name="twitter:title" content="Pedantic Raven Whitepaper">
+    <meta name="twitter:description" content="Complete technical whitepaper: architecture, implementation, validation, and roadmap.">
+    <meta name="twitter:image" content="https://rand.github.io/pedantic_raven/og-image.png">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/geist.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="index.html" class="nav-brand">
+                <span class="logo-glyph">⟡</span>
+                <strong>Pedantic Raven</strong> v0.5.0
+            </a>
+            <div class="nav-links">
+                <a href="#executive-summary">Summary</a>
+                <a href="#introduction-the-context-problem">Introduction</a>
+                <a href="#system-architecture">Architecture</a>
+                <a href="#core-features">Features</a>
+                <a href="#technical-deep-dive">Deep-Dive</a>
+                <a href="#quality--testing">Testing</a>
+                <a href="#roadmap">Roadmap</a>
+                <a href="https://github.com/rand/pedantic_raven/tree/400da43" target="_blank">Source</a>
+                <button class="theme-toggle" aria-label="Toggle theme">
+                    <span class="theme-toggle-icon"></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <aside class="sidebar">
+        <div class="sidebar-content">
+            <div class="sidebar-tagline">// Context Engineering</div>
+        </div>
+    </aside>
+
+    <main class="container">
+        <header class="paper-header">
+            <h1><span class="logo-glyph">⟡</span> Pedantic Raven: Terminal-Based Context Engineering</h1>
+            <pre class="paper-meta-code">
+// Pedantic Raven: Terminal-Based Context Engineering
+//
+// A semantic memory editor with real-time entity extraction,
+// graph visualization, and mnemosyne integration.
+//
+// Version 0.5.0 | 934 Tests Passing | Open Source (MIT)
+// Validated against commit: 400da43
+</pre>
+            <p class="paper-meta">
+                <strong>Authors:</strong> Pedantic Raven Development Team<br>
+                <strong>Date:</strong> November 8, 2025<br>
+                <strong>Repository:</strong> <a href="https://github.com/rand/pedantic_raven">github.com/rand/pedantic_raven</a><br>
+                <strong>License:</strong> MIT
+            </p>
+        </header>
+
+        <section id="executive-summary" class="section">
+            <h2>Executive Summary</h2>
+
+            <p><strong>The Problem:</strong> AI systems require structured context to operate effectively, but current tools for creating and maintaining that context lack semantic structure. Engineers manually track entities, relationships, and gaps in knowledge using plain text files, wikis, or note-taking apps that don't understand the semantic meaning of content. This leads to disorganized context, missed connections, and wasted time recreating mental models across sessions.</p>
+
+            <p><strong>The Solution:</strong> Pedantic Raven is a terminal-based semantic memory editor that analyzes text in real-time to extract entities, relationships, typed holes (knowledge gaps), and dependencies. Built with Go and the Bubble Tea framework, it provides a responsive TUI that integrates deeply with the mnemosyne semantic memory system for persistent storage and retrieval.</p>
+
+            <p><strong>Key Innovation:</strong> Real-time semantic analysis as you type, with automatic fallback between ML-based extraction (GLiNER, 85-95% accuracy) and pattern matching (60-70% accuracy, always available). This hybrid approach ensures the system remains functional even when external services are unavailable—a design principle of graceful degradation.</p>
+
+            <p><strong>Status:</strong> Phase 5 complete (55% of roadmap), with 934 passing tests and production-ready core features. Three modes fully implemented (Edit, Explore, Analyze in progress), with multi-agent orchestration and collaboration planned for later phases.</p>
+
+            <p><strong>Target Audience:</strong></p>
+            <ul>
+                <li><strong>AI Engineers</strong> creating structured context for Claude/GPT systems</li>
+                <li><strong>Technical Writers</strong> documenting complex systems with many interconnected concepts</li>
+                <li><strong>Software Architects</strong> tracking architectural decisions and component relationships</li>
+                <li><strong>Researchers</strong> extracting entities and relationships from literature</li>
+                <li><strong>Knowledge Workers</strong> maintaining personal semantic memory graphs</li>
+            </ul>
+        </section>
+
+        <section id="introduction-the-context-problem" class="section">
+            <h2>Introduction: The Context Problem</h2>
+
+            <h3>Context Engineering for AI Systems</h3>
+            <p>Modern AI systems like Claude and GPT require context to understand what you're working on. This context might include:</p>
+            <ul>
+                <li><strong>Architecture decisions:</strong> "We're using event sourcing for audit compliance"</li>
+                <li><strong>Component relationships:</strong> "The API service depends on PostgreSQL and Redis"</li>
+                <li><strong>Knowledge gaps:</strong> "We still need to decide on an authentication strategy"</li>
+                <li><strong>Requirements:</strong> "The system must support 10,000 concurrent users"</li>
+                <li><strong>Dependencies:</strong> "Component A imports types from Component B"</li>
+            </ul>
+
+            <p>Engineers typically maintain this context in:</p>
+            <ul>
+                <li>Plain text files (no semantic structure)</li>
+                <li>Markdown documents (manual linking only)</li>
+                <li>Wiki systems (separate from development workflow)</li>
+                <li>Note-taking apps (GUI-based, not terminal-native)</li>
+            </ul>
+
+            <h3>Limitations of Current Approaches</h3>
+
+            <h4>Plain Text:</h4>
+            <ul>
+                <li>No automatic entity extraction</li>
+                <li>No relationship tracking</li>
+                <li>No visualization of concept graphs</li>
+                <li>Manual maintenance of cross-references</li>
+            </ul>
+
+            <h4>Wikis (Obsidian, Roam, Notion):</h4>
+            <ul>
+                <li>Require manual linking (<code>[[page]]</code> syntax)</li>
+                <li>GUI-based (not terminal-integrated)</li>
+                <li>Local-only or cloud-dependent (no hybrid offline)</li>
+                <li>No real-time semantic analysis</li>
+            </ul>
+
+            <h4>Traditional Note Tools:</h4>
+            <ul>
+                <li>Designed for general note-taking, not context engineering</li>
+                <li>No integration with semantic memory systems</li>
+                <li>No typed holes or gap tracking</li>
+                <li>Limited graph visualization</li>
+            </ul>
+
+            <h3>The Vision for Pedantic Raven</h3>
+            <p>Pedantic Raven addresses these limitations by:</p>
+            <ol>
+                <li><strong>Real-time semantic analysis</strong> as you type (500ms debounce)</li>
+                <li><strong>Automatic entity extraction</strong> (Person, Technology, Concept, Organization, Location, etc.)</li>
+                <li><strong>Relationship detection</strong> (subject-predicate-object patterns with confidence scoring)</li>
+                <li><strong>Typed hole tracking</strong> (<code>??Type</code> markers for knowledge gaps)</li>
+                <li><strong>Dependency analysis</strong> (imports, requires, references)</li>
+                <li><strong>Graph visualization</strong> (force-directed layout, interactive navigation)</li>
+                <li><strong>mnemosyne integration</strong> (persistent semantic memory with vector + graph storage)</li>
+                <li><strong>Offline-first architecture</strong> (local cache + sync queue, zero data loss)</li>
+                <li><strong>Terminal-native</strong> (integrates with development workflow, no context switching)</li>
+            </ol>
+
+            <p>The goal is not to replace note-taking tools, but to provide a specialized editor for creating and reasoning about semantic context for AI systems.</p>
+        </section>
+
+        <section id="system-architecture" class="section">
+            <h2>System Architecture</h2>
+
+            <h3>High-Level Overview</h3>
+            <p>Pedantic Raven is part of the mnemosyne ecosystem:</p>
+            <pre><code>┌─────────────────────────────────────────────────────────────┐
+│                    mnemosyne Ecosystem                      │
+│                                                             │
+│  ┌─────────────────┐       ┌─────────────────────────┐     │
+│  │ Pedantic Raven  │◄─────►│  mnemosyne Server       │     │
+│  │  (Go TUI)       │ gRPC  │  (Rust)                 │     │
+│  │                 │       │                         │     │
+│  │ • Edit Mode     │       │ • Vector Database       │     │
+│  │ • Explore Mode  │       │ • Graph Storage         │     │
+│  │ • Analyze Mode  │       │ • Full-Text Search      │     │
+│  └─────────────────┘       │ • Hybrid Search         │     │
+│          │                 └─────────────────────────┘     │
+│          │ HTTP (optional)                                 │
+│          ▼                                                  │
+│  ┌─────────────────┐                                       │
+│  │ GLiNER Service  │                                       │
+│  │ (Python/FastAPI)│                                       │
+│  │ ML Entity Extr. │                                       │
+│  └─────────────────┘                                       │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+            <p><strong>See Diagram:</strong> <a href="diagrams/01-system-context.d2">01-system-context.d2</a></p>
+
+            <h3>Technology Stack</h3>
+            <h4>Language & Framework:</h4>
+            <ul>
+                <li><strong>Go 1.25+:</strong> Compiled binary, cross-platform, excellent concurrency</li>
+                <li><strong>Bubble Tea:</strong> Elm Architecture (Model-Update-View) for TUI</li>
+                <li><strong>Lipgloss:</strong> Terminal styling and layout</li>
+                <li><strong>gRPC + Protocol Buffers:</strong> Type-safe RPC with mnemosyne</li>
+            </ul>
+
+            <h4>Optional ML Enhancement:</h4>
+            <ul>
+                <li><strong>GLiNER2:</strong> 340M parameter model for entity extraction</li>
+                <li><strong>Python/FastAPI:</strong> HTTP service for GLiNER inference</li>
+                <li><strong>Hybrid strategy:</strong> Automatic fallback to pattern matching</li>
+            </ul>
+
+            <h4>Integration:</h4>
+            <ul>
+                <li><strong>mnemosyne:</strong> Rust-based semantic memory server</li>
+                <li><strong>Vector DB:</strong> 768d/1536d embeddings for semantic search</li>
+                <li><strong>Graph DB:</strong> Bidirectional links with 8 link types</li>
+            </ul>
+
+            <h3>Component Architecture</h3>
+            <p>Pedantic Raven is organized into domain-focused packages:</p>
+            <pre><code>internal/
+├── app/              # Main application coordinator
+│   └── events/       # PubSub broker (40+ event types)
+├── editor/           # Text editing logic
+│   ├── buffer/       # Buffer manager with undo/redo
+│   ├── search/       # Search & replace engine
+│   ├── semantic/     # Semantic analyzer
+│   └── syntax/       # Syntax highlighting
+├── memorylist/       # Memory list view
+├── memorydetail/     # Memory detail view with CRUD
+├── memorygraph/      # Graph visualization
+├── analyze/          # Statistical analysis (Phase 6)
+├── mnemosyne/        # gRPC client
+├── gliner/           # GLiNER HTTP client
+├── layout/           # Layout engine
+├── overlay/          # Overlay system
+├── palette/          # Command palette
+├── terminal/         # Integrated terminal
+└── config/           # Configuration (TOML + env vars)
+</code></pre>
+            <p><strong>See Diagram:</strong> <a href="diagrams/02-component-architecture.d2">02-component-architecture.d2</a></p>
+
+            <h3>Design Patterns</h3>
+
+            <h4>1. Elm Architecture (Bubble Tea)</h4>
+            <pre><code>type Model interface {
+    Init() tea.Cmd
+    Update(tea.Msg) (tea.Model, tea.Cmd)
+    View() string
+}
+</code></pre>
+            <ul>
+                <li>Immutable state updates</li>
+                <li>Pure rendering functions</li>
+                <li>Command-based side effects</li>
+                <li>Predictable state transitions</li>
+            </ul>
+
+            <h4>2. Event-Driven Architecture</h4>
+            <ul>
+                <li>40+ domain event types</li>
+                <li>PubSub broker for decoupled communication</li>
+                <li>Components publish events, don't call directly</li>
+                <li>Reactive UI updates</li>
+            </ul>
+
+            <h4>3. Strategy Pattern (Entity Extraction)</h4>
+            <pre><code>type EntityExtractor interface {
+    ExtractEntities(ctx context.Context, text string, types []string) ([]Entity, error)
+}
+</code></pre>
+            <ul>
+                <li>Pattern matching (always available)</li>
+                <li>GLiNER ML (when service available)</li>
+                <li>Hybrid (automatic fallback)</li>
+            </ul>
+
+            <h4>4. Graceful Degradation</h4>
+            <ul>
+                <li>GLiNER unavailable → Pattern matching</li>
+                <li>mnemosyne unavailable → Offline mode</li>
+                <li>Always functional, never crashes from external failures</li>
+            </ul>
+            <p><strong>See Diagram:</strong> <a href="diagrams/03-semantic-pipeline.d2">03-semantic-pipeline.d2</a></p>
+
+            <h3>Data Flow: Edit → mnemosyne → Explore</h3>
+
+            <h4>Phase 1: Content Creation (Edit Mode)</h4>
+            <ol>
+                <li>User types context in editor</li>
+                <li>Semantic analysis (500ms debounce after typing stops)</li>
+                <li>Extract entities, relationships, typed holes</li>
+                <li>Display results in context panel</li>
+            </ol>
+
+            <h4>Phase 2: Storage</h4>
+            <ol start="5">
+                <li>User saves to mnemosyne (Ctrl+S or terminal command)</li>
+                <li>gRPC Store request with content, namespace, tags, importance</li>
+                <li>mnemosyne generates embeddings (768d/1536d vectors)</li>
+                <li>Store in vector DB + graph DB</li>
+            </ol>
+
+            <h4>Phase 3: Retrieval (Explore Mode)</h4>
+            <ol start="9">
+                <li>User searches with query</li>
+                <li>Select search mode (Hybrid/Semantic/FTS/Graph)</li>
+                <li>gRPC Search request to mnemosyne</li>
+                <li>Hybrid search combines vector similarity, full-text, graph traversal</li>
+                <li>Results ranked and returned</li>
+            </ol>
+
+            <h4>Phase 4: Visualization</h4>
+            <ol start="14">
+                <li>Display in memory list</li>
+                <li>View details in memory detail pane</li>
+                <li>Navigate graph with force-directed layout</li>
+                <li>Edit, create links, or delete memories</li>
+            </ol>
+            <p><strong>See Diagram:</strong> <a href="diagrams/06-data-flow.d2">06-data-flow.d2</a></p>
+        </section>
+
+        <section id="core-features" class="section">
+            <h2>Core Features</h2>
+
+            <h3>Edit Mode (Phase 2 - Complete)</h3>
+
+            <h4>Text Editing:</h4>
+            <ul>
+                <li>Full-featured buffer with multi-line support</li>
+                <li>Syntax highlighting (Go, Markdown, extensible)</li>
+                <li>Undo/redo with full history</li>
+                <li>Search & replace (literal, regex, case-sensitive, whole word)</li>
+                <li>File operations (open, save, atomic writes via temp + rename)</li>
+            </ul>
+
+            <h4>Semantic Analysis:</h4>
+            <p>Real-time extraction as you type (500ms debounce):</p>
+            <ul>
+                <li><strong>Entities:</strong> Person, Place, Technology, Concept, Organization, Event
+                    <ul>
+                        <li>Unlimited custom types with GLiNER</li>
+                        <li>Occurrence counts tracked</li>
+                        <li>Confidence scores (0.0-1.0)</li>
+                    </ul>
+                </li>
+                <li><strong>Relationships:</strong> Subject-predicate-object patterns
+                    <ul>
+                        <li>"Alice implements the API"</li>
+                        <li>"The service uses PostgreSQL"</li>
+                        <li>Confidence scoring based on pattern match strength</li>
+                    </ul>
+                </li>
+                <li><strong>Typed Holes:</strong> <code>??Type</code> and <code>!!constraint</code> markers
+                    <ul>
+                        <li>Track knowledge gaps explicitly</li>
+                        <li>Priority scoring (1-10)</li>
+                        <li>Complexity estimation</li>
+                    </ul>
+                </li>
+                <li><strong>Dependencies:</strong> Imports, requires, references
+                    <ul>
+                        <li>Automatic detection from code-style references</li>
+                        <li>Build dependency graphs</li>
+                    </ul>
+                </li>
+                <li><strong>RDF Triples:</strong> Knowledge graph format
+                    <ul>
+                        <li><code>(subject, predicate, object)</code> tuples</li>
+                        <li>Export for external graph databases</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h4>Context Panel (5 Sections):</h4>
+            <ul>
+                <li>Entities with occurrence counts</li>
+                <li>Relationships with confidence scores</li>
+                <li>Typed holes with priority/complexity</li>
+                <li>Dependencies (import graph)</li>
+                <li>RDF triples for knowledge graphs</li>
+            </ul>
+
+            <h4>Integrated Terminal:</h4>
+            <ul>
+                <li>Shell command execution</li>
+                <li>mnemosyne CLI integration</li>
+                <li>Command history (100 entries)</li>
+                <li>Built-in commands (<code>:help</code>, <code>:clear</code>, <code>:history</code>)</li>
+            </ul>
+            <p><strong>See Diagram:</strong> <a href="diagrams/03-semantic-pipeline.d2">03-semantic-pipeline.d2</a></p>
+
+            <h3>Entity Extraction: Hybrid Strategy</h3>
+
+            <h4>Pattern Extractor (Always Available):</h4>
+            <ul>
+                <li>Keyword-based classification</li>
+                <li>60-70% accuracy</li>
+                <li>&lt;1ms latency</li>
+                <li>No external dependencies</li>
+                <li>6 hardcoded entity types</li>
+            </ul>
+
+            <h4>GLiNER Extractor (Optional):</h4>
+            <ul>
+                <li>ML-based extraction (GLiNER2 model, 340M params)</li>
+                <li>85-95% accuracy (context-aware)</li>
+                <li>100-300ms latency</li>
+                <li>Unlimited custom entity types</li>
+                <li>Requires Python FastAPI service</li>
+            </ul>
+
+            <h4>Hybrid Extractor (Default):</h4>
+            <ul>
+                <li>Try GLiNER first (if available)</li>
+                <li>Fall back to pattern matching on error/timeout</li>
+                <li>Best of both: accuracy when available, reliability always</li>
+                <li>Thread-safe with exponential backoff retry</li>
+                <li>Zero user intervention needed</li>
+            </ul>
+
+            <h4>Configuration:</h4>
+            <pre><code>[gliner]
+enabled = true
+service_url = "http://localhost:8765"
+timeout = 5
+max_retries = 2
+fallback_to_pattern = true
+score_threshold = 0.3
+</code></pre>
+            <p><strong>See Diagram:</strong> <a href="diagrams/04-entity-comparison.d2">04-entity-comparison.d2</a></p>
+
+            <h3>Explore Mode (Phase 4-5 - Complete)</h3>
+
+            <h4>Memory List:</h4>
+            <ul>
+                <li>Server-side loading via <code>mnemosyne.Recall()</code></li>
+                <li>4 search modes:
+                    <ul>
+                        <li><strong>Hybrid:</strong> Vector (70%) + FTS (20%) + Graph (10%)</li>
+                        <li><strong>Semantic:</strong> Vector similarity only</li>
+                        <li><strong>FTS:</strong> Full-text search only</li>
+                        <li><strong>Graph:</strong> Relationship traversal</li>
+                    </ul>
+                </li>
+                <li>500ms debounced search (90% server load reduction)</li>
+                <li>Client-side filtering (namespace, tags, importance)</li>
+                <li>Sort by importance, recency, relevance</li>
+                <li>Search history (LRU cache, 10 queries)</li>
+            </ul>
+
+            <h4>Memory Detail:</h4>
+            <ul>
+                <li>Full metadata display</li>
+                <li>Edit mode (Content, Tags, Importance, Namespace)</li>
+                <li>CRUD operations (Create, Read, Update, Delete)</li>
+                <li>SHA256 change detection (prevents overwriting concurrent edits)</li>
+                <li>Link visualization (inbound/outbound)</li>
+                <li>Link navigation with history (50 entries, back/forward)</li>
+                <li>Link creation (8 link types: related, blocks, depends, parent, child, etc.)</li>
+                <li>Link deletion with bidirectional awareness</li>
+                <li>Scrollable content for long memories</li>
+            </ul>
+
+            <h4>Graph Visualization:</h4>
+            <ul>
+                <li>Force-directed layout (spring + repulsion forces)</li>
+                <li>Pan/zoom controls</li>
+                <li>Node selection and expansion</li>
+                <li>Center and re-layout commands</li>
+                <li>Full-screen mode (toggle from standard layout)</li>
+                <li>Interactive: click nodes to navigate</li>
+            </ul>
+
+            <h4>Connection Management:</h4>
+            <ul>
+                <li>Health check monitoring (30s intervals)</li>
+                <li>Auto-reconnect with exponential backoff (1s → 30s)</li>
+                <li>5 connection states (Connected, Offline, Reconnecting, Syncing, Failed)</li>
+                <li>Offline detection and automatic mode switching</li>
+                <li>Thread-safe status tracking with RWMutex</li>
+            </ul>
+
+            <h4>Offline Mode:</h4>
+            <ul>
+                <li>Local cache with dirty tracking</li>
+                <li>FIFO sync queue for pending operations</li>
+                <li>Automatic sync on reconnection</li>
+                <li>Zero data loss guarantee (queue persisted in memory)</li>
+                <li>Status indicators show pending operation count</li>
+            </ul>
+            <p><strong>See Diagram:</strong> <a href="diagrams/07-offline-state.d2">07-offline-state.d2</a></p>
+
+            <h3>Analyze Mode (Phase 6 - In Progress, ~30%)</h3>
+
+            <h4>Triple Graph Visualization:</h4>
+            <ul>
+                <li>Entity-relationship network display</li>
+                <li>Force-directed layout (adapted from memorygraph)</li>
+                <li>Interactive filtering by entity type</li>
+                <li>Relationship highlighting</li>
+                <li>Export to formats (planned: PDF, HTML, Markdown)</li>
+            </ul>
+
+            <h4>Entity Frequency Analysis:</h4>
+            <ul>
+                <li>Bar charts showing top entities</li>
+                <li>Word clouds for visual patterns</li>
+                <li>Occurrence counts across memories</li>
+                <li>Type-based filtering</li>
+            </ul>
+
+            <h4>Relationship Pattern Mining:</h4>
+            <ul>
+                <li>Common subject-predicate-object patterns</li>
+                <li>Pattern frequency analysis</li>
+                <li>Confidence distribution</li>
+                <li>Relationship type breakdown</li>
+            </ul>
+
+            <h4>Typed Hole Prioritization:</h4>
+            <ul>
+                <li>Priority scoring (1-10 scale)</li>
+                <li>Complexity estimation</li>
+                <li>Dependency trees (holes blocking holes)</li>
+                <li>Export reports for sprint planning</li>
+            </ul>
+            <p><strong>See Diagram:</strong> <a href="diagrams/05-triple-graph.d2">05-triple-graph.d2</a></p>
+
+            <h3>Mode Switching</h3>
+
+            <h4>5 Application Modes:</h4>
+            <ol>
+                <li><strong>Edit Mode</strong> (Ctrl+E): Semantic analysis and editing</li>
+                <li><strong>Explore Mode</strong> (Ctrl+L): Memory workspace (list, detail, graph)</li>
+                <li><strong>Analyze Mode</strong> (Ctrl+A): Pattern analysis and visualization</li>
+                <li><strong>Orchestrate Mode</strong> (Ctrl+O): Multi-agent coordination (Phase 7, planned)</li>
+                <li><strong>Collaborate Mode</strong> (Ctrl+K): Multi-user editing (Phase 8, planned)</li>
+            </ol>
+
+            <p>Each mode has independent lifecycle (Init, Update, View) and layout:</p>
+            <ul>
+                <li><strong>Edit:</strong> Editor (70%) + Context panel (30%) + Terminal</li>
+                <li><strong>Explore:</strong> List + Detail (side-by-side) OR Graph (full-screen)</li>
+                <li><strong>Analyze:</strong> Visualization (80%) + Controls (20%)</li>
+            </ul>
+            <p><strong>See Diagram:</strong> <a href="diagrams/08-mode-switching.d2">08-mode-switching.d2</a></p>
+        </section>
+
+        <section id="technical-deep-dive" class="section">
+            <h2>Technical Deep-Dive</h2>
+
+            <h3>Semantic Analyzer Implementation</h3>
+
+            <h4>Tokenization:</h4>
+            <pre><code>type Token struct {
+    Text  string
+    Start int
+    End   int
+    Type  TokenType  // Word, Punctuation, Whitespace
+}
+</code></pre>
+            <ul>
+                <li>Unicode-aware splitting</li>
+                <li>Preserves positions for highlighting</li>
+                <li>Handles multi-byte characters (emoji, Chinese, etc.)</li>
+            </ul>
+
+            <h4>Entity Classification:</h4>
+            <p>Pattern matching uses keyword lists:</p>
+            <pre><code>var PersonKeywords = []string{"Alice", "Bob", "engineer", "developer"}
+var TechnologyKeywords = []string{"Python", "Go", "PostgreSQL", "Redis"}
+</code></pre>
+
+            <p>GLiNER uses ML model inference:</p>
+            <pre><code>POST /extract HTTP/1.1
+Content-Type: application/json
+
+{
+  "text": "Alice is implementing a FastAPI service",
+  "labels": ["person", "technology", "organization"]
+}
+</code></pre>
+
+            <h4>Relationship Detection:</h4>
+            <p>Subject-predicate-object patterns with confidence scoring:</p>
+            <pre><code>type Relationship struct {
+    Subject    string
+    Predicate  string
+    Object     string
+    Confidence float64  // 0.0-1.0
+}
+</code></pre>
+
+            <p>Confidence factors:</p>
+            <ul>
+                <li>Distance between subject and object (closer = higher)</li>
+                <li>Verb strength ("implements" &gt; "mentions")</li>
+                <li>Entity confidence scores</li>
+                <li>Pattern match quality</li>
+            </ul>
+
+            <h4>Typed Holes:</h4>
+            <p>Markers like <code>??Type</code> or <code>!!constraint</code> trigger special parsing:</p>
+            <pre><code>type TypedHole struct {
+    Type        string
+    Priority    int      // 1-10, higher = more important
+    Complexity  int      // 1-10, higher = more complex
+    Description string
+    Location    Position
+}
+</code></pre>
+
+            <p>Priority algorithm:</p>
+            <ul>
+                <li>Explicit: <code>??Type(priority=9)</code></li>
+                <li>Heuristic: <code>!!</code> prefix = 8-10, <code>??</code> prefix = 5-7</li>
+                <li>Context-based: Dependencies increase priority</li>
+            </ul>
+
+            <h3>Graph Algorithms</h3>
+
+            <h4>Force-Directed Layout:</h4>
+            <p>Inspired by Fruchterman-Reingold algorithm:</p>
+            <pre><code>// Spring force (edges pull nodes together)
+spring_force = k * log(distance / idealDistance)
+
+// Repulsion force (nodes push apart)
+repulsion_force = k² / distance
+
+// Update positions
+for each node {
+    velocity += (spring_force - repulsion_force) * dt
+    position += velocity * dt
+    velocity *= damping  // 0.8 typical
+}
+</code></pre>
+
+            <h4>Spatial Indexing:</h4>
+            <p>Grid-based collision detection for large graphs (&gt;100 nodes):</p>
+            <pre><code>type SpatialGrid struct {
+    cells map[GridCoord][]*Node
+    cellSize float64  // 100px typical
+}
+</code></pre>
+            <ul>
+                <li>O(n) instead of O(n²) for force calculations</li>
+                <li>Dynamic grid sizing based on viewport</li>
+            </ul>
+
+            <h4>Layout Convergence:</h4>
+            <p>Target: &lt;16ms per frame (60 FPS)</p>
+            <ul>
+                <li>Iterations: 50-100 typical for convergence</li>
+                <li>Early termination: velocity threshold (&lt; 0.1 pixels/frame)</li>
+            </ul>
+
+            <h3>Connection Management</h3>
+
+            <h4>Health Check Protocol:</h4>
+            <pre><code>// Every 30 seconds when connected
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
+
+resp, err := client.Health(ctx, &pb.HealthRequest{})
+if err != nil {
+    // Transition to Offline state
+    enterOfflineMode()
+}
+</code></pre>
+
+            <h4>Exponential Backoff:</h4>
+            <pre><code>backoff := 1 * time.Second
+for attempt := 0; attempt < 10; attempt++ {
+    time.Sleep(backoff)
+    if tryConnect() {
+        return  // Success
+    }
+    backoff *= 2
+    if backoff > 30*time.Second {
+        backoff = 30 * time.Second  // Cap at 30s
+    }
+}
+</code></pre>
+
+            <h4>Sync Queue:</h4>
+            <pre><code>type SyncQueue struct {
+    operations []Operation  // FIFO
+    mu         sync.Mutex
+}
+
+type Operation struct {
+    Type   OperationType  // Create, Update, Delete
+    Memory Memory
+    SHA256 string         // For conflict detection
+}
+</code></pre>
+
+            <p>On reconnection:</p>
+            <ol>
+                <li>Process queue in FIFO order</li>
+                <li>Validate SHA256 (detect concurrent edits)</li>
+                <li>Batch gRPC requests where possible</li>
+                <li>On error: Log, notify user, retry or skip</li>
+            </ol>
+            <p><strong>See Diagram:</strong> <a href="diagrams/09-connection-lifecycle.d2">09-connection-lifecycle.d2</a></p>
+
+            <h3>Event System</h3>
+
+            <h4>PubSub Broker:</h4>
+            <pre><code>type Broker struct {
+    subscribers map[string][]func(Event)  // Type -> handlers
+    global      []func(Event)              // Global subscribers
+    mu          sync.RWMutex               // Thread-safe
+}
+
+func (b *Broker) Publish(event Event) {
+    b.mu.RLock()
+    defer b.mu.RUnlock()
+
+    // Type-specific subscribers
+    for _, handler := range b.subscribers[event.Type()] {
+        go handler(event)  // Non-blocking
+    }
+
+    // Global subscribers (logging, etc.)
+    for _, handler := range b.global {
+        go handler(event)
+    }
+}
+</code></pre>
+
+            <h4>40+ Event Types:</h4>
+            <ul>
+                <li><strong>Editor:</strong> SemanticAnalysisStarted, SemanticAnalysisComplete, FileSaved</li>
+                <li><strong>Memory:</strong> MemoryCreated, MemoryUpdated, MemoryDeleted, LinkCreated</li>
+                <li><strong>Connection:</strong> ConnectionStatusChanged, OfflineModeEntered, SyncComplete</li>
+                <li><strong>Analysis:</strong> PatternDiscovered, ReportGenerated</li>
+                <li><strong>Orchestration:</strong> AgentStarted, AgentCompleted, ProposalGenerated (Phase 7)</li>
+            </ul>
+
+            <h4>Benefits:</h4>
+            <ul>
+                <li>Decoupled components (editor doesn't know about status bar)</li>
+                <li>Reactive UI updates (context panel auto-refreshes on analysis complete)</li>
+                <li>Easy testing (publish event, verify subscribers called)</li>
+                <li>Extensible (add subscribers without modifying publishers)</li>
+            </ul>
+            <p><strong>See Diagram:</strong> <a href="diagrams/10-event-system.d2">10-event-system.d2</a></p>
+
+            <h3>Error Handling</h3>
+
+            <h4>Categorization:</h4>
+            <pre><code>type ErrorCategory int
+
+const (
+    NetworkError     ErrorCategory = iota  // Retryable
+    ServerError                            // Retryable with backoff
+    ValidationError                        // Not retryable
+    UnknownError                           // Log and notify
+)
+</code></pre>
+
+            <h4>Retry Strategy:</h4>
+            <ul>
+                <li>Network errors: Immediate retry (exponential backoff)</li>
+                <li>Server errors: Retry after delay (30s)</li>
+                <li>Validation errors: Notify user, don't retry</li>
+                <li>Unknown errors: Log with context, notify user</li>
+            </ul>
+
+            <h4>Graceful Degradation:</h4>
+            <ul>
+                <li>GLiNER timeout → Fall back to pattern matching</li>
+                <li>mnemosyne unavailable → Offline mode</li>
+                <li>Graph layout slow → Reduce node count, show message</li>
+                <li>Never crash from external failures</li>
+            </ul>
+        </section>
+
+        <section id="user-workflows" class="section">
+            <h2>User Workflows</h2>
+
+            <h3>Workflow 1: Creating Context Documents</h3>
+            <p><strong>Goal:</strong> Create a semantic context document for an AI system.</p>
+
+            <h4>Steps:</h4>
+            <ol>
+                <li>Launch Pedantic Raven: <code>./pedantic_raven</code></li>
+                <li>Default start in Edit Mode</li>
+                <li>Type architecture decisions, requirements, etc.:
+                    <pre><code>Alice is implementing a FastAPI service using PostgreSQL.
+The service must support 10,000 concurrent users.
+??Authentication strategy - need to decide between OAuth2 and JWT
+The API depends on Redis for caching.
+</code></pre>
+                </li>
+                <li>Semantic analysis runs automatically (500ms after pause)</li>
+                <li>Context panel updates:
+                    <ul>
+                        <li><strong>Entities:</strong> Alice (Person), FastAPI (Technology), PostgreSQL (Technology), Redis (Technology)</li>
+                        <li><strong>Relationships:</strong> (Alice, implements, FastAPI service), (service, uses, PostgreSQL)</li>
+                        <li><strong>Typed Holes:</strong> Authentication strategy (priority: 7, complexity: 5)</li>
+                        <li><strong>Dependencies:</strong> API → Redis</li>
+                    </ul>
+                </li>
+                <li>Mark gaps with <code>??Type</code> for tracking</li>
+                <li>Save file: Ctrl+S</li>
+                <li>Store to mnemosyne:
+                    <ul>
+                        <li>Via terminal: <code>mnemosyne remember -c "$(cat context.md)" -n project:myapp -i 9</code></li>
+                        <li>Or via command palette (future feature)</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <p><strong>Result:</strong> Structured context with extracted semantics, persisted in mnemosyne for cross-session recall.</p>
+
+            <h3>Workflow 2: Exploring Semantic Memory</h3>
+            <p><strong>Goal:</strong> Search and navigate memories.</p>
+
+            <h4>Steps:</h4>
+            <ol>
+                <li>Switch to Explore Mode: Ctrl+L</li>
+                <li>Memory list loads (default: last 20 memories)</li>
+                <li>Search for specific topic:
+                    <ul>
+                        <li>Press <code>/</code> to enter search mode</li>
+                        <li>Type: <code>authentication</code></li>
+                        <li>Ctrl+M to cycle search modes (Hybrid → Semantic → FTS → Graph)</li>
+                    </ul>
+                </li>
+                <li>Navigate results with j/k (Vim-style)</li>
+                <li>Select memory: Enter</li>
+                <li>Memory detail pane shows:
+                    <ul>
+                        <li>Full content</li>
+                        <li>Metadata (namespace, tags, importance, created/modified)</li>
+                        <li>Inbound links (memories linking to this)</li>
+                        <li>Outbound links (this memory links to)</li>
+                    </ul>
+                </li>
+                <li>Edit memory: Press <code>e</code></li>
+                <li>Create link to related memory: Press <code>l</code>, then <code>c</code>, select target, choose link type</li>
+                <li>Navigate to linked memory: Enter on link</li>
+                <li>Back/forward through history: <code>[</code> and <code>]</code></li>
+            </ol>
+
+            <p><strong>Result:</strong> Easy exploration of semantic memory graph with visual navigation.</p>
+
+            <h3>Workflow 3: Analyzing Semantic Patterns</h3>
+            <p><strong>Goal:</strong> Discover patterns in stored memories.</p>
+
+            <h4>Steps:</h4>
+            <ol>
+                <li>Switch to Analyze Mode: Ctrl+A</li>
+                <li>Default view: Triple graph (entity-relationship network)</li>
+                <li>Pan/zoom to explore: Arrow keys, +/-</li>
+                <li>Switch to entity frequency: Press <code>2</code>
+                    <ul>
+                        <li>Bar charts show top entities</li>
+                        <li>Word clouds for visual patterns</li>
+                    </ul>
+                </li>
+                <li>Switch to relationship patterns: Press <code>3</code>
+                    <ul>
+                        <li>Common patterns highlighted</li>
+                        <li>Frequency counts displayed</li>
+                    </ul>
+                </li>
+                <li>Switch to typed holes: Press <code>4</code>
+                    <ul>
+                        <li>Dependency tree shows blocking relationships</li>
+                        <li>Priority-sorted list</li>
+                    </ul>
+                </li>
+                <li>Export report: Press <code>e</code>
+                    <ul>
+                        <li>Select format: PDF, HTML, Markdown</li>
+                        <li>Save to file</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <p><strong>Result:</strong> Insights into knowledge patterns, gaps prioritized for action.</p>
+
+            <h3>Workflow 4: Offline Work</h3>
+            <p><strong>Goal:</strong> Work without mnemosyne server connection.</p>
+
+            <h4>Steps:</h4>
+            <ol>
+                <li>Launch Pedantic Raven (mnemosyne server down)</li>
+                <li>Automatic offline mode entry
+                    <ul>
+                        <li>Status bar shows "Offline (0 pending)"</li>
+                    </ul>
+                </li>
+                <li>Switch to Explore Mode</li>
+                <li>View cached memories (from last session)</li>
+                <li>Edit memory: Press <code>e</code>, make changes, save
+                    <ul>
+                        <li>Status updates: "Offline (1 pending)"</li>
+                    </ul>
+                </li>
+                <li>Create new memory: Press <code>n</code>, enter content
+                    <ul>
+                        <li>Status updates: "Offline (2 pending)"</li>
+                    </ul>
+                </li>
+                <li>Server reconnects automatically (you continue working)</li>
+                <li>Automatic sync notification: "Syncing 2 operations..."</li>
+                <li>Sync completes: "Sync complete (2 operations)"</li>
+                <li>Status returns to normal</li>
+            </ol>
+
+            <p><strong>Result:</strong> Seamless offline work with zero data loss.</p>
+        </section>
+
+        <section id="quality--testing" class="section">
+            <h2>Quality & Testing</h2>
+
+            <h3>Test Coverage</h3>
+            <p><strong>Total Tests:</strong> 934 passing (as of commit 400da43)</p>
+
+            <h4>Coverage by Package:</h4>
+            <ul>
+                <li><code>internal/app/events</code>: 18 tests (PubSub broker)</li>
+                <li><code>internal/editor/buffer</code>: 52 tests (buffer manager, undo/redo)</li>
+                <li><code>internal/editor/search</code>: 35 tests (search & replace)</li>
+                <li><code>internal/editor/semantic</code>: 63 tests (semantic analyzer)</li>
+                <li><code>internal/editor/syntax</code>: 31 tests (syntax highlighting)</li>
+                <li><code>internal/editor</code>: 78 tests (integration)</li>
+                <li><code>internal/memorydetail</code>: 19 tests (CRUD operations)</li>
+                <li><code>internal/memorygraph</code>: 134 tests (graph visualization, force layout)</li>
+                <li><code>internal/memorylist</code>: 13 tests (search, filtering)</li>
+                <li><code>internal/mnemosyne</code>: 66 tests (gRPC client, connection management)</li>
+                <li><code>internal/context</code>: 25 tests (context panel)</li>
+                <li><code>internal/layout</code>: 34 tests (layout engine)</li>
+                <li><code>internal/modes</code>: 27 tests (mode registry)</li>
+                <li><code>internal/overlay</code>: 25 tests (overlay system)</li>
+                <li><code>internal/palette</code>: 19 tests (command palette)</li>
+                <li><code>internal/terminal</code>: 38 tests (integrated terminal)</li>
+                <li><code>internal/analyze</code>: Tests in progress (Phase 6)</li>
+            </ul>
+
+            <h4>Test Types:</h4>
+            <ul>
+                <li><strong>Unit Tests:</strong> Individual functions, pure logic</li>
+                <li><strong>Integration Tests:</strong> Module boundaries (e.g., semantic analyzer + GLiNER client)</li>
+                <li><strong>E2E Tests:</strong> Complete workflows (limited, most testing at unit/integration level)</li>
+            </ul>
+
+            <h4>Coverage Goals:</h4>
+            <ul>
+                <li>Critical path: ~90% (connection management, sync queue, CRUD operations)</li>
+                <li>Business logic: ~80% (semantic analysis, search, graph algorithms)</li>
+                <li>UI layer: ~60% (Bubble Tea components, rendering)</li>
+                <li>Overall: ~65% actual</li>
+            </ul>
+
+            <h3>Design Goals (Not Hype)</h3>
+
+            <h4>Render Performance:</h4>
+            <ul>
+                <li><strong>Goal:</strong> &lt;16ms per frame (60 FPS) for smooth TUI</li>
+                <li><strong>Actual:</strong> Varies by mode complexity
+                    <ul>
+                        <li>Edit Mode: Typically &lt;10ms (text rendering)</li>
+                        <li>Graph Mode: 10-30ms depending on node count (spatial indexing helps)</li>
+                        <li>Analyze Mode: 15-25ms (Phase 6 optimization ongoing)</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h4>Semantic Analysis:</h4>
+            <ul>
+                <li><strong>Goal:</strong> Complete within 500ms debounce window</li>
+                <li><strong>Actual:</strong>
+                    <ul>
+                        <li>Pattern matching: &lt;1ms (always achievable)</li>
+                        <li>GLiNER: 100-300ms typical (well within budget)</li>
+                        <li>Hybrid: Meets goal (GLiNER fast enough, pattern fallback instant)</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h4>Memory Footprint:</h4>
+            <ul>
+                <li><strong>Goal:</strong> Reasonable for developer machines</li>
+                <li><strong>Actual:</strong>
+                    <ul>
+                        <li>Pedantic Raven: ~10-20MB (Go binary + UI state)</li>
+                        <li>GLiNER service: ~1GB (if enabled, separate process)</li>
+                        <li>mnemosyne server: ~50-200MB (separate process)</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h4>Search Latency:</h4>
+            <ul>
+                <li><strong>Goal:</strong> Responsive search with debouncing</li>
+                <li><strong>Actual:</strong> 500ms debounce reduces server load by ~90% vs. instant search</li>
+            </ul>
+
+            <h3>Quality Gates</h3>
+            <p>Before release:</p>
+            <ul>
+                <li>All tests passing (934/934)</li>
+                <li>No race conditions (<code>go test -race</code>)</li>
+                <li>No goroutine leaks</li>
+                <li>Connection management tested (offline scenarios)</li>
+                <li>Sync queue validated (data loss scenarios)</li>
+                <li>Performance within goals (render &lt;16ms, analysis &lt;500ms)</li>
+                <li>Documentation updated</li>
+                <li>No AI slop or hyperbolic claims in docs</li>
+            </ul>
+        </section>
+
+        <section id="comparison" class="section">
+            <h2>Comparison</h2>
+
+            <h3>vs ICS (Legacy Python Tool)</h3>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Pedantic Raven</th>
+                        <th>ICS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Interface</strong></td>
+                        <td>Rich TUI (5 modes)</td>
+                        <td>Simple CLI</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Semantic Analysis</strong></td>
+                        <td>Real-time, hybrid</td>
+                        <td>Basic</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Graph Visualization</strong></td>
+                        <td>Force-directed, interactive</td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Offline Mode</strong></td>
+                        <td>Full support, sync queue</td>
+                        <td>No</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Test Coverage</strong></td>
+                        <td>934 tests</td>
+                        <td>Minimal</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Entity Extraction</strong></td>
+                        <td>Pattern + GLiNER (hybrid)</td>
+                        <td>Pattern only</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Modes</strong></td>
+                        <td>Edit, Explore, Analyze, (+ 2 planned)</td>
+                        <td>Single mode</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Technology</strong></td>
+                        <td>Go + Bubble Tea</td>
+                        <td>Python CLI</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p><strong>Status:</strong> Pedantic Raven is designed to replace ICS entirely.</p>
+
+            <h3>vs Obsidian (Note-Taking)</h3>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Pedantic Raven</th>
+                        <th>Obsidian</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Semantic Analysis</strong></td>
+                        <td>Automatic, real-time</td>
+                        <td>Manual linking only</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Interface</strong></td>
+                        <td>Terminal-native TUI</td>
+                        <td>Electron GUI</td>
+                    </tr>
+                    <tr>
+                        <td><strong>mnemosyne Integration</strong></td>
+                        <td>First-class gRPC client</td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Offline Support</strong></td>
+                        <td>Offline-first with sync</td>
+                        <td>Local-only (or paid sync)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Entity Extraction</strong></td>
+                        <td>Automatic (ML + pattern)</td>
+                        <td>Manual tags</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Graph Viz</strong></td>
+                        <td>Force-directed (interactive)</td>
+                        <td>Static graph view</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Use Case</strong></td>
+                        <td>Context engineering for AI</td>
+                        <td>General note-taking</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Plugin Ecosystem</strong></td>
+                        <td>Minimal (early stage)</td>
+                        <td>Extensive</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Mobile</strong></td>
+                        <td>No</td>
+                        <td>Yes (iOS, Android)</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p><strong>Positioning:</strong> Different use cases. Obsidian for general notes, Pedantic Raven for semantic context engineering.</p>
+
+            <h3>vs Roam Research (Graph Notes)</h3>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Pedantic Raven</th>
+                        <th>Roam Research</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Semantic Analysis</strong></td>
+                        <td>Automatic extraction</td>
+                        <td>Manual linking</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Interface</strong></td>
+                        <td>Terminal TUI</td>
+                        <td>Web-based</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Offline</strong></td>
+                        <td>Offline-first</td>
+                        <td>Cloud-dependent</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cost</strong></td>
+                        <td>Free (open source)</td>
+                        <td>$15/month</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Backend</strong></td>
+                        <td>mnemosyne (self-hosted or cloud)</td>
+                        <td>Proprietary cloud</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Entity Types</strong></td>
+                        <td>Unlimited (with GLiNER)</td>
+                        <td>Tags only</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Technology</strong></td>
+                        <td>Go + Rust backend</td>
+                        <td>Web app</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Target Audience</strong></td>
+                        <td>Developers, AI engineers</td>
+                        <td>Knowledge workers</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p><strong>Positioning:</strong> Roam for collaborative team knowledge, Pedantic Raven for developer-focused context engineering.</p>
+
+            <h3>vs Notion (Workspace)</h3>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Pedantic Raven</th>
+                        <th>Notion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Semantic Analysis</strong></td>
+                        <td>Automatic, real-time</td>
+                        <td>None</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Interface</strong></td>
+                        <td>Terminal TUI</td>
+                        <td>Web/mobile GUI</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Focus</strong></td>
+                        <td>Context engineering</td>
+                        <td>General workspace</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Collaboration</strong></td>
+                        <td>Planned (Phase 8)</td>
+                        <td>Built-in</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Databases</strong></td>
+                        <td>Graph + vector (mnemosyne)</td>
+                        <td>Relational tables</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Integration</strong></td>
+                        <td>mnemosyne, GLiNER</td>
+                        <td>50+ integrations</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Offline</strong></td>
+                        <td>Full offline mode</td>
+                        <td>Limited</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p><strong>Positioning:</strong> Different domains. Notion for team workspaces, Pedantic Raven for semantic memory.</p>
+        </section>
+
+        <section id="getting-started" class="section">
+            <h2>Getting Started</h2>
+
+            <h3>Installation</h3>
+
+            <h4>Prerequisites:</h4>
+            <ul>
+                <li>Go 1.25+ (for building from source)</li>
+                <li>Optional: Docker (for GLiNER service)</li>
+                <li>Optional: mnemosyne server (for persistent storage)</li>
+            </ul>
+
+            <h4>Quick Start:</h4>
+            <pre><code># Clone repository
+git clone https://github.com/rand/pedantic_raven.git
+cd pedantic_raven
+
+# Build
+make build
+
+# Run (local-only, no mnemosyne)
+./pedantic_raven
+
+# Run with mnemosyne integration
+MNEMOSYNE_ENABLED=true MNEMOSYNE_ADDRESS=localhost:50051 ./pedantic_raven
+</code></pre>
+
+            <h3>Configuration</h3>
+
+            <h4>config.toml (optional):</h4>
+            <pre><code>[gliner]
+enabled = false  # Set true if using GLiNER service
+service_url = "http://localhost:8765"
+timeout = 5
+max_retries = 2
+fallback_to_pattern = true
+score_threshold = 0.3
+
+[mnemosyne]
+enabled = false  # Set true if using mnemosyne server
+address = "localhost:50051"
+timeout = 10
+max_retries = 3
+</code></pre>
+
+            <h4>Environment Variables (override TOML):</h4>
+            <pre><code>GLINER_ENABLED=true
+GLINER_SERVICE_URL=http://localhost:8765
+MNEMOSYNE_ENABLED=true
+MNEMOSYNE_ADDRESS=localhost:50051
+LOG_LEVEL=debug
+</code></pre>
+
+            <h3>Optional: GLiNER Service Setup</h3>
+
+            <h4>Using Docker:</h4>
+            <pre><code>cd services/gliner
+docker-compose up -d
+</code></pre>
+
+            <h4>Manual Setup:</h4>
+            <pre><code>cd services/gliner
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8765
+</code></pre>
+
+            <h4>Verify:</h4>
+            <pre><code>curl http://localhost:8765/health
+# Should return: {"status":"healthy","model":"gliner_multi-v2.1"}
+</code></pre>
+
+            <h3>Optional: mnemosyne Server Setup</h3>
+            <p>See <a href="https://github.com/rand/mnemosyne">mnemosyne documentation</a> for installation.</p>
+
+            <h4>Quick start:</h4>
+            <pre><code># Install mnemosyne
+cargo install mnemosyne-server
+
+# Run server
+mnemosyne-server --address 0.0.0.0:50051
+
+# Verify
+mnemosyne health  # CLI health check
+</code></pre>
+
+            <h3>Keyboard Shortcuts</h3>
+
+            <h4>Global:</h4>
+            <ul>
+                <li><code>?</code>: Help overlay</li>
+                <li><code>Ctrl+Q</code>: Quit</li>
+                <li><code>Ctrl+P</code>: Command palette</li>
+                <li><code>Ctrl+E</code>: Edit Mode</li>
+                <li><code>Ctrl+L</code>: Explore Mode</li>
+                <li><code>Ctrl+A</code>: Analyze Mode</li>
+            </ul>
+
+            <h4>Edit Mode:</h4>
+            <ul>
+                <li><code>Ctrl+S</code>: Save file</li>
+                <li><code>Ctrl+F</code>: Find</li>
+                <li><code>Ctrl+H</code>: Replace</li>
+                <li>Arrow keys: Navigate</li>
+                <li><code>Ctrl+Z</code>: Undo</li>
+                <li><code>Ctrl+Y</code>: Redo</li>
+            </ul>
+
+            <h4>Explore Mode:</h4>
+            <ul>
+                <li><code>/</code>: Search</li>
+                <li><code>Ctrl+M</code>: Cycle search modes</li>
+                <li><code>j/k</code>: Navigate list</li>
+                <li><code>Enter</code>: Select/navigate</li>
+                <li><code>e</code>: Edit memory</li>
+                <li><code>n</code>: New memory</li>
+                <li><code>d</code>: Delete memory</li>
+                <li><code>l</code>: Link management</li>
+                <li><code>[/]</code>: Back/forward in history</li>
+                <li><code>Tab</code>: Switch between list and detail</li>
+            </ul>
+
+            <h4>Analyze Mode:</h4>
+            <ul>
+                <li><code>1</code>: Triple graph view</li>
+                <li><code>2</code>: Entity frequency</li>
+                <li><code>3</code>: Relationship patterns</li>
+                <li><code>4</code>: Typed holes</li>
+                <li><code>e</code>: Export report</li>
+                <li><code>+/-</code>: Zoom</li>
+                <li>Arrows: Pan</li>
+            </ul>
+        </section>
+
+        <section id="roadmap" class="section">
+            <h2>Roadmap</h2>
+
+            <h3>Current Status: Phase 5 Complete (55%)</h3>
+
+            <h4>Completed Phases:</h4>
+
+            <p><strong>Phase 1: Foundation</strong> (2 weeks, 87 tests)</p>
+            <ul>
+                <li>Project setup</li>
+                <li>Basic TUI structure</li>
+                <li>Buffer management</li>
+            </ul>
+
+            <p><strong>Phase 2: Semantic Analysis</strong> (2 weeks, 291 tests)</p>
+            <ul>
+                <li>Edit Mode implementation</li>
+                <li>Real-time semantic analysis</li>
+                <li>Entity/relationship extraction</li>
+                <li>Context panel</li>
+                <li>Syntax highlighting</li>
+            </ul>
+
+            <p><strong>Phase 3: Advanced Editor</strong> (8 days, 424 tests)</p>
+            <ul>
+                <li>Search & replace</li>
+                <li>Undo/redo</li>
+                <li>File operations</li>
+                <li>Integrated terminal</li>
+            </ul>
+
+            <p><strong>Phase 4: mnemosyne Client</strong> (~16 days, 754 tests)</p>
+            <ul>
+                <li>gRPC client implementation</li>
+                <li>Explore Mode (basic)</li>
+                <li>Memory list and detail views</li>
+                <li>Connection management</li>
+            </ul>
+
+            <p><strong>Phase 5: Real Integration</strong> (10 days, 934 tests)</p>
+            <ul>
+                <li>Full mnemosyne integration</li>
+                <li>Offline mode with sync queue</li>
+                <li>Graph visualization</li>
+                <li>Link management</li>
+                <li>Advanced search (4 modes)</li>
+            </ul>
+
+            <p><strong>Phase 6: Analyze Mode</strong> (In Progress, ~30%)</p>
+            <ul>
+                <li>Triple graph visualization (started)</li>
+                <li>Entity frequency analysis (structure complete)</li>
+                <li>Relationship pattern mining (structure complete)</li>
+                <li><strong>Estimated completion:</strong> 2-3 weeks</li>
+            </ul>
+
+            <h3>Planned Phases</h3>
+
+            <p><strong>Phase 7: Orchestrate Mode</strong> (4-5 weeks, estimated)</p>
+            <ul>
+                <li>Multi-agent coordination</li>
+                <li>Task queue management</li>
+                <li>Agent DAG visualization</li>
+                <li>Execution logs with streaming</li>
+                <li>Resource monitoring</li>
+                <li>Manual control interface</li>
+            </ul>
+
+            <p><strong>Phase 8: Collaborate Mode</strong> (3-4 weeks, estimated)</p>
+            <ul>
+                <li>Live multi-user editing</li>
+                <li>Presence awareness (live cursors)</li>
+                <li>Activity feed</li>
+                <li>Conflict resolution UI</li>
+                <li>Operational Transform or CRDT for sync</li>
+            </ul>
+
+            <p><strong>Phase 9: Polish</strong> (2-3 weeks, estimated)</p>
+            <ul>
+                <li>Performance optimization</li>
+                <li>Accessibility improvements</li>
+                <li>Documentation completion</li>
+                <li>Tutorial system</li>
+                <li>Release preparation for v1.0</li>
+            </ul>
+
+            <h3>Timeline</h3>
+            <p><strong>Estimated completion:</strong> Q2 2025 for v1.0</p>
+            <ul>
+                <li>Phase 6: Late November 2025</li>
+                <li>Phase 7: December 2025 - January 2026</li>
+                <li>Phase 8: February 2026</li>
+                <li>Phase 9: March 2026</li>
+                <li><strong>v1.0 Release:</strong> April 2026 (target)</li>
+            </ul>
+
+            <h3>Community & Contributions</h3>
+
+            <h4>Current State:</h4>
+            <ul>
+                <li>Open source (MIT license)</li>
+                <li>GitHub: github.com/rand/pedantic_raven</li>
+                <li>Part of mnemosyne ecosystem</li>
+                <li>Replacing legacy ICS tool</li>
+            </ul>
+
+            <h4>Future:</h4>
+            <ul>
+                <li>Contribution guidelines (Phase 9)</li>
+                <li>Discord/Slack community</li>
+                <li>GitHub Discussions for Q&A</li>
+                <li>Plugin/extension architecture (post-v1.0)</li>
+                <li>Integration with other tools (Claude Desktop, etc.)</li>
+            </ul>
+        </section>
+
+        <section id="conclusion" class="section">
+            <h2>Conclusion</h2>
+
+            <p>Pedantic Raven is the first production-quality terminal-based semantic memory editor designed specifically for context engineering in AI systems. Its unique combination of real-time semantic analysis, offline-first architecture, and deep integration with the mnemosyne semantic memory system addresses gaps left by traditional note-taking and wiki tools.</p>
+
+            <h3>Key Achievements</h3>
+            <ol>
+                <li><strong>Real-time semantic understanding:</strong> As you type, entities, relationships, and knowledge gaps are automatically extracted and displayed, providing immediate feedback on the structure of your context.</li>
+                <li><strong>Graceful degradation:</strong> The hybrid entity extraction strategy (GLiNER + pattern matching) ensures the system remains functional even when ML services are unavailable.</li>
+                <li><strong>Offline-first design:</strong> Local cache and sync queue guarantee zero data loss, even during network failures or server downtime.</li>
+                <li><strong>Production-ready quality:</strong> 934 passing tests, comprehensive error handling, and careful attention to edge cases demonstrate a mature codebase built for real-world use.</li>
+                <li><strong>Developer-focused:</strong> Terminal-native interface integrates seamlessly with development workflows, avoiding context switching to GUI applications.</li>
+            </ol>
+
+            <h3>Call to Action</h3>
+
+            <h4>Try Pedantic Raven:</h4>
+            <pre><code>git clone https://github.com/rand/pedantic_raven.git
+cd pedantic_raven
+make build
+./pedantic_raven
+</code></pre>
+
+            <h4>Contribute:</h4>
+            <ul>
+                <li>Report issues: <a href="https://github.com/rand/pedantic_raven/issues">GitHub Issues</a></li>
+                <li>Submit pull requests</li>
+                <li>Share feedback and use cases</li>
+            </ul>
+
+            <h4>Learn More:</h4>
+            <ul>
+                <li><a href="https://github.com/rand/pedantic_raven">GitHub Repository</a></li>
+                <li><a href="https://github.com/rand/mnemosyne">mnemosyne Documentation</a></li>
+                <li><a href=".claude/AGENT_GUIDE.md">Agent Guide</a> for development details</li>
+                <li><a href="https://rand.github.io/pedantic_raven">This Whitepaper</a> (web version)</li>
+            </ul>
+
+            <h3>Acknowledgments</h3>
+            <p>Pedantic Raven is built on the shoulders of excellent open-source projects:</p>
+            <ul>
+                <li><a href="https://github.com/charmbracelet/bubbletea">Bubble Tea</a> by Charm</li>
+                <li><a href="https://github.com/rand/mnemosyne">mnemosyne</a> semantic memory system</li>
+                <li><a href="https://github.com/urchade/GLiNER">GLiNER</a> for entity extraction</li>
+                <li>The Go community for excellent tooling</li>
+            </ul>
+        </section>
+
+        <section id="appendices" class="section">
+            <h2>Appendices</h2>
+
+            <h3>Appendix A: Keyboard Shortcuts Reference</h3>
+
+            <h4>Global Shortcuts:</h4>
+            <pre><code>?       Help overlay
+Ctrl+Q  Quit application
+Ctrl+P  Command palette
+Ctrl+E  Switch to Edit Mode
+Ctrl+L  Switch to Explore Mode (Link Mode)
+Ctrl+A  Switch to Analyze Mode
+Ctrl+O  Switch to Orchestrate Mode (Phase 7)
+Ctrl+K  Switch to Collaborate Mode (Phase 8)
+</code></pre>
+
+            <h4>Edit Mode:</h4>
+            <pre><code>Ctrl+S          Save file
+Ctrl+F          Find
+Ctrl+H          Replace
+Ctrl+N          New file
+Ctrl+O          Open file
+Ctrl+Z          Undo
+Ctrl+Y          Redo
+Ctrl+C          Copy
+Ctrl+X          Cut
+Ctrl+V          Paste
+Arrows          Navigate cursor
+Home/End        Line start/end
+Page Up/Down    Scroll
+</code></pre>
+
+            <h4>Explore Mode - Memory List:</h4>
+            <pre><code>/           Search
+Ctrl+M      Cycle search modes
+j / Down    Next memory
+k / Up      Previous memory
+Enter       Select memory
+n           New memory
+d           Delete memory
+Tab         Switch to detail pane
+Esc         Clear search
+</code></pre>
+
+            <h4>Explore Mode - Memory Detail:</h4>
+            <pre><code>e           Edit memory
+s           Save changes
+l           Link management
+c           Create link
+x           Delete link
+Enter       Navigate link
+[           Back in history
+]           Forward in history
+Tab         Switch to list pane
+Esc         Cancel edit
+</code></pre>
+
+            <h4>Explore Mode - Graph View:</h4>
+            <pre><code>Arrows      Pan graph
++/-         Zoom in/out
+c           Center graph
+r           Re-layout graph
+Enter       Select node
+Space       Expand node
+g           Toggle to standard layout
+</code></pre>
+
+            <h4>Analyze Mode:</h4>
+            <pre><code>1           Triple graph view
+2           Entity frequency view
+3           Relationship patterns view
+4           Typed holes view
+e           Export report
++/-         Zoom
+Arrows      Pan
+Tab         Switch between views
+</code></pre>
+
+            <h3>Appendix B: Configuration Reference</h3>
+
+            <h4>config.toml:</h4>
+            <pre><code>[gliner]
+enabled = false              # Enable GLiNER ML extraction
+service_url = "http://localhost:8765"
+timeout = 5                  # Seconds
+max_retries = 2
+fallback_to_pattern = true   # Fall back to pattern on error
+score_threshold = 0.3        # Minimum confidence (0.0-1.0)
+
+[mnemosyne]
+enabled = false              # Enable mnemosyne integration
+address = "localhost:50051"  # gRPC address
+timeout = 10                 # Seconds
+max_retries = 3
+health_check_interval = 30   # Seconds
+
+[editor]
+syntax_highlighting = true
+tab_size = 4
+auto_indent = true
+line_numbers = true
+
+[search]
+debounce_ms = 500           # Search debounce (milliseconds)
+max_results = 100
+case_sensitive = false
+regex_enabled = true
+
+[graph]
+spring_strength = 0.05
+repulsion_strength = 100.0
+damping = 0.8
+iterations = 100
+spatial_grid_enabled = true
+
+[ui]
+render_fps = 60             # Target FPS (not guaranteed)
+theme = "default"           # Color theme
+</code></pre>
+
+            <h4>Environment Variables:</h4>
+            <pre><code># GLiNER
+GLINER_ENABLED=true
+GLINER_SERVICE_URL=http://localhost:8765
+GLINER_TIMEOUT=5
+GLINER_MAX_RETRIES=2
+
+# mnemosyne
+MNEMOSYNE_ENABLED=true
+MNEMOSYNE_ADDRESS=localhost:50051
+MNEMOSYNE_TIMEOUT=10
+MNEMOSYNE_MAX_RETRIES=3
+
+# Logging
+LOG_LEVEL=debug             # trace, debug, info, warn, error
+LOG_FILE=/var/log/pedantic_raven.log
+
+# Editor
+EDITOR_TAB_SIZE=4
+EDITOR_LINE_NUMBERS=true
+
+# Graph
+GRAPH_ITERATIONS=100
+GRAPH_SPATIAL_GRID=true
+</code></pre>
+
+            <h3>Appendix C: mnemosyne gRPC API Reference</h3>
+
+            <h4>MemoryService RPCs:</h4>
+            <pre><code>service MemoryService {
+  rpc Store(StoreRequest) returns (StoreResponse);
+  rpc Recall(RecallRequest) returns (RecallResponse);
+  rpc Update(UpdateRequest) returns (UpdateResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc List(ListRequest) returns (ListResponse);
+  rpc CreateLink(CreateLinkRequest) returns (CreateLinkResponse);
+  rpc DeleteLink(DeleteLinkRequest) returns (DeleteLinkResponse);
+  rpc Search(SearchRequest) returns (SearchResponse);
+  rpc StreamRecall(RecallRequest) returns (stream Memory);
+}
+</code></pre>
+
+            <h4>Common Types:</h4>
+            <pre><code>message Memory {
+  string id = 1;
+  string content = 2;
+  string namespace = 3;
+  repeated string tags = 4;
+  int32 importance = 5;
+  int64 created_at = 6;
+  int64 modified_at = 7;
+  string sha256 = 8;
+}
+
+message Link {
+  string from_id = 1;
+  string to_id = 2;
+  LinkType type = 3;
+  string metadata = 4;
+}
+
+enum LinkType {
+  RELATED = 0;
+  BLOCKS = 1;
+  DEPENDS = 2;
+  PARENT = 3;
+  CHILD = 4;
+  REFERENCES = 5;
+  IMPLEMENTS = 6;
+  DUPLICATES = 7;
+}
+</code></pre>
+
+            <h3>Appendix D: Event Types Catalog</h3>
+
+            <h4>Editor Events:</h4>
+            <ul>
+                <li><code>SemanticAnalysisStarted</code>: Analysis triggered</li>
+                <li><code>SemanticAnalysisProgress</code>: Partial results available</li>
+                <li><code>SemanticAnalysisComplete</code>: Full results ready</li>
+                <li><code>FileOpened</code>: File loaded into buffer</li>
+                <li><code>FileSaved</code>: File written to disk</li>
+                <li><code>BufferModified</code>: Content changed</li>
+                <li><code>UndoExecuted</code>: Undo performed</li>
+                <li><code>RedoExecuted</code>: Redo performed</li>
+            </ul>
+
+            <h4>Memory Events:</h4>
+            <ul>
+                <li><code>MemoryRecalled</code>: Memory retrieved from mnemosyne</li>
+                <li><code>MemoryCreated</code>: New memory stored</li>
+                <li><code>MemoryUpdated</code>: Memory modified</li>
+                <li><code>MemoryDeleted</code>: Memory removed</li>
+                <li><code>LinkCreated</code>: Link established between memories</li>
+                <li><code>LinkDeleted</code>: Link removed</li>
+                <li><code>SearchStarted</code>: Search initiated</li>
+                <li><code>SearchResultsReceived</code>: Results returned</li>
+                <li><code>MemorySelected</code>: User selected memory in list</li>
+                <li><code>NavigationHistoryChanged</code>: History stack modified</li>
+            </ul>
+
+            <h4>Connection Events:</h4>
+            <ul>
+                <li><code>ConnectionStatusChanged</code>: Connection state transition</li>
+                <li><code>OfflineModeEntered</code>: Entered offline mode</li>
+                <li><code>OfflineModeExited</code>: Reconnected to server</li>
+                <li><code>SyncStarted</code>: Sync queue processing began</li>
+                <li><code>SyncProgress</code>: Sync operation completed</li>
+                <li><code>SyncComplete</code>: All queued operations synced</li>
+            </ul>
+
+            <h4>Analysis Events:</h4>
+            <ul>
+                <li><code>AnalysisStarted</code>: Analysis mode activated</li>
+                <li><code>PatternDiscovered</code>: New pattern identified</li>
+                <li><code>EntityFrequencyCalculated</code>: Frequency analysis complete</li>
+                <li><code>ReportGenerated</code>: Export report created</li>
+                <li><code>GraphLayoutComplete</code>: Force-directed layout converged</li>
+            </ul>
+
+            <h4>Orchestration Events (Phase 7):</h4>
+            <ul>
+                <li><code>AgentStarted</code>: Agent began execution</li>
+                <li><code>AgentProgress</code>: Agent reported progress</li>
+                <li><code>AgentCompleted</code>: Agent finished successfully</li>
+                <li><code>AgentFailed</code>: Agent encountered error</li>
+                <li><code>ProposalGenerated</code>: Agent generated proposal</li>
+                <li><code>ProposalAccepted</code>: User accepted proposal</li>
+                <li><code>ProposalRejected</code>: User rejected proposal</li>
+                <li><code>TaskQueued</code>: New task added to queue</li>
+                <li><code>ResourceAllocated</code>: Resource assigned to agent</li>
+            </ul>
+
+            <h3>Appendix E: Glossary</h3>
+            <dl>
+                <dt><strong>Bubble Tea</strong></dt>
+                <dd>Go TUI framework implementing Elm Architecture (Model-Update-View pattern)</dd>
+
+                <dt><strong>Context Engineering</strong></dt>
+                <dd>Creating structured context documents for AI systems to understand projects, architecture, and requirements</dd>
+
+                <dt><strong>Entity</strong></dt>
+                <dd>A named concept extracted from text (Person, Place, Technology, Organization, etc.)</dd>
+
+                <dt><strong>Force-Directed Layout</strong></dt>
+                <dd>Graph visualization algorithm where nodes repel each other and edges act as springs</dd>
+
+                <dt><strong>Graceful Degradation</strong></dt>
+                <dd>System design principle where functionality degrades gracefully when dependencies fail, rather than crashing</dd>
+
+                <dt><strong>gRPC</strong></dt>
+                <dd>High-performance RPC framework using Protocol Buffers for serialization</dd>
+
+                <dt><strong>Hybrid Search</strong></dt>
+                <dd>Combines multiple search strategies (vector similarity, full-text, graph traversal) with weighted scoring</dd>
+
+                <dt><strong>mnemosyne</strong></dt>
+                <dd>Rust-based semantic memory server with vector + graph storage, part of the Pedantic Raven ecosystem</dd>
+
+                <dt><strong>Offline-First</strong></dt>
+                <dd>Architecture pattern where local state is primary, with automatic sync to server when available</dd>
+
+                <dt><strong>RDF Triple</strong></dt>
+                <dd>(Subject, Predicate, Object) tuple for representing knowledge graphs (e.g., "Alice", "implements", "API")</dd>
+
+                <dt><strong>Semantic Analysis</strong></dt>
+                <dd>Extracting meaning from text (entities, relationships, dependencies) vs. just keywords</dd>
+
+                <dt><strong>Sync Queue</strong></dt>
+                <dd>FIFO queue of pending operations waiting to sync with server during offline mode</dd>
+
+                <dt><strong>TUI</strong></dt>
+                <dd>Terminal User Interface, text-based UI in terminal emulator (vs. GUI)</dd>
+
+                <dt><strong>Typed Hole</strong></dt>
+                <dd>Explicit marker for knowledge gaps (<code>??Type</code>) that need to be filled, with priority and complexity scores</dd>
+
+                <dt><strong>Vector Embedding</strong></dt>
+                <dd>Dense numerical representation of text (768d or 1536d) for semantic similarity search</dd>
+            </dl>
+        </section>
+
+        <section class="section">
+            <hr>
+            <p><strong>End of Whitepaper</strong></p>
+            <p><strong>Validation:</strong> This whitepaper is validated against commit <code>400da43</code> in the Pedantic Raven repository. All claims are verifiable by examining the source code at that commit.</p>
+            <p><strong>Source Code:</strong> <a href="https://github.com/rand/pedantic_raven/tree/400da43">https://github.com/rand/pedantic_raven/tree/400da43</a></p>
+            <p><strong>Last Updated:</strong> November 8, 2025</p>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>Pedantic Raven v0.5.0 · November 8, 2025 · <a href="https://github.com/rand/pedantic_raven/blob/main/LICENSE">MIT License</a></p>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/sidebar.js"></script>
+</body>
+</html>
