@@ -5,7 +5,7 @@
 Extract entities, relationships, and typed holes from your text. Edit AI context documents with real-time semantic feedback. Connect to [mnemosyne](https://github.com/rand/mnemosyne) for persistent memory and multi-agent orchestration.
 
 [![Go 1.25+](https://img.shields.io/badge/Go-1.25%2B-blue.svg)](https://golang.org/dl/)
-[![Tests](https://img.shields.io/badge/tests-762%20passing-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-754%20passing-brightgreen.svg)](#testing)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
@@ -40,7 +40,7 @@ All this happens in a **rich terminal UI** with syntax highlighting, integrated 
 
 ## Current Status
 
-**Phase**: 4.3 (Memory UI Components - In Progress)
+**Phase**: 4.4 (Graph Visualization - Complete)
 **Project State**: Active Development
 **Production Ready**: No (expect breaking changes)
 
@@ -71,12 +71,25 @@ All this happens in a **rich terminal UI** with syntax highlighting, integrated 
   - Streaming support for progressive results
   - Namespace management (global, project, session)
 
-### In Development
+### What Works Now (Continued)
 
-- 🔄 **Memory List UI** - Browse stored memories
-- 🔄 **Memory Detail View** - Rich memory visualization
-- 📋 **Graph Visualization** - Visual memory relationships
-- 📋 **Explore Mode** - Complete memory workspace
+- ✅ **Memory List UI** - Browse stored memories
+  - Search and filtering
+  - Sorting by importance and recency
+  - Rich metadata display
+- ✅ **Memory Detail View** - Rich memory visualization
+  - Full metadata display
+  - Link navigation
+  - Content scrolling
+- ✅ **Graph Visualization** - Visual memory relationships
+  - Force-directed layout algorithm
+  - ASCII/Unicode rendering
+  - Pan, zoom, and node selection
+  - Expand/collapse hierarchical nodes
+- ✅ **Explore Mode** - Complete memory workspace
+  - Graph visualization mode
+  - Sample graph for demonstration
+  - Full keyboard navigation
 
 ### Planned
 
@@ -356,8 +369,11 @@ pedantic_raven/
 │   │   ├── semantic/          # Semantic analyzer (63 tests)
 │   │   └── syntax/            # Syntax highlighting (31 tests)
 │   ├── layout/                # Layout engine (34 tests)
+│   ├── memorydetail/          # Memory detail view (19 tests)
+│   ├── memorygraph/           # Graph visualization (134 tests)
+│   ├── memorylist/            # Memory list component (13 tests)
 │   ├── mnemosyne/             # mnemosyne RPC client (66 tests)
-│   ├── modes/                 # Mode registry (13 tests)
+│   ├── modes/                 # Mode registry and modes (27 tests)
 │   ├── overlay/               # Overlay system (25 tests)
 │   ├── palette/               # Command palette (19 tests)
 │   └── terminal/              # Terminal component (38 tests)
@@ -403,12 +419,15 @@ go test ./internal/editor/...
 | editor/semantic | 63 | ~90% | Semantic analysis |
 | editor/syntax | 31 | ~85% | Syntax highlighting |
 | layout | 34 | ~65% | Layout engine, panes |
+| memorydetail | 19 | ~85% | Memory detail view |
+| memorygraph | 134 | ~88% | Graph visualization, layout |
+| memorylist | 13 | ~85% | Memory list component |
 | mnemosyne | 66 | ~95% | gRPC client, CRUD, search |
-| modes | 13 | ~92% | Mode registry, switching |
+| modes | 27 | ~90% | Mode registry, switching, ExploreMode |
 | overlay | 25 | ~70% | Overlays, dialogs |
 | palette | 19 | ~88% | Command palette, fuzzy search |
 | terminal | 38 | ~80% | Terminal component, execution |
-| **Total** | **762** | **~64%** | **Passing** |
+| **Total** | **754** | **~65%** | **Passing** |
 
 ### Building
 
@@ -489,10 +508,10 @@ GOOS=linux GOARCH=amd64 go build -o pedantic_raven-linux .
 ## Statistics
 
 **Current Metrics** (as of latest commit):
-- **Tests**: 762 passing (1 known failure in memorygraph)
-- **Code**: ~33,368 lines of Go
-- **Coverage**: ~64% average
-- **Phases**: 4.1 of 8 complete (~25% of planned features)
+- **Tests**: 754 passing
+- **Code**: ~34,000 lines of Go
+- **Coverage**: ~65% average
+- **Phases**: 4.4 of 8 complete (~35% of planned features)
 
 **Performance**:
 - Render time: <16ms target (60 FPS)
@@ -552,14 +571,12 @@ cargo run --bin mnemosyne-rpc
 
 ## Roadmap Summary
 
-**Completed** (~25%):
+**Completed** (~35%):
 - ✅ Foundation (event system, layout, modes, overlays, palette)
 - ✅ Edit Mode (semantic analysis, context panel, terminal)
 - ✅ Advanced editing (undo/redo, files, search, syntax highlighting)
 - ✅ mnemosyne RPC client (CRUD, search, streaming)
-
-**In Progress**:
-- 🔄 Explore Mode (memory list, detail view, graph visualization)
+- ✅ Explore Mode (memory list, detail view, graph visualization)
 
 **Planned**:
 - 📋 Analyze Mode - Statistical analysis and insights
@@ -587,6 +604,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-**Current Phase**: 4.3 (Memory UI Components)
+**Current Phase**: 4.4 (Graph Visualization - Complete)
 **Last Updated**: 2025-11-08
 **Status**: Active Development 🚧
