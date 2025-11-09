@@ -71,6 +71,7 @@
     <aside class="sidebar">
         <div class="sidebar-content">
             <div class="sidebar-tagline">// Context Engineering</div>
+            <div class="sidebar-toc"></div>
         </div>
     </aside>
 
@@ -85,7 +86,7 @@
     </p>
 </header>
 
-<h2 id="abstract">Abstract<a class="headerlink" href="#abstract" title="Permanent link">&para;</a></h2>
+<h2 id="abstract">Abstract</h2>
 <p>AI systems require structured context to operate effectively. Current tools lack semantic structure. Engineers manually track entities, relationships, and knowledge gaps using plain text files or GUI-based wikis separate from their development workflow.</p>
 <p>Pedantic Raven is a terminal-based semantic memory editor with real-time entity extraction, graph visualization, and mnemosyne integration. Built with Go and Bubble Tea, it provides semantic analysis using a hybrid extraction strategy: ML-based (GLiNER, 85-95% accuracy) with automatic fallback to pattern matching (60-70% accuracy) when services are unavailable.</p>
 <p>The system implements graceful degradation, offline-first architecture, and event-driven coordination through a PubSub broker with 40+ event types. Five operational modes (Edit, Explore, Link, Context, Analyze) provide specialized workflows for context creation, memory browsing, link navigation, multi-buffer workspaces, and graph visualization.</p>
@@ -267,5 +268,6 @@
 
     <script src="js/theme.js"></script>
     <script src="js/sidebar.js"></script>
+    <script src="js/toc.js"></script>
 </body>
 </html>

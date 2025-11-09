@@ -16,7 +16,7 @@ NAV_LINKS = [{"title": "Abstract", "href": "#abstract"}, {"title": "Architecture
 
 def setup_markdown():
     return markdown.Markdown(extensions=["extra", "codehilite", "toc", "sane_lists"],
-        extension_configs={"codehilite": {"css_class": "highlight", "linenums": False}, "toc": {"permalink": True}})
+        extension_configs={"codehilite": {"css_class": "highlight", "linenums": False}, "toc": {"permalink": False, "toc_depth": 3}})
 
 def copy_static_files():
     for dir_name in ["css", "js", "assets", "images"]:
