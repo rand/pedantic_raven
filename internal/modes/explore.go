@@ -8,6 +8,7 @@ import (
 	"github.com/rand/pedantic-raven/internal/memorydetail"
 	"github.com/rand/pedantic-raven/internal/memorygraph"
 	"github.com/rand/pedantic-raven/internal/memorylist"
+	"github.com/rand/pedantic-raven/internal/mnemosyne"
 	pb "github.com/rand/pedantic-raven/internal/mnemosyne/pb/mnemosyne/v1"
 )
 
@@ -46,6 +47,10 @@ type ExploreMode struct {
 	// Size tracking
 	width  int
 	height int
+
+	// Mnemosyne client for real data
+	mnemosyneClient *mnemosyne.Client
+	useRealData     bool // If false, use sample data
 }
 
 // NewExploreMode creates a new explore mode with all components.
@@ -80,6 +85,24 @@ func (m *ExploreMode) Init() tea.Cmd {
 	graphModel := memorygraph.NewModel()
 	m.graph = &graphModel
 
+	// Initialize mnemosyne client
+	cfg := mnemosyne.ConfigFromEnv()
+	if cfg.Enabled {
+		client, err := mnemosyne.NewClient(cfg)
+		if err == nil {
+			// Try to connect
+			if err := client.Connect(); err == nil {
+				m.mnemosyneClient = client
+				m.useRealData = true
+
+				// Set client on components
+				m.memoryList.SetMnemosyneClient(client)
+				m.memoryDetail.SetMnemosyneClient(client)
+				m.graph.SetClient(client)
+			}
+		}
+	}
+
 	// Initialize base mode
 	if m.BaseMode != nil {
 		return m.BaseMode.Init()
@@ -89,17 +112,36 @@ func (m *ExploreMode) Init() tea.Cmd {
 
 // OnEnter is called when explore mode becomes active.
 func (m *ExploreMode) OnEnter() tea.Cmd {
-	// Load sample data for both list and graph
 	var cmds []tea.Cmd
 
-	// Load sample memories for the list
-	if m.memoryList != nil {
-		cmds = append(cmds, m.loadSampleMemories())
-	}
+	if m.useRealData && m.mnemosyneClient != nil {
+		// Load real data from mnemosyne
+		if m.memoryList != nil {
+			// Load memories with default filters
+			filters := memorylist.Filters{
+				Namespace:     "global", // Default to global namespace
+				MinImportance: 0,
+				MaxImportance: 0, // 0 means no max filter
+			}
+			cmds = append(cmds, memorylist.LoadMemoriesFromServer(m.mnemosyneClient, filters))
+		}
 
-	// Load sample graph
-	if m.graph != nil {
-		cmds = append(cmds, m.loadSampleGraph())
+		// Load graph - we'll use the first memory from the list as root
+		// In a real implementation, you might want to track a specific root or let user choose
+		if m.graph != nil {
+			// For now, load a sample graph until we have a proper root selection mechanism
+			// TODO: Implement root memory selection or use most important/recent memory
+			cmds = append(cmds, m.loadSampleGraph())
+		}
+	} else {
+		// Fallback to sample data
+		if m.memoryList != nil {
+			cmds = append(cmds, m.loadSampleMemories())
+		}
+
+		if m.graph != nil {
+			cmds = append(cmds, m.loadSampleGraph())
+		}
 	}
 
 	return tea.Batch(cmds...)
@@ -167,7 +209,11 @@ func (m *ExploreMode) Update(msg tea.Msg) (Mode, tea.Cmd) {
 
 	case memorydetail.LinkSelectedMsg:
 		// User wants to navigate to a linked memory
-		// TODO: Load the linked memory
+		if m.mnemosyneClient != nil && msg.TargetID != "" {
+			// Load the linked memory from server
+			cmd := memorydetail.LoadMemory(m.mnemosyneClient, msg.TargetID)
+			return m, cmd
+		}
 		return m, nil
 
 	case memorydetail.CloseRequestMsg:
