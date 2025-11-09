@@ -21,6 +21,71 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case MemoryErrorMsg:
 		m.SetError(msg.Err)
 		return m, nil
+
+	case EditModeEnteredMsg:
+		// Enter edit mode
+		m.editState = &EditState{
+			isEditing:    true,
+			editedMemory: msg.Memory,
+			fieldFocus:   FieldContent,
+			originalHash: hashMemory(msg.Memory),
+			hasChanges:   false,
+		}
+		return m, nil
+
+	case MemorySavedMsg:
+		// Handle save result
+		if msg.Err != nil {
+			m.SetError(msg.Err)
+			return m, nil
+		}
+
+		// Exit edit mode and update memory
+		m.editState = nil
+		m.isNewMemory = false
+		m.SetMemory(msg.Memory)
+		return m, nil
+
+	case MemoryCreatedMsg:
+		// Handle create result
+		if msg.Err != nil {
+			m.SetError(msg.Err)
+			return m, nil
+		}
+
+		// Exit edit mode and show created memory
+		m.editState = nil
+		m.isNewMemory = false
+		m.SetMemory(msg.Memory)
+		return m, nil
+
+	case MemoryUpdatedMsg:
+		// Handle update result
+		if msg.Err != nil {
+			m.SetError(msg.Err)
+			return m, nil
+		}
+
+		// Exit edit mode and update memory
+		m.editState = nil
+		m.SetMemory(msg.Memory)
+		return m, nil
+
+	case MemoryDeletedMsg:
+		// Handle delete result
+		if msg.Err != nil {
+			m.SetError(msg.Err)
+			return m, nil
+		}
+
+		// Clear memory and close
+		m.SetMemory(nil)
+		return m, m.closeCmd()
+
+	case DeleteConfirmationRequestMsg:
+		// Show delete confirmation dialog
+		m.showDeleteConfirm = true
+		return m, nil
 	}
 
 	return m, nil
@@ -28,6 +93,45 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 // handleKeyPress processes keyboard input.
 func (m Model) handleKeyPress(msg tea.KeyMsg) (Model, tea.Cmd) {
+	// Handle delete confirmation dialog
+	if m.showDeleteConfirm {
+		switch msg.String() {
+		case "enter", "y":
+			return m, m.ConfirmDelete()
+		case "esc", "n":
+			m.CancelDelete()
+			return m, nil
+		}
+		return m, nil
+	}
+
+	// Handle edit mode
+	if m.IsEditing() {
+		switch msg.String() {
+		case "ctrl+s":
+			// Save changes
+			return m, m.SaveChanges()
+
+		case "esc":
+			// Cancel editing (with unsaved changes warning handled in UI)
+			if m.HasUnsavedChanges() {
+				// TODO: Show confirmation dialog
+				// For now, just cancel
+			}
+			m.CancelEdit()
+			return m, nil
+
+		case "tab":
+			// Cycle field focus
+			m.CycleFieldFocus()
+			return m, nil
+		}
+		// Other edit mode keys would be handled here
+		// (field editing, etc.)
+		return m, nil
+	}
+
+	// Normal view mode
 	switch msg.String() {
 	case "j", "down":
 		return m.scrollDown(), nil
@@ -50,6 +154,14 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (Model, tea.Cmd) {
 	case "m":
 		m.ToggleMetadata()
 		return m, nil
+
+	case "e":
+		// Enter edit mode
+		return m, m.EnterEditMode()
+
+	case "d":
+		// Delete memory (with confirmation)
+		return m, m.DeleteCurrentMemory()
 
 	case "l":
 		// Enter link navigation mode (select first link)

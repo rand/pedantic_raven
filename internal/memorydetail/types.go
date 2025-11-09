@@ -2,6 +2,7 @@ package memorydetail
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rand/pedantic-raven/internal/mnemosyne"
 	pb "github.com/rand/pedantic-raven/internal/mnemosyne/pb/mnemosyne/v1"
 )
 
@@ -25,8 +26,13 @@ type Model struct {
 	focused bool
 	err     error
 
-	// Client integration (optional)
-	client interface{} // Can hold *mnemosyne.Client
+	// Client integration
+	mnemosyneClient *mnemosyne.Client
+
+	// CRUD state
+	editState         *EditState
+	showDeleteConfirm bool
+	isNewMemory       bool // True if creating a new memory
 }
 
 // Messages for the memory detail component.
@@ -60,6 +66,9 @@ func NewModel() Model {
 		showMetadata:      true,
 		selectedLinkIndex: -1,
 		focused:           true,
+		editState:         nil,
+		showDeleteConfirm: false,
+		isNewMemory:       false,
 	}
 }
 
@@ -124,14 +133,165 @@ func (m Model) ShowMetadata() bool {
 	return m.showMetadata
 }
 
-// SetClient sets the mnemosyne client for this model.
-func (m *Model) SetClient(client interface{}) {
-	m.client = client
+// SetMnemosyneClient sets the mnemosyne client for this model.
+func (m *Model) SetMnemosyneClient(client *mnemosyne.Client) {
+	m.mnemosyneClient = client
 }
 
-// Client returns the mnemosyne client, if set.
-func (m Model) Client() interface{} {
-	return m.client
+// MnemosyneClient returns the mnemosyne client, if set.
+func (m Model) MnemosyneClient() *mnemosyne.Client {
+	return m.mnemosyneClient
+}
+
+// CRUD operation methods
+
+// IsEditing returns true if the model is in edit mode.
+func (m Model) IsEditing() bool {
+	return m.editState != nil && m.editState.isEditing
+}
+
+// HasUnsavedChanges returns true if there are unsaved changes.
+func (m Model) HasUnsavedChanges() bool {
+	if m.editState == nil {
+		return false
+	}
+	return m.editState.detectChanges()
+}
+
+// EnterEditMode enters edit mode with the current memory.
+func (m *Model) EnterEditMode() tea.Cmd {
+	if m.memory == nil {
+		return nil
+	}
+
+	return EnterEditMode(m.memory)
+}
+
+// EnterCreateMode enters edit mode for creating a new memory.
+func (m *Model) EnterCreateMode(namespace *pb.Namespace) tea.Cmd {
+	// Create a new empty memory
+	newMemory := &pb.MemoryNote{
+		Content:    "",
+		Namespace:  namespace,
+		Importance: 5, // Default importance
+		Tags:       []string{},
+	}
+
+	m.isNewMemory = true
+	return EnterEditMode(newMemory)
+}
+
+// SaveChanges saves the edited memory.
+func (m *Model) SaveChanges() tea.Cmd {
+	if m.editState == nil || m.editState.editedMemory == nil {
+		return nil
+	}
+
+	return SaveChanges(m.mnemosyneClient, m.editState.editedMemory, m.isNewMemory)
+}
+
+// CancelEdit cancels editing and discards changes.
+func (m *Model) CancelEdit() {
+	m.editState = nil
+	m.isNewMemory = false
+}
+
+// DeleteCurrentMemory requests deletion of the current memory.
+func (m *Model) DeleteCurrentMemory() tea.Cmd {
+	if m.memory == nil {
+		return nil
+	}
+
+	return RequestDeleteConfirmation(m.memory)
+}
+
+// ConfirmDelete confirms and executes the deletion.
+func (m *Model) ConfirmDelete() tea.Cmd {
+	if m.memory == nil {
+		return nil
+	}
+
+	m.showDeleteConfirm = false
+	return DeleteMemory(m.mnemosyneClient, m.memory.Id)
+}
+
+// CancelDelete cancels the deletion.
+func (m *Model) CancelDelete() {
+	m.showDeleteConfirm = false
+}
+
+// ShowDeleteConfirmation returns true if showing delete confirmation.
+func (m Model) ShowDeleteConfirmation() bool {
+	return m.showDeleteConfirm
+}
+
+// EditedMemory returns the memory being edited, or nil if not editing.
+func (m Model) EditedMemory() *pb.MemoryNote {
+	if m.editState == nil {
+		return nil
+	}
+	return m.editState.editedMemory
+}
+
+// SetEditedContent updates the content field in edit mode.
+func (m *Model) SetEditedContent(content string) {
+	if m.editState != nil && m.editState.editedMemory != nil {
+		m.editState.editedMemory.Content = content
+	}
+}
+
+// SetEditedTags updates the tags field in edit mode.
+func (m *Model) SetEditedTags(tags []string) {
+	if m.editState != nil && m.editState.editedMemory != nil {
+		m.editState.editedMemory.Tags = tags
+	}
+}
+
+// SetEditedImportance updates the importance field in edit mode.
+func (m *Model) SetEditedImportance(importance uint32) {
+	if m.editState != nil && m.editState.editedMemory != nil {
+		m.editState.editedMemory.Importance = importance
+	}
+}
+
+// SetEditedNamespace updates the namespace field in edit mode.
+func (m *Model) SetEditedNamespace(namespace *pb.Namespace) {
+	if m.editState != nil && m.editState.editedMemory != nil {
+		m.editState.editedMemory.Namespace = namespace
+	}
+}
+
+// GetFieldFocus returns the currently focused field in edit mode.
+func (m Model) GetFieldFocus() EditField {
+	if m.editState == nil {
+		return FieldContent
+	}
+	return m.editState.fieldFocus
+}
+
+// SetFieldFocus sets the currently focused field in edit mode.
+func (m *Model) SetFieldFocus(field EditField) {
+	if m.editState != nil {
+		m.editState.fieldFocus = field
+	}
+}
+
+// CycleFieldFocus moves focus to the next field in edit mode.
+func (m *Model) CycleFieldFocus() {
+	if m.editState == nil {
+		return
+	}
+
+	switch m.editState.fieldFocus {
+	case FieldContent:
+		m.editState.fieldFocus = FieldTags
+	case FieldTags:
+		m.editState.fieldFocus = FieldImportance
+	case FieldImportance:
+		m.editState.fieldFocus = FieldNamespace
+	case FieldNamespace:
+		m.editState.fieldFocus = FieldContent
+	}
 }
 
 // Link navigation methods

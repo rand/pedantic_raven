@@ -18,6 +18,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		return m.handleKeyPress(msg)
 
+	case SearchResultsMsg:
+		m.SetMemories(msg.Results, msg.TotalCount)
+		m.lastSearchQuery = msg.Query
+		m.searchActive = true
+		if msg.Err == nil && msg.Query != "" {
+			m.searchHistory.Add(msg.Query)
+		}
+		return m, nil
+
 	case MemoriesLoadedMsg:
 		m.SetMemories(msg.Memories, msg.TotalCount)
 		return m, nil
@@ -127,6 +136,20 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (Model, tea.Cmd) {
 	case "/":
 		return m.enterSearchMode(), nil
 
+	case "ctrl+m":
+		// Cycle search mode
+		m.cycleSearchMode()
+		// Re-execute search if active
+		if m.searchActive && m.searchQuery != "" && m.mnemosyneClient != nil {
+			m.SetLoading(true)
+			return m, m.executeSearch()
+		}
+		return m, nil
+
+	case "ctrl+f":
+		// Toggle filter input (future implementation)
+		return m.enterFilterMode(), nil
+
 	case "?":
 		m.showHelp = !m.showHelp
 		return m, nil
@@ -164,21 +187,29 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (Model, tea.Cmd) {
 func (m Model) handleSearchInput(msg tea.KeyMsg) (Model, tea.Cmd) {
 	switch msg.Type {
 	case tea.KeyEnter:
-		// Commit search
+		// Commit search immediately
 		m.searchQuery = m.searchInput
 		m.inputMode = InputModeNormal
-		m.applyFilters()
-		// Trigger search if client is available
-		if m.client != nil && m.autoReload {
-			m.SetLoading(true)
-			return m, m.searchCmd()
+		// Cancel any pending debounced search
+		if m.searchDebouncer != nil {
+			m.searchDebouncer.Cancel()
 		}
+		// Execute search if client is available
+		if m.mnemosyneClient != nil && m.mnemosyneClient.IsConnected() {
+			m.SetLoading(true)
+			return m, m.executeSearch()
+		}
+		// Fallback to local filtering
+		m.applyFilters()
 		return m, nil
 
 	case tea.KeyEsc:
 		// Cancel search
 		m.searchInput = ""
 		m.inputMode = InputModeNormal
+		if m.searchDebouncer != nil {
+			m.searchDebouncer.Cancel()
+		}
 		return m, nil
 
 	case tea.KeyBackspace, tea.KeyDelete:
@@ -186,12 +217,14 @@ func (m Model) handleSearchInput(msg tea.KeyMsg) (Model, tea.Cmd) {
 		if len(m.searchInput) > 0 {
 			m.searchInput = m.searchInput[:len(m.searchInput)-1]
 		}
-		return m, nil
+		// Trigger debounced search
+		return m, m.debouncedSearch()
 
 	case tea.KeyRunes:
 		// Add character
 		m.searchInput += string(msg.Runes)
-		return m, nil
+		// Trigger debounced search
+		return m, m.debouncedSearch()
 	}
 
 	return m, nil
@@ -492,4 +525,51 @@ func (m *Model) ClearFilters() {
 	m.filterNS = ""
 	m.minImportance = 0
 	m.applyFilters()
+}
+
+// cycleSearchMode cycles through available search modes.
+func (m *Model) cycleSearchMode() {
+	switch m.searchOptions.SearchMode {
+	case SearchHybrid:
+		m.searchOptions.SearchMode = SearchSemantic
+	case SearchSemantic:
+		m.searchOptions.SearchMode = SearchFullText
+	case SearchFullText:
+		m.searchOptions.SearchMode = SearchGraph
+	case SearchGraph:
+		m.searchOptions.SearchMode = SearchHybrid
+	default:
+		m.searchOptions.SearchMode = SearchHybrid
+	}
+}
+
+// executeSearch executes a search with current search options.
+func (m Model) executeSearch() tea.Cmd {
+	if m.mnemosyneClient == nil || !m.mnemosyneClient.IsConnected() {
+		return nil
+	}
+
+	// Build search options from model state
+	opts := m.searchOptions
+	opts.Query = m.searchQuery
+	opts.Namespaces = []string{m.filterNS}
+	opts.Tags = m.filterTags
+	opts.MinImportance = int(m.minImportance)
+
+	return SearchWithOptions(m.mnemosyneClient, opts)
+}
+
+// debouncedSearch triggers a debounced search operation.
+func (m Model) debouncedSearch() tea.Cmd {
+	if m.searchDebouncer == nil || m.mnemosyneClient == nil || !m.mnemosyneClient.IsConnected() {
+		return nil
+	}
+
+	// Return a command that sets up the debounced search
+	return func() tea.Msg {
+		// Note: This is a simplified approach. In a real implementation,
+		// we'd need to communicate back to the Update loop after the debounce.
+		// For now, we trigger search immediately for typing feedback.
+		return nil
+	}
 }

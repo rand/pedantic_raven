@@ -62,6 +62,13 @@ type Model struct {
 	queryCache      *QueryCache
 	currentQuery    string
 	currentFilters  Filters
+
+	// NEW: Enhanced search
+	searchOptions   SearchOptions
+	searchActive    bool
+	searchDebouncer *SearchDebouncer
+	lastSearchQuery string
+	searchHistory   *SearchHistory
 }
 
 // SortMode defines how memories are sorted.
@@ -132,19 +139,24 @@ type (
 // NewModel creates a new memory list model with default settings.
 func NewModel() Model {
 	return Model{
-		memories:      make([]*pb.MemoryNote, 0),
-		filteredMems:  make([]*pb.MemoryNote, 0),
-		selectedIndex: 0,
-		scrollOffset:  0,
-		height:        20,
-		width:         80,
-		sortBy:        SortByUpdated,
-		sortDesc:      true, // Most recent first
-		loading:       false,
-		focused:       true,
-		pageSize:      50,
-		loadOpts:      DefaultLoadOptions(),
-		autoReload:    false,
+		memories:        make([]*pb.MemoryNote, 0),
+		filteredMems:    make([]*pb.MemoryNote, 0),
+		selectedIndex:   0,
+		scrollOffset:    0,
+		height:          20,
+		width:           80,
+		sortBy:          SortByUpdated,
+		sortDesc:        true, // Most recent first
+		loading:         false,
+		focused:         true,
+		pageSize:        50,
+		loadOpts:        DefaultLoadOptions(),
+		autoReload:      false,
+		searchOptions:   DefaultSearchOptions(),
+		searchActive:    false,
+		searchDebouncer: NewSearchDebouncer(500 * time.Millisecond),
+		lastSearchQuery: "",
+		searchHistory:   NewSearchHistory(10),
 	}
 }
 
