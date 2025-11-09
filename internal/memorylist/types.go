@@ -1,7 +1,11 @@
 package memorylist
 
 import (
+	"sync"
+	"time"
+
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rand/pedantic-raven/internal/mnemosyne"
 	pb "github.com/rand/pedantic-raven/internal/mnemosyne/pb/mnemosyne/v1"
 )
 
@@ -52,6 +56,12 @@ type Model struct {
 	client     interface{} // Can hold *mnemosyne.Client
 	loadOpts   LoadOptions
 	autoReload bool
+
+	// NEW: Real data support
+	mnemosyneClient *mnemosyne.Client
+	queryCache      *QueryCache
+	currentQuery    string
+	currentFilters  Filters
 }
 
 // SortMode defines how memories are sorted.
@@ -86,6 +96,7 @@ type (
 	MemoriesLoadedMsg struct {
 		Memories   []*pb.MemoryNote
 		TotalCount uint32
+		Err        error
 	}
 
 	// MemoriesErrorMsg is sent when memory loading fails.
@@ -256,4 +267,118 @@ func (m *Model) SetLoadOptions(opts LoadOptions) {
 // SearchQuery returns the current search query.
 func (m Model) SearchQuery() string {
 	return m.searchQuery
+}
+
+// QueryCache provides thread-safe caching of query results with TTL.
+type QueryCache struct {
+	entries map[string]*CacheEntry
+	maxAge  time.Duration
+	mu      sync.RWMutex
+}
+
+// CacheEntry represents a cached query result with timestamp.
+type CacheEntry struct {
+	memories  []*pb.MemoryNote
+	timestamp time.Time
+}
+
+// Filters holds filter criteria for loading memories.
+type Filters struct {
+	Namespace     string
+	Tags          []string
+	MinImportance int
+	MaxImportance int
+}
+
+// SetMnemosyneClient sets the mnemosyne client for real data loading.
+func (m *Model) SetMnemosyneClient(client *mnemosyne.Client) {
+	m.mnemosyneClient = client
+	// Initialize query cache with 5 minute TTL
+	if m.queryCache == nil {
+		m.queryCache = NewQueryCache(5 * time.Minute)
+	}
+}
+
+// MnemosyneClient returns the mnemosyne client, if set.
+func (m Model) MnemosyneClient() *mnemosyne.Client {
+	return m.mnemosyneClient
+}
+
+// QueryCache returns the query cache.
+func (m Model) GetQueryCache() *QueryCache {
+	return m.queryCache
+}
+
+// CurrentQuery returns the current query string.
+func (m Model) CurrentQuery() string {
+	return m.currentQuery
+}
+
+// CurrentFilters returns the current filters.
+func (m Model) CurrentFilters() Filters {
+	return m.currentFilters
+}
+
+// SetCurrentQuery sets the current query.
+func (m *Model) SetCurrentQuery(query string) {
+	m.currentQuery = query
+}
+
+// SetCurrentFilters sets the current filters.
+func (m *Model) SetCurrentFilters(filters Filters) {
+	m.currentFilters = filters
+}
+
+// NewQueryCache creates a new query cache with the specified TTL.
+func NewQueryCache(maxAge time.Duration) *QueryCache {
+	return &QueryCache{
+		entries: make(map[string]*CacheEntry),
+		maxAge:  maxAge,
+	}
+}
+
+// Get retrieves cached memories for a query if they exist and are not expired.
+// Returns the memories and true if found and valid, nil and false otherwise.
+func (qc *QueryCache) Get(query string) ([]*pb.MemoryNote, bool) {
+	qc.mu.RLock()
+	defer qc.mu.RUnlock()
+
+	entry, exists := qc.entries[query]
+	if !exists {
+		return nil, false
+	}
+
+	// Check if entry has expired
+	if time.Since(entry.timestamp) > qc.maxAge {
+		return nil, false
+	}
+
+	return entry.memories, true
+}
+
+// Set stores memories for a query in the cache.
+func (qc *QueryCache) Set(query string, memories []*pb.MemoryNote) {
+	qc.mu.Lock()
+	defer qc.mu.Unlock()
+
+	qc.entries[query] = &CacheEntry{
+		memories:  memories,
+		timestamp: time.Now(),
+	}
+}
+
+// Invalidate removes a specific query from the cache.
+func (qc *QueryCache) Invalidate(query string) {
+	qc.mu.Lock()
+	defer qc.mu.Unlock()
+
+	delete(qc.entries, query)
+}
+
+// Clear removes all entries from the cache.
+func (qc *QueryCache) Clear() {
+	qc.mu.Lock()
+	defer qc.mu.Unlock()
+
+	qc.entries = make(map[string]*CacheEntry)
 }
