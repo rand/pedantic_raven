@@ -76,7 +76,9 @@ jobs:
     - name: Start GLiNER service
       run: |
         docker-compose up -d gliner
-        timeout 180 bash -c 'until curl -f http://localhost:8765/health | grep -q "\"model_loaded\":true"; do echo "Waiting for GLiNER model to load..."; sleep 5; done' || true
+        echo "Waiting for GLiNER model to load (may take 5-6 minutes to download ~500MB model)..."
+        timeout 360 bash -c 'until curl -sf http://localhost:8765/health | tee /dev/stderr | grep -q "\"model_loaded\":true"; do echo "Still loading at $(date +%H:%M:%S)..."; sleep 10; done'
+        echo "GLiNER model loaded successfully!"
 
     - name: Run e2e tests with real service
       run: go test ./internal/editor -run 'TestGLiNERE2E_A2_DockerServiceLifecycle' -v
