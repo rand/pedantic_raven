@@ -6,7 +6,10 @@ Extract entities, relationships, and typed holes from your text. Edit AI context
 
 [![Go 1.25+](https://img.shields.io/badge/Go-1.25%2B-blue.svg)](https://golang.org/dl/)
 [![Tests](https://img.shields.io/badge/tests-754%20passing-brightgreen.svg)](#testing)
+[![Coverage](https://img.shields.io/badge/coverage-70%25-yellowgreen.svg)](docs/TESTING.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](docs/)
+[![Contributing](https://img.shields.io/badge/contributing-welcome-brightgreen.svg)](docs/CONTRIBUTING.md)
 
 ---
 
@@ -164,6 +167,31 @@ go build -o pedantic_raven .
   - `c` - Center on selected, `r` - Re-layout
 
 📖 **Full guide**: [docs/USAGE.md](docs/USAGE.md)
+
+---
+
+## Documentation
+
+### For Users
+
+- **[USAGE.md](docs/USAGE.md)** - Complete user guide with all features and keybindings
+- **[Edit Mode Guide](docs/edit-mode-guide.md)** - Detailed guide to context editing and semantic analysis
+- **[Analyze Mode Guide](docs/analyze-mode-guide.md)** - Statistical analysis and insights
+- **[Orchestrate Mode Guide](docs/orchestrate-mode-guide.md)** - Multi-agent coordination and task management
+- **[TESTING.md](docs/TESTING.md)** - Testing framework and coverage
+
+### For Developers
+
+- **[Architecture Guide](docs/architecture.md)** - System design, patterns, and component architecture
+- **[Developer Guide](docs/DEVELOPMENT.md)** - Setup, build, test, and debugging instructions
+- **[Contributing Guide](docs/CONTRIBUTING.md)** - How to contribute, code style, and PR process
+- **[CHANGELOG.md](docs/CHANGELOG.md)** - Version history and breaking changes
+
+### Quick Links
+
+- [Roadmap](ROADMAP.md) - Feature timeline and future plans
+- [GitHub Issues](https://github.com/rand/pedantic-raven/issues) - Report bugs or request features
+- [GitHub Discussions](https://github.com/rand/pedantic-raven/discussions) - Questions and ideas
 
 ---
 
