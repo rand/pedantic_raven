@@ -1,0 +1,42 @@
+{
+  "name": "CI Pipeline",
+  "description": "Continuous integration pipeline with build, test, and deploy stages",
+  "maxConcurrent": 2,
+  "tasks": [
+    {
+      "id": "checkout",
+      "description": "Checkout source code from repository",
+      "type": 1,
+      "dependencies": [],
+      "priority": 10
+    },
+    {
+      "id": "build",
+      "description": "Compile and build application artifacts",
+      "type": 1,
+      "dependencies": ["checkout"],
+      "priority": 9
+    },
+    {
+      "id": "unit-tests",
+      "description": "Run unit test suite to verify code correctness",
+      "type": 0,
+      "dependencies": ["build"],
+      "priority": 8
+    },
+    {
+      "id": "integration-tests",
+      "description": "Run integration tests against built artifacts",
+      "type": 0,
+      "dependencies": ["build"],
+      "priority": 8
+    },
+    {
+      "id": "deploy",
+      "description": "Deploy to staging environment if all tests pass",
+      "type": 1,
+      "dependencies": ["unit-tests", "integration-tests"],
+      "priority": 7
+    }
+  ]
+}

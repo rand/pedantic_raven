@@ -1,0 +1,56 @@
+{
+  "name": "Database Migration Workflow",
+  "description": "Multi-phase database migration with validation and rollback capability",
+  "maxConcurrent": 3,
+  "tasks": [
+    {
+      "id": "backup-source",
+      "description": "Create backup of source database before migration",
+      "type": 1,
+      "dependencies": [],
+      "priority": 10
+    },
+    {
+      "id": "analyze-schema",
+      "description": "Analyze source schema and identify migration requirements",
+      "type": 1,
+      "dependencies": ["backup-source"],
+      "priority": 9
+    },
+    {
+      "id": "create-target",
+      "description": "Create target database schema in new environment",
+      "type": 1,
+      "dependencies": ["analyze-schema"],
+      "priority": 8
+    },
+    {
+      "id": "migrate-data",
+      "description": "Transfer data from source to target database",
+      "type": 1,
+      "dependencies": ["create-target"],
+      "priority": 8
+    },
+    {
+      "id": "validate-count",
+      "description": "Validate record counts match between source and target",
+      "type": 0,
+      "dependencies": ["migrate-data"],
+      "priority": 9
+    },
+    {
+      "id": "validate-integrity",
+      "description": "Run data integrity checks on migrated data",
+      "type": 0,
+      "dependencies": ["migrate-data"],
+      "priority": 9
+    },
+    {
+      "id": "cutover",
+      "description": "Switch application to use new database in production",
+      "type": 1,
+      "dependencies": ["validate-count", "validate-integrity"],
+      "priority": 7
+    }
+  ]
+}
