@@ -176,6 +176,7 @@ go build -o pedantic_raven .
 
 - **[USAGE.md](docs/USAGE.md)** - Complete user guide with all features and keybindings
 - **[Edit Mode Guide](docs/edit-mode-guide.md)** - Detailed guide to context editing and semantic analysis
+- **[Explore Mode Guide](docs/explore-mode-guide.md)** - Memory workspace with browsing, searching, and graph visualization
 - **[Analyze Mode Guide](docs/analyze-mode-guide.md)** - Statistical analysis and insights
 - **[Orchestrate Mode Guide](docs/orchestrate-mode-guide.md)** - Multi-agent coordination and task management
 - **[TESTING.md](docs/TESTING.md)** - Testing framework and coverage
