@@ -508,3 +508,765 @@ func TestLayoutModeString(t *testing.T) {
 		})
 	}
 }
+
+// --- Additional Coverage Tests ---
+
+// TestEngineRoot tests the Root() getter
+func TestEngineRoot(t *testing.T) {
+	engine := NewEngine(LayoutFocus)
+
+	// Initially, root should be nil
+	if engine.Root() != nil {
+		t.Fatal("Root should be nil initially")
+	}
+
+	// After setting root, should return the same root
+	editor := NewMockComponent(PaneEditor, "Editor")
+	root := NewLeafPane(editor)
+	engine.SetRoot(root)
+
+	retrieved := engine.Root()
+	if retrieved == nil {
+		t.Fatal("Root should not be nil after SetRoot")
+	}
+	if retrieved != root {
+		t.Error("Root should be the same pane that was set")
+	}
+}
+
+// TestEngineInit tests the Init() method
+func TestEngineInit(t *testing.T) {
+	engine := NewEngine(LayoutFocus)
+	cmd := engine.Init()
+	if cmd != nil {
+		t.Error("Init should return nil command")
+	}
+}
+
+// TestEngineUpdateWindowSizeMsg tests engine Update with WindowSizeMsg
+func TestEngineUpdateWindowSizeMsg(t *testing.T) {
+	engine := NewEngine(LayoutStandard)
+	editor := NewMockComponent(PaneEditor, "Editor")
+	engine.RegisterComponent(editor)
+	engine.SetRoot(NewLeafPane(editor))
+
+	// Send a WindowSizeMsg
+	msg := tea.WindowSizeMsg{Width: 150, Height: 40}
+	model, cmd := engine.Update(msg)
+
+	if cmd != nil {
+		t.Error("Update with WindowSizeMsg should return nil command")
+	}
+
+	// Check that engine size was updated
+	width, height := model.(*Engine).TerminalSize()
+	if width != 150 || height != 40 {
+		t.Errorf("Expected 150x40, got %dx%d", width, height)
+	}
+}
+
+// TestEngineUpdateOtherMessage tests engine Update with other message types
+func TestEngineUpdateOtherMessage(t *testing.T) {
+	engine := NewEngine(LayoutFocus)
+	editor := NewMockComponent(PaneEditor, "Editor")
+	engine.RegisterComponent(editor)
+	engine.SetRoot(NewLeafPane(editor))
+
+	// Send a key message
+	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
+	model, cmd := engine.Update(msg)
+
+	if model == nil {
+		t.Error("Update should return a model")
+	}
+	if cmd != nil {
+		t.Error("Update with key message should return nil (MockComponent returns nil)")
+	}
+}
+
+// TestEngineUpdateWithNoRoot tests Update when root is nil
+func TestEngineUpdateWithNoRoot(t *testing.T) {
+	engine := NewEngine(LayoutFocus)
+
+	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}}
+	model, cmd := engine.Update(msg)
+
+	if cmd != nil {
+		t.Error("Update with no root should return nil command")
+	}
+	if model == nil {
+		t.Error("Update should still return the engine")
+	}
+}
+
+// TestEngineView tests the View() method
+func TestEngineView(t *testing.T) {
+	engine := NewEngine(LayoutFocus)
+
+	// Without root, should show placeholder
+	view := engine.View()
+	if view != "No layout configured" {
+		t.Errorf("Expected 'No layout configured', got '%s'", view)
+	}
+
+	// With root, should render it
+	editor := NewMockComponent(PaneEditor, "Editor")
+	engine.RegisterComponent(editor)
+	engine.SetRoot(NewLeafPane(editor))
+	engine.SetTerminalSize(100, 30)
+
+	view = engine.View()
+	if view == "No layout configured" {
+		t.Error("Should render the layout, not placeholder")
+	}
+	if view == "" {
+		t.Error("Should render something from the component")
+	}
+}
+
+// TestEngineSetModeRebuild tests that SetMode rebuilds layout
+func TestEngineSetModeRebuild(t *testing.T) {
+	engine := NewEngine(LayoutFocus)
+
+	editor := NewMockComponent(PaneEditor, "Editor")
+	sidebar := NewMockComponent(PaneSidebar, "Sidebar")
+	analysis := NewMockComponent(PaneAnalysis, "Analysis")
+	diagnostics := NewMockComponent(PaneDiagnostics, "Diagnostics")
+
+	engine.RegisterComponent(editor)
+	engine.RegisterComponent(sidebar)
+	engine.RegisterComponent(analysis)
+	engine.RegisterComponent(diagnostics)
+
+	// Set to Focus mode
+	engine.SetMode(LayoutFocus)
+	if engine.Mode() != LayoutFocus {
+		t.Errorf("Expected Focus mode, got %s", engine.Mode())
+	}
+
+	// Switch to Standard mode
+	engine.SetMode(LayoutStandard)
+	if engine.Mode() != LayoutStandard {
+		t.Errorf("Expected Standard mode, got %s", engine.Mode())
+	}
+
+	// Switch to Analysis mode
+	engine.SetMode(LayoutAnalysis)
+	if engine.Mode() != LayoutAnalysis {
+		t.Errorf("Expected Analysis mode, got %s", engine.Mode())
+	}
+}
+
+// TestEngineBuildFocusLayout tests buildFocusLayout with no editor
+func TestEngineBuildFocusLayoutNoEditor(t *testing.T) {
+	engine := NewEngine(LayoutFocus)
+	// Don't register editor - root should stay nil
+	engine.buildFocusLayout()
+	if engine.Root() != nil {
+		t.Error("Root should be nil if editor not registered")
+	}
+}
+
+// TestEngineBuildStandardLayoutPartial tests buildStandardLayout with only editor
+func TestEngineBuildStandardLayoutOnlyEditor(t *testing.T) {
+	engine := NewEngine(LayoutStandard)
+	editor := NewMockComponent(PaneEditor, "Editor")
+	engine.RegisterComponent(editor)
+
+	engine.buildStandardLayout()
+
+	if engine.Root() == nil {
+		t.Fatal("Root should not be nil")
+	}
+
+	// Should be a leaf pane (only editor, no sidebar)
+	if !engine.Root().IsLeaf() {
+		t.Error("Root should be a leaf pane when only editor is registered")
+	}
+}
+
+// TestEngineBuildStandardLayoutNoComponents tests buildStandardLayout with no components
+func TestEngineBuildStandardLayoutNoComponents(t *testing.T) {
+	engine := NewEngine(LayoutStandard)
+	engine.buildStandardLayout()
+
+	if engine.Root() != nil {
+		t.Error("Root should be nil if no components registered")
+	}
+}
+
+// TestEngineBuildAnalysisLayoutPartial tests buildAnalysisLayout with only editor
+func TestEngineBuildAnalysisLayoutOnlyEditor(t *testing.T) {
+	engine := NewEngine(LayoutAnalysis)
+	editor := NewMockComponent(PaneEditor, "Editor")
+	engine.RegisterComponent(editor)
+
+	engine.buildAnalysisLayout()
+
+	if engine.Root() == nil {
+		t.Fatal("Root should not be nil")
+	}
+
+	if !engine.Root().IsLeaf() {
+		t.Error("Root should be a leaf pane when only editor is registered")
+	}
+}
+
+// TestEngineBuildAnalysisLayoutWithDiagnostics tests buildAnalysisLayout with all components
+func TestEngineBuildAnalysisLayoutFull(t *testing.T) {
+	engine := NewEngine(LayoutAnalysis)
+	editor := NewMockComponent(PaneEditor, "Editor")
+	analysis := NewMockComponent(PaneAnalysis, "Analysis")
+	diagnostics := NewMockComponent(PaneDiagnostics, "Diagnostics")
+
+	engine.RegisterComponent(editor)
+	engine.RegisterComponent(analysis)
+	engine.RegisterComponent(diagnostics)
+
+	engine.buildAnalysisLayout()
+
+	if engine.Root() == nil {
+		t.Fatal("Root should not be nil")
+	}
+
+	// Root should be a split pane
+	if engine.Root().IsLeaf() {
+		t.Error("Root should be a split pane for full analysis layout")
+	}
+
+	// Should be able to find all components
+	if engine.Root().FindComponent(PaneEditor) == nil {
+		t.Error("Should find editor")
+	}
+	if engine.Root().FindComponent(PaneAnalysis) == nil {
+		t.Error("Should find analysis")
+	}
+	if engine.Root().FindComponent(PaneDiagnostics) == nil {
+		t.Error("Should find diagnostics")
+	}
+}
+
+// TestEngineBuildAnalysisLayoutNoDiagnostics tests buildAnalysisLayout without diagnostics
+func TestEngineBuildAnalysisLayoutNoDiagnostics(t *testing.T) {
+	engine := NewEngine(LayoutAnalysis)
+	editor := NewMockComponent(PaneEditor, "Editor")
+	analysis := NewMockComponent(PaneAnalysis, "Analysis")
+
+	engine.RegisterComponent(editor)
+	engine.RegisterComponent(analysis)
+
+	engine.buildAnalysisLayout()
+
+	if engine.Root() == nil {
+		t.Fatal("Root should not be nil")
+	}
+
+	// Root should be a split pane
+	if engine.Root().IsLeaf() {
+		t.Error("Root should be a split pane")
+	}
+
+	// Should find editor and analysis, but not diagnostics
+	if engine.Root().FindComponent(PaneEditor) == nil {
+		t.Error("Should find editor")
+	}
+	if engine.Root().FindComponent(PaneAnalysis) == nil {
+		t.Error("Should find analysis")
+	}
+}
+
+// TestEngineBuildAnalysisLayoutNoComponents tests buildAnalysisLayout with no components
+func TestEngineBuildAnalysisLayoutNoComponents(t *testing.T) {
+	engine := NewEngine(LayoutAnalysis)
+	engine.buildAnalysisLayout()
+
+	if engine.Root() != nil {
+		t.Error("Root should be nil if no components registered")
+	}
+}
+
+// TestEngineFocusNextWithNoRoot tests FocusNext with nil root
+func TestEngineFocusNextWithNoRoot(t *testing.T) {
+	engine := NewEngine(LayoutFocus)
+	// Should not panic
+	engine.FocusNext()
+	if engine.FocusedID() != "" {
+		t.Error("FocusedID should remain empty when no root")
+	}
+}
+
+// TestEngineFocusNextWithNoPanes tests FocusNext with empty pane list
+func TestEngineFocusNextWithEmptyLayout(t *testing.T) {
+	engine := NewEngine(LayoutFocus)
+	editor := NewMockComponent(PaneEditor, "Editor")
+	engine.RegisterComponent(editor)
+	// Create a root but it won't have the editor component registered in panes
+	root := NewLeafPane(editor)
+	engine.SetRoot(root)
+	engine.focusedID = "" // Reset focused ID
+
+	// FocusNext should handle empty or missing initial focus
+	engine.FocusNext()
+	// Should wrap around based on available panes
+}
+
+// TestEngineFocusPrevWithNoRoot tests FocusPrev with nil root
+func TestEngineFocusPrevWithNoRoot(t *testing.T) {
+	engine := NewEngine(LayoutFocus)
+	// Should not panic
+	engine.FocusPrev()
+	if engine.FocusedID() != "" {
+		t.Error("FocusedID should remain empty when no root")
+	}
+}
+
+// TestEngineFocusPrevWithEmptyLayout tests FocusPrev with empty pane list
+func TestEngineFocusPrevWithEmptyLayout(t *testing.T) {
+	engine := NewEngine(LayoutFocus)
+	editor := NewMockComponent(PaneEditor, "Editor")
+	engine.RegisterComponent(editor)
+	root := NewLeafPane(editor)
+	engine.SetRoot(root)
+	engine.focusedID = "" // Reset focused ID
+
+	// FocusPrev should handle empty or missing initial focus
+	engine.FocusPrev()
+}
+
+// TestEngineRegisterNilComponent tests RegisterComponent with nil
+func TestEngineRegisterNilComponent(t *testing.T) {
+	engine := NewEngine(LayoutFocus)
+	// Should not panic when registering nil
+	engine.RegisterComponent(nil)
+	if len(engine.components) != 0 {
+		t.Error("Should not register nil components")
+	}
+}
+
+// TestEngineSetFocusWithNoRoot tests SetFocus when root is nil
+func TestEngineSetFocusWithNoRoot(t *testing.T) {
+	engine := NewEngine(LayoutFocus)
+	success := engine.SetFocus(PaneEditor)
+	if success {
+		t.Error("SetFocus should fail when root is nil")
+	}
+}
+
+// TestLeafPaneRenderNilComponent tests LeafPane.Render with nil component
+func TestLeafPaneRenderNilComponent(t *testing.T) {
+	pane := NewLeafPane(nil)
+	area := Rect{X: 0, Y: 0, Width: 100, Height: 30}
+	view := pane.Render(area, PaneEditor)
+
+	if view != "" {
+		t.Errorf("Expected empty string for nil component, got '%s'", view)
+	}
+}
+
+// TestLeafPaneUpdateNilComponent tests LeafPane.Update with nil component
+func TestLeafPaneUpdateNilComponent(t *testing.T) {
+	pane := NewLeafPane(nil)
+	updatedPane, cmd := pane.Update(tea.KeyMsg{}, PaneEditor)
+
+	if updatedPane != pane {
+		t.Error("Should return same pane when component is nil")
+	}
+	if cmd != nil {
+		t.Error("Should return nil command when component is nil")
+	}
+}
+
+// TestLeafPaneUpdateUnfocused tests LeafPane.Update when not focused
+func TestLeafPaneUpdateUnfocused(t *testing.T) {
+	component := NewMockComponent(PaneEditor, "Editor")
+	pane := NewLeafPane(component)
+
+	// Update with different focus
+	updatedPane, _ := pane.Update(tea.KeyMsg{}, PaneSidebar)
+	leafPane := updatedPane.(*LeafPane)
+	mockComp := leafPane.component.(*MockComponent)
+
+	if mockComp.updated {
+		t.Error("Component should not be updated when not focused")
+	}
+}
+
+// TestLeafPaneAllPaneIDsNilComponent tests LeafPane.AllPaneIDs with nil component
+func TestLeafPaneAllPaneIDsNilComponent(t *testing.T) {
+	pane := NewLeafPane(nil)
+	ids := pane.AllPaneIDs()
+
+	if len(ids) != 0 {
+		t.Errorf("Expected 0 pane IDs, got %d", len(ids))
+	}
+}
+
+// TestLeafPaneFindComponentNilComponent tests LeafPane.FindComponent with nil component
+func TestLeafPaneFindComponentNilComponent(t *testing.T) {
+	pane := NewLeafPane(nil)
+	found := pane.FindComponent(PaneEditor)
+
+	if found != nil {
+		t.Error("Should not find component when pane's component is nil")
+	}
+}
+
+// TestLeafPaneIsLeaf tests LeafPane.IsLeaf
+func TestLeafPaneIsLeaf(t *testing.T) {
+	component := NewMockComponent(PaneEditor, "Editor")
+	pane := NewLeafPane(component)
+
+	if !pane.IsLeaf() {
+		t.Error("LeafPane should be a leaf")
+	}
+}
+
+// TestSplitPaneIsLeaf tests SplitPane.IsLeaf
+func TestSplitPaneIsLeaf(t *testing.T) {
+	editor := NewMockComponent(PaneEditor, "Editor")
+	sidebar := NewMockComponent(PaneSidebar, "Sidebar")
+
+	split := NewSplitPane(
+		Horizontal,
+		0.7,
+		NewLeafPane(editor),
+		NewLeafPane(sidebar),
+	)
+
+	if split.IsLeaf() {
+		t.Error("SplitPane should not be a leaf")
+	}
+}
+
+// TestSplitPaneRenderWithNilChildren tests SplitPane.Render with nil children
+func TestSplitPaneRenderWithNilChildren(t *testing.T) {
+	split := NewSplitPane(Horizontal, 0.7, nil, nil)
+	area := Rect{X: 0, Y: 0, Width: 100, Height: 30}
+
+	// Should not panic and should return some view
+	view := split.Render(area, PaneEditor)
+	if view == "" {
+		t.Error("Should return a view even with nil children")
+	}
+}
+
+// TestSplitPaneRenderWithOneNilChild tests SplitPane.Render with one nil child
+func TestSplitPaneRenderWithOneNilChild(t *testing.T) {
+	editor := NewMockComponent(PaneEditor, "Editor")
+	split := NewSplitPane(Horizontal, 0.7, NewLeafPane(editor), nil)
+	area := Rect{X: 0, Y: 0, Width: 100, Height: 30}
+
+	view := split.Render(area, PaneEditor)
+	if view == "" {
+		t.Error("Should render the non-nil child")
+	}
+}
+
+// TestSplitPaneUpdateWithNilChildren tests SplitPane.Update with nil children
+func TestSplitPaneUpdateWithNilChildren(t *testing.T) {
+	split := NewSplitPane(Horizontal, 0.7, nil, nil)
+	updatedPane, cmd := split.Update(tea.KeyMsg{}, PaneEditor)
+
+	if updatedPane == nil {
+		t.Error("Should return a pane even with nil children")
+	}
+	if cmd != nil {
+		t.Error("Should batch commands properly")
+	}
+}
+
+// TestSplitPaneUpdateWithOneNilChild tests SplitPane.Update with one nil child
+func TestSplitPaneUpdateWithOneNilChild(t *testing.T) {
+	editor := NewMockComponent(PaneEditor, "Editor")
+	split := NewSplitPane(Horizontal, 0.7, NewLeafPane(editor), nil)
+
+	updatedPane, _ := split.Update(tea.KeyMsg{}, PaneEditor)
+	if updatedPane == nil {
+		t.Error("Should return a pane")
+	}
+}
+
+// TestSplitPaneFindComponentWithNilChildren tests SplitPane.FindComponent with nil children
+func TestSplitPaneFindComponentWithNilChildren(t *testing.T) {
+	split := NewSplitPane(Horizontal, 0.7, nil, nil)
+	found := split.FindComponent(PaneEditor)
+
+	if found != nil {
+		t.Error("Should not find component in nil children")
+	}
+}
+
+// TestSplitPaneFindComponentInSecondChild tests SplitPane.FindComponent in second child
+func TestSplitPaneFindComponentInSecondChild(t *testing.T) {
+	editor := NewMockComponent(PaneEditor, "Editor")
+	sidebar := NewMockComponent(PaneSidebar, "Sidebar")
+
+	split := NewSplitPane(
+		Horizontal,
+		0.7,
+		NewLeafPane(editor),
+		NewLeafPane(sidebar),
+	)
+
+	// Should find sidebar in second child
+	found := split.FindComponent(PaneSidebar)
+	if found == nil {
+		t.Fatal("Should find sidebar in second child")
+	}
+	if found.ID() != PaneSidebar {
+		t.Errorf("Expected sidebar ID, got %s", found.ID())
+	}
+}
+
+// TestSplitPaneAllPaneIDsWithNilChildren tests SplitPane.AllPaneIDs with nil children
+func TestSplitPaneAllPaneIDsWithNilChildren(t *testing.T) {
+	split := NewSplitPane(Horizontal, 0.7, nil, nil)
+	ids := split.AllPaneIDs()
+
+	if len(ids) != 0 {
+		t.Errorf("Expected 0 pane IDs, got %d", len(ids))
+	}
+}
+
+// TestSplitPaneAllPaneIDsWithOneNilChild tests SplitPane.AllPaneIDs with one nil child
+func TestSplitPaneAllPaneIDsWithOneNilChild(t *testing.T) {
+	editor := NewMockComponent(PaneEditor, "Editor")
+	split := NewSplitPane(Horizontal, 0.7, NewLeafPane(editor), nil)
+	ids := split.AllPaneIDs()
+
+	if len(ids) != 1 {
+		t.Fatalf("Expected 1 pane ID, got %d", len(ids))
+	}
+	if ids[0] != PaneEditor {
+		t.Errorf("Expected editor ID, got %s", ids[0])
+	}
+}
+
+// TestComputeSplitAreasVertical tests computeSplitAreas with vertical direction
+func TestComputeSplitAreasVerticalBoundary(t *testing.T) {
+	editor := NewMockComponent(PaneEditor, "Editor")
+	sidebar := NewMockComponent(PaneSidebar, "Sidebar")
+
+	split := NewSplitPane(
+		Vertical,
+		0.5,
+		NewLeafPane(editor),
+		NewLeafPane(sidebar),
+	)
+
+	area := Rect{X: 10, Y: 10, Width: 100, Height: 30}
+	firstArea, secondArea := split.computeSplitAreas(area)
+
+	// Check boundaries are correct
+	if firstArea.X != secondArea.X {
+		t.Errorf("X coordinates should match: %d vs %d", firstArea.X, secondArea.X)
+	}
+	if firstArea.Width != secondArea.Width {
+		t.Errorf("Widths should match: %d vs %d", firstArea.Width, secondArea.Width)
+	}
+}
+
+// TestComputeSplitAreasUnknownDirection tests computeSplitAreas with unknown direction
+func TestComputeSplitAreasUnknownDirection(t *testing.T) {
+	editor := NewMockComponent(PaneEditor, "Editor")
+	sidebar := NewMockComponent(PaneSidebar, "Sidebar")
+
+	split := NewSplitPane(
+		Direction(99), // Invalid direction
+		0.7,
+		NewLeafPane(editor),
+		NewLeafPane(sidebar),
+	)
+
+	area := Rect{X: 0, Y: 0, Width: 100, Height: 30}
+	firstArea, secondArea := split.computeSplitAreas(area)
+
+	// Should return original area and empty area for unknown direction
+	if secondArea.Width != 0 && secondArea.Height != 0 {
+		t.Errorf("Expected second area to be empty for unknown direction")
+	}
+}
+
+// TestCombineVertical tests combineVertical function
+func TestCombineVertical(t *testing.T) {
+	tests := []struct {
+		name     string
+		top      string
+		bottom   string
+		expected string
+	}{
+		{"both non-empty", "top", "bottom", "top\nbottom"},
+		{"empty top", "", "bottom", "bottom"},
+		{"empty bottom", "top", "", "top"},
+		{"both empty", "", "", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := combineVertical(tt.top, tt.bottom)
+			if result != tt.expected {
+				t.Errorf("Expected '%s', got '%s'", tt.expected, result)
+			}
+		})
+	}
+}
+
+// TestCombineHorizontal tests combineHorizontal function
+func TestCombineHorizontal(t *testing.T) {
+	tests := []struct {
+		name     string
+		left     string
+		right    string
+		expected string
+	}{
+		{"both non-empty", "left", "right", "leftright"},
+		{"empty left", "", "right", "right"},
+		{"empty right", "left", "", "left"},
+		{"both empty", "", "", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := combineHorizontal(tt.left, tt.right)
+			if result != tt.expected {
+				t.Errorf("Expected '%s', got '%s'", tt.expected, result)
+			}
+		})
+	}
+}
+
+// TestEngineAllPaneIDsWithNoRoot tests AllPaneIDs with nil root
+func TestEngineAllPaneIDsWithNoRoot(t *testing.T) {
+	engine := NewEngine(LayoutFocus)
+	ids := engine.AllPaneIDs()
+
+	if len(ids) != 0 {
+		t.Errorf("Expected 0 pane IDs, got %d", len(ids))
+	}
+}
+
+// TestDirectionStringUnknown tests Direction.String with unknown value
+func TestDirectionStringUnknown(t *testing.T) {
+	d := Direction(99)
+	result := d.String()
+	if result != "Unknown" {
+		t.Errorf("Expected 'Unknown', got '%s'", result)
+	}
+}
+
+// TestLayoutModeStringUnknown tests LayoutMode.String with unknown value
+func TestLayoutModeStringUnknown(t *testing.T) {
+	m := LayoutMode(99)
+	result := m.String()
+	if result != "Unknown" {
+		t.Errorf("Expected 'Unknown', got '%s'", result)
+	}
+}
+
+// TestEngineFocusNextMultiplePanes tests FocusNext with more than 2 panes
+func TestEngineFocusNextMultiplePanes(t *testing.T) {
+	engine := NewEngine(LayoutAnalysis)
+
+	editor := NewMockComponent(PaneEditor, "Editor")
+	analysis := NewMockComponent(PaneAnalysis, "Analysis")
+	diagnostics := NewMockComponent(PaneDiagnostics, "Diagnostics")
+
+	engine.RegisterComponent(editor)
+	engine.RegisterComponent(analysis)
+	engine.RegisterComponent(diagnostics)
+
+	// Build analysis layout (top: split editor/analysis, bottom: diagnostics)
+	topPane := NewSplitPane(
+		Horizontal,
+		0.5,
+		NewLeafPane(editor),
+		NewLeafPane(analysis),
+	)
+	engine.SetRoot(NewSplitPane(
+		Vertical,
+		0.8,
+		topPane,
+		NewLeafPane(diagnostics),
+	))
+
+	// Should start at first pane
+	initial := engine.FocusedID()
+
+	// Move through all panes
+	engine.FocusNext()
+	second := engine.FocusedID()
+	if initial == second {
+		t.Error("FocusNext should move to next pane")
+	}
+
+	engine.FocusNext()
+	third := engine.FocusedID()
+	if second == third {
+		t.Error("FocusNext should move to next pane")
+	}
+
+	engine.FocusNext()
+	fourth := engine.FocusedID()
+	if third == fourth {
+		t.Error("FocusNext should move to next pane")
+	}
+
+	// Should wrap back to first
+	engine.FocusNext()
+	wrapped := engine.FocusedID()
+	if wrapped != initial {
+		t.Error("FocusNext should wrap around to first pane")
+	}
+}
+
+// TestEngineFocusPrevMultiplePanes tests FocusPrev with more than 2 panes
+func TestEngineFocusPrevMultiplePanes(t *testing.T) {
+	engine := NewEngine(LayoutAnalysis)
+
+	editor := NewMockComponent(PaneEditor, "Editor")
+	analysis := NewMockComponent(PaneAnalysis, "Analysis")
+	diagnostics := NewMockComponent(PaneDiagnostics, "Diagnostics")
+
+	engine.RegisterComponent(editor)
+	engine.RegisterComponent(analysis)
+	engine.RegisterComponent(diagnostics)
+
+	// Build analysis layout
+	topPane := NewSplitPane(
+		Horizontal,
+		0.5,
+		NewLeafPane(editor),
+		NewLeafPane(analysis),
+	)
+	engine.SetRoot(NewSplitPane(
+		Vertical,
+		0.8,
+		topPane,
+		NewLeafPane(diagnostics),
+	))
+
+	// Get to last pane
+	ids := engine.AllPaneIDs()
+	engine.SetFocus(ids[len(ids)-1])
+
+	lastFocus := engine.FocusedID()
+
+	// Move backwards - should go to previous pane
+	engine.FocusPrev()
+	secondLast := engine.FocusedID()
+	if lastFocus == secondLast {
+		t.Error("FocusPrev should move to previous pane")
+	}
+
+	// Continue going back
+	for i := 0; i < len(ids)-2; i++ {
+		engine.FocusPrev()
+	}
+
+	// Should wrap to last
+	engine.FocusPrev()
+	wrapped := engine.FocusedID()
+	if wrapped != lastFocus {
+		t.Error("FocusPrev should wrap to last pane")
+	}
+}

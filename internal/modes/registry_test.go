@@ -393,6 +393,7 @@ func TestModeIDString(t *testing.T) {
 		{ModeAnalyze, "Analyze"},
 		{ModeOrchestrate, "Orchestrate"},
 		{ModeCollaborate, "Collaborate"},
+		{ModeID("unknown"), "Unknown"},
 	}
 
 	for _, tt := range tests {
@@ -402,5 +403,328 @@ func TestModeIDString(t *testing.T) {
 				t.Errorf("Expected %s, got %s", tt.expected, result)
 			}
 		})
+	}
+}
+
+// --- Additional Registry Tests for Coverage ---
+
+func TestRegistryRegisterWithNilMode(t *testing.T) {
+	registry := NewRegistry()
+
+	// Register a nil mode should be safe
+	registry.Register(nil)
+
+	// Count should still be 0
+	if registry.Count() != 0 {
+		t.Errorf("Expected count 0 after registering nil, got %d", registry.Count())
+	}
+}
+
+func TestRegistryRegisterDuplicate(t *testing.T) {
+	registry := NewRegistry()
+
+	mode1 := NewMockMode(ModeEdit, "Edit V1", "Edit mode v1")
+	registry.Register(mode1)
+
+	if registry.Count() != 1 {
+		t.Errorf("Expected count 1, got %d", registry.Count())
+	}
+
+	// Register different mode with same ID
+	mode2 := NewMockMode(ModeEdit, "Edit V2", "Edit mode v2")
+	registry.Register(mode2)
+
+	// Count should still be 1 (replaced)
+	if registry.Count() != 1 {
+		t.Errorf("Expected count 1 after duplicate register, got %d", registry.Count())
+	}
+
+	// Should get the new mode
+	retrieved := registry.Get(ModeEdit)
+	if retrieved.Name() != "Edit V2" {
+		t.Errorf("Expected mode to be replaced with 'Edit V2', got '%s'", retrieved.Name())
+	}
+}
+
+func TestBaseModeEngine(t *testing.T) {
+	mode := NewBaseMode(ModeEdit, "Edit", "Edit mode")
+	engine := mode.Engine()
+
+	if engine == nil {
+		t.Fatal("Engine should not be nil")
+	}
+
+	// Verify it's a layout engine
+	if engine.Mode() != "standard" {
+		t.Errorf("Expected standard layout mode, got '%s'", engine.Mode())
+	}
+}
+
+// --- Lifecycle Order Tests ---
+
+func TestRegistrySwitchToLifecycleOrder(t *testing.T) {
+	registry := NewRegistry()
+
+	exitMode := NewMockMode(ModeEdit, "Edit", "Edit mode")
+	enterMode := NewMockMode(ModeExplore, "Explore", "Explore mode")
+
+	registry.Register(exitMode)
+	registry.Register(enterMode)
+
+	// Start in exit mode
+	registry.SwitchTo(ModeEdit)
+	exitMode.exitCalled = false
+	enterMode.enterCalled = false
+
+	// Switch to enter mode
+	registry.SwitchTo(ModeExplore)
+
+	// Both should be called
+	if !exitMode.exitCalled {
+		t.Error("OnExit should be called on previous mode")
+	}
+	if !enterMode.enterCalled {
+		t.Error("OnEnter should be called on new mode")
+	}
+}
+
+func TestRegistrySwitchToEmptyPrevious(t *testing.T) {
+	registry := NewRegistry()
+
+	// No previous mode set yet
+	mode := NewMockMode(ModeEdit, "Edit", "Edit mode")
+	registry.Register(mode)
+
+	// Switch to mode (previousID is "", should not call OnExit)
+	cmd := registry.SwitchTo(ModeEdit)
+
+	// Should have a command
+	if cmd == nil {
+		t.Error("SwitchTo from empty state should return command")
+	}
+
+	if mode.exitCalled {
+		t.Error("OnExit should not be called when switching from empty state")
+	}
+
+	if !mode.enterCalled {
+		t.Error("OnEnter should be called")
+	}
+}
+
+func TestRegistrySwitchToWithCommandReturned(t *testing.T) {
+	registry := NewRegistry()
+
+	// Create a mode that returns a command from OnEnter
+	type CommandMode struct {
+		*BaseMode
+	}
+
+	mode := &CommandMode{
+		BaseMode: NewBaseMode(ModeEdit, "Edit", "Edit mode"),
+	}
+
+	registry.Register(mode)
+
+	// Switch to mode
+	cmd := registry.SwitchTo(ModeEdit)
+
+	// Command should be the OnEnter command (or batched)
+	if cmd == nil {
+		t.Error("Should return command from OnEnter")
+	}
+}
+
+func TestRegistrySwitchToMultipleModes(t *testing.T) {
+	registry := NewRegistry()
+
+	edit := NewMockMode(ModeEdit, "Edit", "Edit mode")
+	explore := NewMockMode(ModeExplore, "Explore", "Explore mode")
+	analyze := NewMockMode(ModeAnalyze, "Analyze", "Analyze mode")
+
+	registry.Register(edit)
+	registry.Register(explore)
+	registry.Register(analyze)
+
+	// Switch: empty -> edit -> explore -> analyze -> edit
+	registry.SwitchTo(ModeEdit)
+	if registry.CurrentID() != ModeEdit || registry.PreviousID() != "" {
+		t.Error("Step 1: Should be in edit, previous empty")
+	}
+
+	registry.SwitchTo(ModeExplore)
+	if registry.CurrentID() != ModeExplore || registry.PreviousID() != ModeEdit {
+		t.Error("Step 2: Should be in explore, previous edit")
+	}
+
+	registry.SwitchTo(ModeAnalyze)
+	if registry.CurrentID() != ModeAnalyze || registry.PreviousID() != ModeExplore {
+		t.Error("Step 3: Should be in analyze, previous explore")
+	}
+
+	registry.SwitchTo(ModeEdit)
+	if registry.CurrentID() != ModeEdit || registry.PreviousID() != ModeAnalyze {
+		t.Error("Step 4: Should be in edit, previous analyze")
+	}
+}
+
+func TestRegistryUnregisterActiveModeNoSwitch(t *testing.T) {
+	registry := NewRegistry()
+
+	mode := NewMockMode(ModeEdit, "Edit", "Edit mode")
+	registry.Register(mode)
+	registry.SwitchTo(ModeEdit)
+
+	if registry.CurrentID() != ModeEdit {
+		t.Fatal("Should be in edit mode")
+	}
+
+	// Unregister the active mode
+	registry.Unregister(ModeEdit)
+
+	// Current mode should still be "Edit" ID but mode is gone
+	if registry.Current() != nil {
+		t.Error("Current should return nil after unregistering active mode")
+	}
+
+	if registry.CurrentID() != ModeEdit {
+		t.Error("CurrentID should still return the ID")
+	}
+}
+
+func TestRegistryGetAllModesEmpty(t *testing.T) {
+	registry := NewRegistry()
+
+	allModes := registry.AllModes()
+	if allModes == nil {
+		t.Fatal("AllModes should return a slice, not nil")
+	}
+
+	if len(allModes) != 0 {
+		t.Errorf("AllModes should be empty, got %d", len(allModes))
+	}
+}
+
+func TestRegistryCurrentIDWithoutSwitch(t *testing.T) {
+	registry := NewRegistry()
+
+	if registry.CurrentID() != "" {
+		t.Errorf("CurrentID should be empty initially, got %q", registry.CurrentID())
+	}
+
+	if registry.PreviousID() != "" {
+		t.Errorf("PreviousID should be empty initially, got %q", registry.PreviousID())
+	}
+}
+
+// --- Table-Driven Tests for Mode Lifecycle ---
+
+func TestRegistrySwitchToTableDriven(t *testing.T) {
+	tests := []struct {
+		name          string
+		fromMode      ModeID
+		toMode        ModeID
+		shouldFail    bool
+		expectedPrev  ModeID
+		expectedCurr  ModeID
+	}{
+		{
+			name:         "Switch edit to explore",
+			fromMode:     ModeEdit,
+			toMode:       ModeExplore,
+			shouldFail:   false,
+			expectedPrev: ModeEdit,
+			expectedCurr: ModeExplore,
+		},
+		{
+			name:         "Switch to non-existent mode",
+			fromMode:     ModeEdit,
+			toMode:       ModeID("nonexistent"),
+			shouldFail:   true,
+			expectedPrev: "", // Should not change
+			expectedCurr: ModeEdit,
+		},
+		{
+			name:         "Switch analyze to orchestrate",
+			fromMode:     ModeAnalyze,
+			toMode:       ModeOrchestrate,
+			shouldFail:   false,
+			expectedPrev: ModeAnalyze,
+			expectedCurr: ModeOrchestrate,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			registry := NewRegistry()
+
+			// Register all modes
+			registry.Register(NewMockMode(ModeEdit, "Edit", "Edit mode"))
+			registry.Register(NewMockMode(ModeExplore, "Explore", "Explore mode"))
+			registry.Register(NewMockMode(ModeAnalyze, "Analyze", "Analyze mode"))
+			registry.Register(NewMockMode(ModeOrchestrate, "Orchestrate", "Orchestrate mode"))
+
+			// Switch to from mode
+			registry.SwitchTo(tt.fromMode)
+
+			// Switch to target mode
+			cmd := registry.SwitchTo(tt.toMode)
+
+			if tt.shouldFail {
+				if cmd != nil {
+					t.Error("Expected no command for failed switch")
+				}
+				if registry.CurrentID() != tt.fromMode {
+					t.Errorf("Expected to stay in %s, got %s", tt.fromMode, registry.CurrentID())
+				}
+			} else {
+				if cmd == nil && tt.toMode != tt.fromMode {
+					t.Error("Expected command for successful switch")
+				}
+				if registry.CurrentID() != tt.expectedCurr {
+					t.Errorf("Expected current %s, got %s", tt.expectedCurr, registry.CurrentID())
+				}
+			}
+		})
+	}
+}
+
+func TestRegistryCountAfterOperations(t *testing.T) {
+	registry := NewRegistry()
+
+	testCases := []struct {
+		operation string
+		count     int
+	}{
+		{"initial", 0},
+		{"register 1", 1},
+		{"register 2", 2},
+		{"register 3", 3},
+		{"unregister 1", 2},
+		{"unregister 1 again", 1},
+		{"register 1 again", 2},
+	}
+
+	for i, tc := range testCases {
+		switch tc.operation {
+		case "initial":
+			// Skip
+		case "register 1":
+			registry.Register(NewMockMode(ModeEdit, "Edit", "Edit mode"))
+		case "register 2":
+			registry.Register(NewMockMode(ModeExplore, "Explore", "Explore mode"))
+		case "register 3":
+			registry.Register(NewMockMode(ModeAnalyze, "Analyze", "Analyze mode"))
+		case "unregister 1":
+			registry.Unregister(ModeEdit)
+		case "unregister 1 again":
+			registry.Unregister(ModeEdit)
+		case "register 1 again":
+			registry.Register(NewMockMode(ModeEdit, "Edit", "Edit mode"))
+		}
+
+		if registry.Count() != tc.count {
+			t.Errorf("Test case %d (%s): expected count %d, got %d", i, tc.operation, tc.count, registry.Count())
+		}
 	}
 }
