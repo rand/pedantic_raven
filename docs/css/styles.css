@@ -306,6 +306,19 @@ body.dark-theme .theme-toggle-icon::before {
     letter-spacing: -0.03em;
 }
 
+.header-glyph {
+    display: inline-block;
+    margin-right: 0.5rem;
+    font-weight: 500;
+}
+
+.paper-subtitle {
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    font-weight: 400;
+}
+
 .paper-meta {
     color: var(--text-secondary);
     font-size: 0.875rem;
