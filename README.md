@@ -73,9 +73,6 @@ All this happens in a **rich terminal UI** with syntax highlighting, integrated 
   - Advanced search (hybrid, semantic, graph traversal)
   - Streaming support for progressive results
   - Namespace management (global, project, session)
-
-### What Works Now (Continued)
-
 - ✅ **Memory List UI** - Browse stored memories
   - Search and filtering
   - Sorting by importance and recency
