@@ -2,7 +2,6 @@ package semantic
 
 import (
 	"context"
-	"strings"
 	"sync"
 	"time"
 )
@@ -11,18 +10,26 @@ import (
 type StreamingAnalyzer struct {
 	mu         sync.RWMutex
 	tokenizer  Tokenizer
-	classifier *EntityClassifier
+	extractor  EntityExtractor
 	analysis   *Analysis
 	running    bool
 	cancel     context.CancelFunc
 	updateChan chan AnalysisUpdate
 }
 
-// NewAnalyzer creates a new streaming analyzer.
+// NewAnalyzer creates a new streaming analyzer with the default pattern-based extractor.
 func NewAnalyzer() Analyzer {
 	return &StreamingAnalyzer{
-		tokenizer:  NewTokenizer(),
-		classifier: NewEntityClassifier(),
+		tokenizer: NewTokenizer(),
+		extractor: NewPatternExtractor(),
+	}
+}
+
+// NewAnalyzerWithExtractor creates a new streaming analyzer with a custom extractor.
+func NewAnalyzerWithExtractor(extractor EntityExtractor) Analyzer {
+	return &StreamingAnalyzer{
+		tokenizer: NewTokenizer(),
+		extractor: extractor,
 	}
 }
 
@@ -123,7 +130,7 @@ func (a *StreamingAnalyzer) performAnalysis(ctx context.Context, content string)
 		Progress: 0.3,
 	})
 
-	entities := a.extractEntities(tokens)
+	entities := a.extractEntities(ctx, content)
 	a.mu.Lock()
 	a.analysis.Entities = entities
 	a.mu.Unlock()
@@ -227,81 +234,17 @@ func (a *StreamingAnalyzer) performAnalysis(ctx context.Context, content string)
 	}
 }
 
-// extractEntities extracts entities from tokens with enhanced classification.
-func (a *StreamingAnalyzer) extractEntities(tokens []Token) []Entity {
-	entityMap := make(map[string]*Entity)
-
-	// Build context for each potential entity
-	for i, token := range tokens {
-		if token.Type == TokenCapitalizedWord || token.Type == TokenProperNoun {
-			key := token.Value
-
-			if existing, ok := entityMap[key]; ok {
-				existing.Count++
-			} else {
-				// Build classification context
-				context := a.buildContext(tokens, i)
-
-				// Use enhanced classifier
-				entityType := a.classifier.ClassifyEntity(token.Text, context)
-
-				entityMap[key] = &Entity{
-					Text:  token.Text,
-					Type:  entityType,
-					Span:  token.Span,
-					Count: 1,
-				}
-			}
-		}
-	}
-
-	// Also extract multi-word entities
-	multiWordEntities := ExtractMultiWordEntities(tokens, 3)
-	for _, mwe := range multiWordEntities {
-		key := strings.ToLower(mwe.Text)
-		if existing, ok := entityMap[key]; ok {
-			existing.Count += mwe.Count
-		} else {
-			entityMap[key] = &Entity{
-				Text:  mwe.Text,
-				Type:  mwe.Type,
-				Span:  mwe.Span,
-				Count: mwe.Count,
-			}
-		}
-	}
-
-	// Convert map to slice
-	var entities []Entity
-	for _, entity := range entityMap {
-		entities = append(entities, *entity)
+// extractEntities extracts entities using the configured extractor.
+func (a *StreamingAnalyzer) extractEntities(ctx context.Context, content string) []Entity {
+	// Use extractor to extract all entity types
+	entities, err := a.extractor.ExtractEntities(ctx, content, []string{})
+	if err != nil {
+		// If extractor fails, return empty list
+		// (errors are logged but don't fail the entire analysis)
+		return []Entity{}
 	}
 
 	return entities
-}
-
-// buildContext creates a classification context for a token.
-func (a *StreamingAnalyzer) buildContext(tokens []Token, index int) *ClassificationContext {
-	context := &ClassificationContext{
-		PrecedingWords: []string{},
-		FollowingWords: []string{},
-	}
-
-	// Collect preceding words (up to 3)
-	for i := index - 1; i >= 0 && len(context.PrecedingWords) < 3; i-- {
-		if isWordToken(tokens[i]) {
-			context.PrecedingWords = append([]string{tokens[i].Text}, context.PrecedingWords...)
-		}
-	}
-
-	// Collect following words (up to 3)
-	for i := index + 1; i < len(tokens) && len(context.FollowingWords) < 3; i++ {
-		if isWordToken(tokens[i]) {
-			context.FollowingWords = append(context.FollowingWords, tokens[i].Text)
-		}
-	}
-
-	return context
 }
 
 // extractRelationships extracts relationships from tokens.

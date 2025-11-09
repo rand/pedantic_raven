@@ -1,6 +1,7 @@
 package semantic
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -245,12 +246,10 @@ func TestExtractDependenciesMultiplePatterns(t *testing.T) {
 
 func TestExtractEntities(t *testing.T) {
 	analyzer := NewAnalyzer().(*StreamingAnalyzer)
-	tokenizer := NewTokenizer()
 
 	content := "The User creates a Document in the System"
-	tokens := tokenizer.Tokenize(content)
 
-	entities := analyzer.extractEntities(tokens)
+	entities := analyzer.extractEntities(context.Background(), content)
 
 	if len(entities) == 0 {
 		t.Fatal("Expected to find entities")
@@ -277,12 +276,10 @@ func TestExtractEntities(t *testing.T) {
 
 func TestEntityCounting(t *testing.T) {
 	analyzer := NewAnalyzer().(*StreamingAnalyzer)
-	tokenizer := NewTokenizer()
 
 	content := "User creates User and User modifies Document"
-	tokens := tokenizer.Tokenize(content)
 
-	entities := analyzer.extractEntities(tokens)
+	entities := analyzer.extractEntities(context.Background(), content)
 
 	// Find User entity
 	var userEntity *Entity
