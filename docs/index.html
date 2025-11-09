@@ -54,9 +54,9 @@
 
         <section id="abstract" class="section">
             <h2>Abstract</h2>
-            <p>AI systems require structured context to operate effectively. Current tools for creating context lack semantic structure—engineers manually track entities, relationships, and knowledge gaps using plain text files or GUI-based wikis separate from their development workflow.</p>
+            <p>AI systems require structured context to operate effectively. Current tools lack semantic structure. Engineers manually track entities, relationships, and knowledge gaps using plain text files or GUI-based wikis separate from their development workflow.</p>
 
-            <p>Pedantic Raven is a terminal-based semantic memory editor with real-time entity extraction, graph visualization, and mnemosyne integration. Built with Go and Bubble Tea, it provides responsive semantic analysis using a hybrid extraction strategy: ML-based (GLiNER, 85-95% accuracy) with automatic fallback to pattern matching (60-70% accuracy) when services are unavailable.</p>
+            <p>Pedantic Raven is a terminal-based semantic memory editor with real-time entity extraction, graph visualization, and mnemosyne integration. Built with Go and Bubble Tea, it provides semantic analysis using a hybrid extraction strategy: ML-based (GLiNER, 85-95% accuracy) with automatic fallback to pattern matching (60-70% accuracy) when services are unavailable.</p>
 
             <p>The system implements graceful degradation, offline-first architecture, and event-driven coordination through a PubSub broker with 40+ event types. Five operational modes (Edit, Explore, Link, Context, Analyze) provide specialized workflows for context creation, memory browsing, link navigation, multi-buffer workspaces, and graph visualization.</p>
 
@@ -112,25 +112,37 @@
 
             <h3>Component Structure</h3>
             <div class="diagram-container">
-                <img src="images/02-component-architecture.svg" alt="Component Architecture" class="diagram-svg" />
+                <picture>
+                    <source srcset="images/02-component-architecture-dark.svg" media="(prefers-color-scheme: dark)">
+                    <img src="images/02-component-architecture-light.svg" alt="Component Architecture" class="diagram-svg" />
+                </picture>
             </div>
             <p>Core packages: <code>app</code> (coordinator), <code>editor</code> (text buffer, search, semantic analysis), <code>mnemosyne</code> (gRPC client), <code>gliner</code> (ML extraction), <code>modes</code> (registry), <code>layout</code> (UI), <code>overlay</code> (help, confirm), <code>palette</code> (command execution).</p>
 
             <h3>Semantic Pipeline</h3>
             <div class="diagram-container">
-                <img src="images/03-semantic-pipeline.svg" alt="Semantic Pipeline" class="diagram-svg" />
+                <picture>
+                    <source srcset="images/03-semantic-pipeline-dark.svg" media="(prefers-color-scheme: dark)">
+                    <img src="images/03-semantic-pipeline-light.svg" alt="Semantic Pipeline" class="diagram-svg" />
+                </picture>
             </div>
             <p>Text changes trigger debounced analysis (500ms). The HybridExtractor attempts GLiNER extraction (100-300ms latency, 85-95% accuracy), falling back to PatternExtractor (&lt;1ms, 60-70% accuracy) on timeout or service unavailability. Entity results update the UI via <code>EntitiesExtractedMsg</code>.</p>
 
             <h3>Offline-First Design</h3>
             <div class="diagram-container">
-                <img src="images/07-offline-state.svg" alt="Offline State Machine" class="diagram-svg" />
+                <picture>
+                    <source srcset="images/07-offline-state-dark.svg" media="(prefers-color-scheme: dark)">
+                    <img src="images/07-offline-state-light.svg" alt="Offline State Machine" class="diagram-svg" />
+                </picture>
             </div>
             <p>Connection states: Disconnected → Connecting → Connected → Syncing → Synced. Health checks every 30 seconds. Exponential backoff on reconnection (max 5 attempts). Local cache + sync queue ensure work is never lost.</p>
 
             <h3>Event System</h3>
             <div class="diagram-container">
-                <img src="images/10-event-system.svg" alt="Event System" class="diagram-svg" />
+                <picture>
+                    <source srcset="images/10-event-system-dark.svg" media="(prefers-color-scheme: dark)">
+                    <img src="images/10-event-system-light.svg" alt="Event System" class="diagram-svg" />
+                </picture>
             </div>
             <p>PubSub broker decouples components. 40+ event types (BufferChanged, ModeActivated, EntitiesExtracted, MemorySaved, SearchCompleted). Modes publish events, other components subscribe. Enables composition without tight coupling.</p>
 
@@ -176,7 +188,10 @@
                 <li><strong>Pattern mining</strong>: Discover frequent relationship types (e.g., "uses", "depends on")</li>
             </ul>
             <div class="diagram-container">
-                <img src="images/05-triple-graph.svg" alt="Triple Graph Example" class="diagram-svg" />
+                <picture>
+                    <source srcset="images/05-triple-graph-dark.svg" media="(prefers-color-scheme: dark)">
+                    <img src="images/05-triple-graph-light.svg" alt="Triple Graph Example" class="diagram-svg" />
+                </picture>
             </div>
         </section>
 

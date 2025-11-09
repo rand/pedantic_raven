@@ -1,203 +1,30 @@
-# Offline Mode State Machine
-# Connection management and automatic recovery
+# Offline State Machine
 
-direction: right
-
-# States
-connected: {
-  label: "Connected\n✓ Server reachable\n✓ All operations available\n✓ Real-time sync"
+disconnected: Disconnected {
   shape: circle
-  style: {
-    fill: "#27AE60"
-    stroke: "#1E8449"
-    stroke-width: 3
-    font-color: "#FFFFFF"
-    font-size: 14
-  }
 }
 
-offline: {
-  label: "Offline\n⚠ Server unreachable\n⚠ Local operations only\n⚠ Changes queued"
+connecting: Connecting {
   shape: circle
-  style: {
-    fill: "#E67E22"
-    stroke: "#CA6F1E"
-    stroke-width: 3
-    font-color: "#FFFFFF"
-    font-size: 14
-  }
 }
 
-reconnecting: {
-  label: "Reconnecting\n↻ Retry with backoff\n↻ Health checks\n↻ Connection attempt"
+connected: Connected {
   shape: circle
-  style: {
-    fill: "#F39C12"
-    stroke: "#D68910"
-    stroke-width: 3
-    font-color: "#FFFFFF"
-    font-size: 14
-  }
 }
 
-syncing: {
-  label: "Syncing\n⟳ Processing queue\n⟳ Batch operations\n⟳ Conflict resolution"
+syncing: Syncing {
   shape: circle
-  style: {
-    fill: "#3498DB"
-    stroke: "#2874A6"
-    stroke-width: 3
-    font-color: "#FFFFFF"
-    font-size: 14
-  }
 }
 
-failed: {
-  label: "Failed\n✗ Max retries exceeded\n✗ Manual intervention\n✗ Check logs"
+synced: Synced {
   shape: circle
-  style: {
-    fill: "#E74C3C"
-    stroke: "#C0392B"
-    stroke-width: 3
-    font-color: "#FFFFFF"
-    font-size: 14
-  }
 }
 
-# Transitions
-connected -> offline: "Connection lost\n• Network failure\n• Server down\n• Timeout" {
-  style: {
-    stroke: "#E67E22"
-    stroke-width: 2
-  }
-}
-
-offline -> reconnecting: "Start reconnect\n• After 1s delay\n• Exponential backoff" {
-  style: {
-    stroke: "#F39C12"
-    stroke-width: 2
-  }
-}
-
-reconnecting -> connected: "Health check OK\n• gRPC responds\n• Server healthy" {
-  style: {
-    stroke: "#27AE60"
-    stroke-width: 2
-  }
-}
-
-reconnecting -> syncing: "Connection restored\n• Health check OK\n• Queue not empty" {
-  style: {
-    stroke: "#3498DB"
-    stroke-width: 2
-  }
-}
-
-reconnecting -> offline: "Retry failed\n• Health check timeout\n• gRPC error" {
-  style: {
-    stroke: "#E67E22"
-    stroke-width: 2
-    stroke-dash: 3
-  }
-}
-
-reconnecting -> failed: "Max retries exceeded\n• 10 attempts\n• 30s max backoff" {
-  style: {
-    stroke: "#E74C3C"
-    stroke-width: 2
-  }
-}
-
-syncing -> connected: "Sync complete\n• Queue empty\n• All ops successful" {
-  style: {
-    stroke: "#27AE60"
-    stroke-width: 2
-  }
-}
-
-syncing -> failed: "Sync failed\n• Server error\n• Validation failure" {
-  style: {
-    stroke: "#E74C3C"
-    stroke-width: 2
-  }
-}
-
-failed -> offline: "User reset\n• Manual retry\n• Clear queue" {
-  style: {
-    stroke: "#95A5A6"
-    stroke-width: 2
-    stroke-dash: 3
-  }
-}
-
-# Connected state operations
-connected_operations: {
-  near: top-left
-  label: "Connected - Available Operations:\n• Create memory\n• Update memory\n• Delete memory\n• Search (all modes)\n• Graph visualization\n• Link management"
-  shape: rectangle
-  style: {
-    fill: "#EAFAF1"
-    stroke: "#27AE60"
-    stroke-width: 1
-  }
-}
-
-# Offline state operations
-offline_operations: {
-  near: top-right
-  label: "Offline - Available Operations:\n• View cached memories\n• Edit (queued)\n• Create (queued)\n• Delete (queued)\n• Limited search (cache only)"
-  shape: rectangle
-  style: {
-    fill: "#FEF5E7"
-    stroke: "#E67E22"
-    stroke-width: 1
-  }
-}
-
-# Backoff strategy
-backoff_strategy: {
-  near: bottom-left
-  label: "Exponential Backoff:\n1s → 2s → 4s → 8s → 16s → 30s (max)\n\nHealth Check Interval:\n• 30s when connected\n• On-demand when offline"
-  shape: rectangle
-  style: {
-    fill: "#FEF9E7"
-    stroke: "#F39C12"
-    stroke-width: 1
-  }
-}
-
-# Sync queue details
-sync_queue: {
-  near: bottom-right
-  label: "Sync Queue:\n• FIFO ordering\n• Conflict detection\n• Batch processing\n• SHA256 validation\n• Zero data loss guarantee"
-  shape: rectangle
-  style: {
-    fill: "#EBF5FB"
-    stroke: "#3498DB"
-    stroke-width: 1
-  }
-}
-
-# Initial state indicator
-initial: {
-  label: "Start"
-  shape: circle
-  style: {
-    fill: "#34495E"
-    font-color: "#FFFFFF"
-  }
-}
-
-initial -> connected: "App launch\n(if server reachable)" {
-  style: {
-    stroke: "#27AE60"
-    stroke-width: 2
-  }
-}
-
-initial -> offline: "App launch\n(if server unreachable)" {
-  style: {
-    stroke: "#E67E22"
-    stroke-width: 2
-  }
-}
+disconnected -> connecting: Start
+connecting -> connected: Success
+connecting -> disconnected: Failure
+connected -> syncing: Changes detected
+syncing -> synced: Complete
+synced -> connected: Idle
+connected -> disconnected: Health check fail
+disconnected -> connecting: Retry (exponential backoff)

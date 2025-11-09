@@ -1,234 +1,27 @@
-# Example Triple Graph (Entity-Relationship Network)
-# Shows how entities and relationships form a semantic graph
+# Triple Graph Example
 
-direction: right
-
-# Entities (nodes)
-alice: {
-  label: "Alice"
+alice: Alice {
   shape: circle
-  style: {
-    fill: "#3498DB"
-    stroke: "#2874A6"
-    stroke-width: 2
-    font-color: "#FFFFFF"
-  }
 }
 
-fastapi: {
-  label: "FastAPI"
+fastapi: FastAPI {
   shape: circle
-  style: {
-    fill: "#27AE60"
-    stroke: "#1E8449"
-    stroke-width: 2
-    font-color: "#FFFFFF"
-  }
 }
 
-postgresql: {
-  label: "PostgreSQL"
+postgresql: PostgreSQL {
   shape: circle
-  style: {
-    fill: "#27AE60"
-    stroke: "#1E8449"
-    stroke-width: 2
-    font-color: "#FFFFFF"
-  }
 }
 
-jwt: {
-  label: "JWT"
+jwt: JWT {
   shape: circle
-  style: {
-    fill: "#27AE60"
-    stroke: "#1E8449"
-    stroke-width: 2
-    font-color: "#FFFFFF"
-  }
 }
 
-authentication: {
-  label: "Authentication"
+api: API Service {
   shape: circle
-  style: {
-    fill: "#E67E22"
-    stroke: "#CA6F1E"
-    stroke-width: 2
-    font-color: "#FFFFFF"
-  }
 }
 
-service: {
-  label: "API Service"
-  shape: circle
-  style: {
-    fill: "#E67E22"
-    stroke: "#CA6F1E"
-    stroke-width: 2
-    font-color: "#FFFFFF"
-  }
-}
-
-q3_launch: {
-  label: "Q3 Launch"
-  shape: circle
-  style: {
-    fill: "#9B59B6"
-    stroke: "#7D3C98"
-    stroke-width: 2
-    font-color: "#FFFFFF"
-  }
-}
-
-# Relationships (edges)
-alice -> service: "implementing" {
-  style: {
-    stroke: "#2C3E50"
-    stroke-width: 2
-  }
-}
-
-service -> fastapi: "uses" {
-  style: {
-    stroke: "#2C3E50"
-    stroke-width: 2
-  }
-}
-
-service -> postgresql: "uses" {
-  style: {
-    stroke: "#2C3E50"
-    stroke-width: 2
-  }
-}
-
-alice -> authentication: "needs to add" {
-  style: {
-    stroke: "#E74C3C"
-    stroke-width: 2
-    stroke-dash: 3
-  }
-}
-
-authentication -> jwt: "implements with" {
-  style: {
-    stroke: "#2C3E50"
-    stroke-width: 2
-  }
-}
-
-authentication -> q3_launch: "required before" {
-  style: {
-    stroke: "#E74C3C"
-    stroke-width: 2
-  }
-}
-
-service -> authentication: "requires" {
-  style: {
-    stroke: "#E74C3C"
-    stroke-width: 2
-    stroke-dash: 3
-  }
-}
-
-# Legend
-legend: {
-  near: top-left
-  label: "Entity Types"
-  shape: rectangle
-  style: {
-    fill: "#FFFFFF"
-    stroke: "#BDC3C7"
-    stroke-width: 1
-  }
-
-  person: {
-    label: "● Person"
-    shape: text
-    style: {
-      font-color: "#3498DB"
-    }
-  }
-
-  technology: {
-    label: "● Technology"
-    shape: text
-    style: {
-      font-color: "#27AE60"
-    }
-  }
-
-  concept: {
-    label: "● Concept"
-    shape: text
-    style: {
-      font-color: "#E67E22"
-    }
-  }
-
-  event: {
-    label: "● Event/Time"
-    shape: text
-    style: {
-      font-color: "#9B59B6"
-    }
-  }
-}
-
-relationship_legend: {
-  near: bottom-left
-  label: "Relationships"
-  shape: rectangle
-  style: {
-    fill: "#FFFFFF"
-    stroke: "#BDC3C7"
-    stroke-width: 1
-  }
-
-  existing: {
-    label: "──── Existing"
-    shape: text
-  }
-
-  needed: {
-    label: "- - - - Needed/Planned"
-    shape: text
-    style: {
-      font-color: "#E74C3C"
-    }
-  }
-}
-
-# Statistics box
-stats: {
-  near: bottom-right
-  label: "Graph Statistics"
-  shape: rectangle
-  style: {
-    fill: "#ECF0F1"
-    stroke: "#34495E"
-    stroke-width: 1
-  }
-
-  entities: {
-    label: "Entities: 7"
-    shape: text
-  }
-
-  relationships: {
-    label: "Relationships: 7"
-    shape: text
-  }
-
-  triples: {
-    label: "RDF Triples: 7"
-    shape: text
-  }
-
-  confidence: {
-    label: "Avg Confidence: 0.82"
-    shape: text
-  }
-}
+alice -> fastapi: uses
+fastapi -> postgresql: stores data in
+fastapi -> jwt: implements auth with
+api -> fastapi: built with
+api -> postgresql: depends on

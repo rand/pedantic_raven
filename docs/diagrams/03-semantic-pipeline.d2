@@ -1,208 +1,23 @@
 # Semantic Analysis Pipeline
-# Shows the flow from text input to semantic extraction
 
 direction: right
 
-text_input: {
-  label: "Text Input\n(User typing in editor)"
-  shape: rectangle
-  style: {
-    fill: "#ECF0F1"
-    stroke: "#2C3E50"
-    stroke-width: 2
-  }
-}
-
-debounce: {
-  label: "Debounce\n(500ms after typing stops)"
+user: User Types
+debounce: 500ms Debounce {
   shape: diamond
-  style: {
-    fill: "#F39C12"
-    font-color: "#FFFFFF"
-  }
 }
+hybrid: Hybrid Extractor
+gliner: GLiNER\n85-95%
+pattern: Pattern\n60-70%
+results: Entity Results
+ui: UI Update
 
-tokenizer: {
-  label: "Tokenizer\n(Split into tokens)"
-  shape: rectangle
-  style: {
-    fill: "#3498DB"
-    font-color: "#FFFFFF"
-  }
+user -> debounce
+debounce -> hybrid
+hybrid -> gliner: Try ML
+gliner -> results: Success
+gliner -> pattern: Timeout {
+  style.stroke-dash: 3
 }
-
-parallel_extraction: {
-  label: "Parallel Extraction"
-  style: {
-    fill: "#FFFFFF"
-    stroke: "#95A5A6"
-    stroke-width: 2
-    stroke-dash: 3
-  }
-
-  entity_extractor: {
-    label: "Entity Extractor"
-    shape: rectangle
-    style: {
-      fill: "#2ECC71"
-      font-color: "#FFFFFF"
-    }
-
-    strategy_selector: {
-      label: "Strategy Selector"
-      shape: diamond
-      style: {
-        fill: "#27AE60"
-        font-color: "#FFFFFF"
-      }
-    }
-
-    gliner: {
-      label: "GLiNER Extractor\n85-95% accuracy\n100-300ms"
-      shape: rectangle
-      style: {
-        fill: "#27AE60"
-        font-color: "#FFFFFF"
-      }
-    }
-
-    pattern: {
-      label: "Pattern Extractor\n60-70% accuracy\n<1ms"
-      shape: rectangle
-      style: {
-        fill: "#52BE80"
-        font-color: "#FFFFFF"
-      }
-    }
-  }
-
-  relationship_detector: {
-    label: "Relationship Detector\n(Subject-Predicate-Object)"
-    shape: rectangle
-    style: {
-      fill: "#9B59B6"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  typed_hole_parser: {
-    label: "Typed Hole Parser\n(??Type, !!constraint)"
-    shape: rectangle
-    style: {
-      fill: "#E67E22"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  dependency_tracker: {
-    label: "Dependency Tracker\n(imports, requires)"
-    shape: rectangle
-    style: {
-      fill: "#16A085"
-      font-color: "#FFFFFF"
-    }
-  }
-}
-
-aggregator: {
-  label: "Result Aggregator\n(Combine all extractions)"
-  shape: rectangle
-  style: {
-    fill: "#E74C3C"
-    font-color: "#FFFFFF"
-  }
-}
-
-context_panel: {
-  label: "Context Panel\n5 Sections Display"
-  shape: rectangle
-  style: {
-    fill: "#2C3E50"
-    font-color: "#ECF0F1"
-  }
-
-  entities_section: {
-    label: "Entities\n(with occurrence counts)"
-    shape: rectangle
-    style: {
-      fill: "#3498DB"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  relationships_section: {
-    label: "Relationships\n(with confidence scores)"
-    shape: rectangle
-    style: {
-      fill: "#9B59B6"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  holes_section: {
-    label: "Typed Holes\n(priority/complexity)"
-    shape: rectangle
-    style: {
-      fill: "#E67E22"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  dependencies_section: {
-    label: "Dependencies\n(import graph)"
-    shape: rectangle
-    style: {
-      fill: "#16A085"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  triples_section: {
-    label: "RDF Triples\n(knowledge graph)"
-    shape: rectangle
-    style: {
-      fill: "#C0392B"
-      font-color: "#FFFFFF"
-    }
-  }
-}
-
-# Flow
-text_input -> debounce: "Stream"
-debounce -> tokenizer: "After 500ms pause"
-tokenizer -> parallel_extraction: "Token stream"
-
-# Parallel extraction
-tokenizer -> parallel_extraction.entity_extractor: "Tokens"
-tokenizer -> parallel_extraction.relationship_detector: "Tokens"
-tokenizer -> parallel_extraction.typed_hole_parser: "Tokens"
-tokenizer -> parallel_extraction.dependency_tracker: "Tokens"
-
-# Entity extraction strategy
-parallel_extraction.entity_extractor.strategy_selector -> parallel_extraction.entity_extractor.gliner: "Try first\n(if available)"
-parallel_extraction.entity_extractor.strategy_selector -> parallel_extraction.entity_extractor.pattern: "Fallback\n(or if GLiNER fails)"
-
-parallel_extraction.entity_extractor -> aggregator: "Entities"
-parallel_extraction.relationship_detector -> aggregator: "Relationships"
-parallel_extraction.typed_hole_parser -> aggregator: "Holes"
-parallel_extraction.dependency_tracker -> aggregator: "Dependencies"
-
-# Results to context panel
-aggregator -> context_panel: "Complete analysis\n(Routes to 5 sections)"
-
-# External service call
-parallel_extraction.entity_extractor.gliner -> external_gliner: "HTTP request\n(if enabled)" {
-  style: {
-    stroke-dash: 3
-  }
-}
-
-external_gliner: {
-  label: "GLiNER Service\n(Python/FastAPI)"
-  shape: cylinder
-  style: {
-    fill: "#27AE60"
-    stroke: "#2ECC71"
-    font-color: "#FFFFFF"
-  }
-}
+pattern -> results: Fallback
+results -> ui

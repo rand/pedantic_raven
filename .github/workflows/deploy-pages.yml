@@ -36,8 +36,9 @@ jobs:
           mkdir -p docs/images
           for diagram in docs/diagrams/*.d2; do
             basename=$(basename "$diagram" .d2)
-            echo "Rendering: $basename"
-            d2 "$diagram" "docs/images/${basename}.svg"
+            echo "Rendering: $basename (light and dark)"
+            d2 --theme=0 "$diagram" "docs/images/${basename}-light.svg"
+            d2 --theme=200 "$diagram" "docs/images/${basename}-dark.svg"
           done
 
       - name: Setup Pages

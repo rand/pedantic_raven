@@ -1,276 +1,65 @@
-# Pedantic Raven Component Architecture
-# Shows internal package structure and dependencies
+# Component Architecture
 
-direction: down
+direction: right
 
-app: {
-  label: "app/\nMain Application Coordinator"
-  style: {
-    fill: "#2C3E50"
-    stroke: "#34495E"
-    stroke-width: 3
-    font-color: "#ECF0F1"
-  }
-
-  events: {
-    label: "events/\nPubSub Broker\n40+ Event Types"
-    shape: rectangle
-    style: {
-      fill: "#E74C3C"
-      font-color: "#FFFFFF"
-    }
-  }
-}
-
-modes: {
-  label: "modes/\nMode Registry & Lifecycle"
+app: Application {
   shape: rectangle
-  style: {
-    fill: "#9B59B6"
-    font-color: "#FFFFFF"
-  }
 }
 
-editor_system: {
-  label: "Editor System"
-  style: {
-    fill: "#ECF0F1"
-    stroke: "#3498DB"
-    stroke-width: 2
-  }
-
-  editor: {
-    label: "editor/\nText Editor Logic"
-    shape: rectangle
-    style: {
-      fill: "#3498DB"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  buffer: {
-    label: "buffer/\nBuffer Manager\nUndo/Redo"
-    shape: rectangle
-    style: {
-      fill: "#5DADE2"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  search: {
-    label: "search/\nSearch & Replace\nRegex Support"
-    shape: rectangle
-    style: {
-      fill: "#5DADE2"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  semantic: {
-    label: "semantic/\nSemantic Analyzer\nEntity Extraction"
-    shape: rectangle
-    style: {
-      fill: "#5DADE2"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  syntax: {
-    label: "syntax/\nSyntax Highlighting\nGo, Markdown"
-    shape: rectangle
-    style: {
-      fill: "#5DADE2"
-      font-color: "#FFFFFF"
-    }
-  }
+modes: Mode Registry {
+  shape: rectangle
 }
 
-memory_system: {
-  label: "Memory System"
-  style: {
-    fill: "#ECF0F1"
-    stroke: "#2ECC71"
-    stroke-width: 2
-  }
+editor: Editor {
+  shape: rectangle
 
-  memorylist: {
-    label: "memorylist/\nMemory List View\nSearch & Filter"
-    shape: rectangle
-    style: {
-      fill: "#2ECC71"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  memorydetail: {
-    label: "memorydetail/\nMemory Detail View\nCRUD Operations"
-    shape: rectangle
-    style: {
-      fill: "#58D68D"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  memorygraph: {
-    label: "memorygraph/\nGraph Visualization\nForce-Directed Layout"
-    shape: rectangle
-    style: {
-      fill: "#58D68D"
-      font-color: "#FFFFFF"
-    }
-  }
+  buffer: Buffer
+  search: Search
+  semantic: Semantic Analysis
+  syntax: Syntax
 }
 
-analyze_system: {
-  label: "Analysis System"
-  style: {
-    fill: "#ECF0F1"
-    stroke: "#E67E22"
-    stroke-width: 2
-  }
+memory: Memory {
+  shape: rectangle
 
-  analyze: {
-    label: "analyze/\nStatistical Analysis\nPattern Mining"
-    shape: rectangle
-    style: {
-      fill: "#E67E22"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  visualizations: {
-    label: "visualizations/\nCharts & Word Clouds\nDependency Trees"
-    shape: rectangle
-    style: {
-      fill: "#F39C12"
-      font-color: "#FFFFFF"
-    }
-  }
+  list: Memory List
+  detail: Memory Detail
+  graph: Graph View
 }
 
-infrastructure: {
-  label: "Infrastructure"
-  style: {
-    fill: "#ECF0F1"
-    stroke: "#95A5A6"
-    stroke-width: 2
-  }
+analyze: Analysis {
+  shape: rectangle
 
-  mnemosyne_client: {
-    label: "mnemosyne/\ngRPC Client\nConnection Management"
-    shape: rectangle
-    style: {
-      fill: "#C0392B"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  gliner_client: {
-    label: "gliner/\nGLiNER Client\nML Entity Extraction"
-    shape: rectangle
-    style: {
-      fill: "#27AE60"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  config: {
-    label: "config/\nConfiguration\nTOML + Env Vars"
-    shape: rectangle
-    style: {
-      fill: "#7F8C8D"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  context_panel: {
-    label: "context/\nContext Panel\nSemantic Results"
-    shape: rectangle
-    style: {
-      fill: "#7F8C8D"
-      font-color: "#FFFFFF"
-    }
-  }
+  stats: Statistics
+  viz: Visualizations
 }
 
-ui_components: {
-  label: "UI Components"
-  style: {
-    fill: "#ECF0F1"
-    stroke: "#8E44AD"
-    stroke-width: 2
-  }
+infra: Infrastructure {
+  shape: rectangle
 
-  layout: {
-    label: "layout/\nLayout Engine\nSplit Views"
-    shape: rectangle
-    style: {
-      fill: "#8E44AD"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  overlay: {
-    label: "overlay/\nOverlay System\nHelp, Confirm, etc."
-    shape: rectangle
-    style: {
-      fill: "#A569BD"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  palette: {
-    label: "palette/\nCommand Palette\nKeyboard Navigation"
-    shape: rectangle
-    style: {
-      fill: "#A569BD"
-      font-color: "#FFFFFF"
-    }
-  }
-
-  terminal: {
-    label: "terminal/\nIntegrated Terminal\nCommand Execution"
-    shape: rectangle
-    style: {
-      fill: "#A569BD"
-      font-color: "#FFFFFF"
-    }
-  }
+  mnemosyne: mnemosyne Client
+  gliner: GLiNER Client
 }
 
-# Dependencies
-app.events -> modes: "Mode transitions"
-app.events -> editor_system.editor: "Editor events"
-app.events -> memory_system.memorylist: "Memory events"
-app.events -> analyze_system.analyze: "Analysis events"
+ui: UI {
+  shape: rectangle
 
-modes -> editor_system.editor: "Edit Mode"
-modes -> memory_system: "Explore Mode"
-modes -> analyze_system: "Analyze Mode"
+  layout: Layout
+  overlay: Overlays
+  palette: Command Palette
+}
 
-editor_system.editor -> editor_system.buffer: "Uses"
-editor_system.editor -> editor_system.search: "Uses"
-editor_system.editor -> editor_system.semantic: "Uses"
-editor_system.editor -> editor_system.syntax: "Uses"
+# Connections
+app -> modes
+modes -> editor
+modes -> memory
+modes -> analyze
 
-editor_system.semantic -> infrastructure.gliner_client: "Optional ML extraction"
-infrastructure.context_panel <- editor_system.semantic: "Displays results"
+editor.semantic -> infra.gliner
+memory -> infra.mnemosyne
 
-memory_system.memorylist -> infrastructure.mnemosyne_client: "Search, List"
-memory_system.memorydetail -> infrastructure.mnemosyne_client: "CRUD operations"
-memory_system.memorygraph -> infrastructure.mnemosyne_client: "Graph data"
-
-analyze_system.analyze -> memory_system.memorylist: "Data source"
-analyze_system.visualizations <- analyze_system.analyze: "Render results"
-
-ui_components.layout -> editor_system: "Renders"
-ui_components.layout -> memory_system: "Renders"
-ui_components.layout -> analyze_system: "Renders"
-
-ui_components.overlay -> app: "User confirmations"
-ui_components.palette -> app: "Command dispatch"
-ui_components.terminal -> editor_system.editor: "Integrated in Edit Mode"
-
-infrastructure.config -> app: "Application config"
-infrastructure.config -> infrastructure.mnemosyne_client: "Connection settings"
-infrastructure.config -> infrastructure.gliner_client: "Service settings"
+ui.layout -> editor
+ui.layout -> memory
+ui.layout -> analyze
+ui.overlay -> app
+ui.palette -> app
