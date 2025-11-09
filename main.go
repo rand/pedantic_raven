@@ -51,7 +51,7 @@ func initialModel() model {
 
 	// Register real modes
 	editMode := editor.NewEditMode()
-	exploreMode := modes.NewBaseMode(modes.ModeExplore, "Explore", "Memory workspace")
+	exploreMode := modes.NewExploreMode()
 	analyzeMode := modes.NewBaseMode(modes.ModeAnalyze, "Analyze", "Semantic analysis")
 
 	modeRegistry.Register(editMode)
