@@ -226,3 +226,212 @@ func TestInit(t *testing.T) {
 		t.Error("Expected nil cmd from Init")
 	}
 }
+
+// --- Link Navigation Tests ---
+
+func TestSelectNextLink(t *testing.T) {
+	m := NewModel()
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	memory.Links = []*pb.MemoryLink{
+		{TargetId: "link-1"},
+		{TargetId: "link-2"},
+		{TargetId: "link-3"},
+	}
+	m.SetMemory(memory)
+
+	// Initially no link selected
+	if m.SelectedLinkIndex() != -1 {
+		t.Error("Expected no link selected initially")
+	}
+
+	// Select next (should go to index 0)
+	m.SelectNextLink()
+	if m.SelectedLinkIndex() != 0 {
+		t.Errorf("Expected link index 0, got %d", m.SelectedLinkIndex())
+	}
+
+	// Select next again (should go to index 1)
+	m.SelectNextLink()
+	if m.SelectedLinkIndex() != 1 {
+		t.Errorf("Expected link index 1, got %d", m.SelectedLinkIndex())
+	}
+
+	// Select next again (should go to index 2)
+	m.SelectNextLink()
+	if m.SelectedLinkIndex() != 2 {
+		t.Errorf("Expected link index 2, got %d", m.SelectedLinkIndex())
+	}
+
+	// Try to go beyond last link (should stay at 2)
+	m.SelectNextLink()
+	if m.SelectedLinkIndex() != 2 {
+		t.Errorf("Expected to stay at link index 2, got %d", m.SelectedLinkIndex())
+	}
+}
+
+func TestSelectPreviousLink(t *testing.T) {
+	m := NewModel()
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	memory.Links = []*pb.MemoryLink{
+		{TargetId: "link-1"},
+		{TargetId: "link-2"},
+		{TargetId: "link-3"},
+	}
+	m.SetMemory(memory)
+
+	// Start at link 2
+	m.selectedLinkIndex = 2
+
+	// Previous should go to 1
+	m.SelectPreviousLink()
+	if m.SelectedLinkIndex() != 1 {
+		t.Errorf("Expected link index 1, got %d", m.SelectedLinkIndex())
+	}
+
+	// Previous should go to 0
+	m.SelectPreviousLink()
+	if m.SelectedLinkIndex() != 0 {
+		t.Errorf("Expected link index 0, got %d", m.SelectedLinkIndex())
+	}
+
+	// Previous should go to -1 (no selection)
+	m.SelectPreviousLink()
+	if m.SelectedLinkIndex() != -1 {
+		t.Errorf("Expected link index -1, got %d", m.SelectedLinkIndex())
+	}
+
+	// Try to go before first (should stay at -1)
+	m.SelectPreviousLink()
+	if m.SelectedLinkIndex() != -1 {
+		t.Errorf("Expected to stay at link index -1, got %d", m.SelectedLinkIndex())
+	}
+}
+
+func TestSelectFirstLink(t *testing.T) {
+	m := NewModel()
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	memory.Links = []*pb.MemoryLink{
+		{TargetId: "link-1"},
+		{TargetId: "link-2"},
+	}
+	m.SetMemory(memory)
+
+	m.SelectFirstLink()
+
+	if m.SelectedLinkIndex() != 0 {
+		t.Errorf("Expected link index 0, got %d", m.SelectedLinkIndex())
+	}
+}
+
+func TestClearLinkSelection(t *testing.T) {
+	m := NewModel()
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	memory.Links = []*pb.MemoryLink{
+		{TargetId: "link-1"},
+	}
+	m.SetMemory(memory)
+
+	m.selectedLinkIndex = 0
+
+	m.ClearLinkSelection()
+
+	if m.SelectedLinkIndex() != -1 {
+		t.Errorf("Expected link index -1 after clear, got %d", m.SelectedLinkIndex())
+	}
+}
+
+func TestSelectedLink(t *testing.T) {
+	m := NewModel()
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	memory.Links = []*pb.MemoryLink{
+		{TargetId: "link-1"},
+		{TargetId: "link-2"},
+	}
+	m.SetMemory(memory)
+
+	// No selection
+	if m.SelectedLink() != nil {
+		t.Error("Expected nil selected link when index is -1")
+	}
+
+	// Select first link
+	m.selectedLinkIndex = 0
+	link := m.SelectedLink()
+	if link == nil {
+		t.Fatal("Expected non-nil selected link")
+	}
+	if link.TargetId != "link-1" {
+		t.Errorf("Expected link-1, got %s", link.TargetId)
+	}
+
+	// Select second link
+	m.selectedLinkIndex = 1
+	link = m.SelectedLink()
+	if link == nil {
+		t.Fatal("Expected non-nil selected link")
+	}
+	if link.TargetId != "link-2" {
+		t.Errorf("Expected link-2, got %s", link.TargetId)
+	}
+}
+
+func TestHasLinks(t *testing.T) {
+	m := NewModel()
+
+	// No memory
+	if m.HasLinks() {
+		t.Error("Expected no links when memory is nil")
+	}
+
+	// Memory with no links
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	m.SetMemory(memory)
+
+	if m.HasLinks() {
+		t.Error("Expected no links when links array is empty")
+	}
+
+	// Memory with links
+	memory.Links = []*pb.MemoryLink{
+		{TargetId: "link-1"},
+	}
+	m.SetMemory(memory)
+
+	if !m.HasLinks() {
+		t.Error("Expected to have links")
+	}
+}
+
+func TestSetMemoryResetsLinkSelection(t *testing.T) {
+	m := NewModel()
+	memory1 := createTestMemory("test-1", "Content", 8, nil)
+	memory1.Links = []*pb.MemoryLink{
+		{TargetId: "link-1"},
+	}
+	m.SetMemory(memory1)
+	m.selectedLinkIndex = 0
+
+	// Set new memory should reset selection
+	memory2 := createTestMemory("test-2", "New content", 8, nil)
+	m.SetMemory(memory2)
+
+	if m.SelectedLinkIndex() != -1 {
+		t.Errorf("Expected link selection to be reset, got index %d", m.SelectedLinkIndex())
+	}
+}
+
+func TestLinkNavigationWithNoLinks(t *testing.T) {
+	m := NewModel()
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	m.SetMemory(memory)
+
+	// These should not crash
+	m.SelectNextLink()
+	m.SelectPreviousLink()
+	m.SelectFirstLink()
+
+	// Should stay at -1
+	if m.SelectedLinkIndex() != -1 {
+		t.Error("Expected link index to remain -1 when there are no links")
+	}
+}

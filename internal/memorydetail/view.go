@@ -39,6 +39,11 @@ var (
 	emptyStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("243")). // Gray
 			Italic(true)
+
+	selectedLinkStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("229")). // Yellow
+			Background(lipgloss.Color("237")).
+			Bold(true)
 )
 
 // View implements tea.Model.
@@ -217,7 +222,13 @@ func (m Model) renderMetadataLine(lineNum int) string {
 		}
 	default:
 		if lineNum >= 18 && lineNum < 18+len(m.memory.Links) {
-			link := m.memory.Links[lineNum-18]
+			linkIndex := lineNum - 18
+			link := m.memory.Links[linkIndex]
+
+			// Highlight selected link
+			if linkIndex == m.selectedLinkIndex {
+				return selectedLinkStyle.Render("  ▸ " + link.TargetId + " ")
+			}
 			return "  → " + metaValueStyle.Render(link.TargetId)
 		}
 	}
@@ -295,7 +306,17 @@ func (m Model) renderFooter() string {
 		scrollInfo = fmt.Sprintf("%d lines", totalLines)
 	}
 
-	keys := " | j/k: scroll, m: metadata, q: close"
+	var keys string
+	if m.selectedLinkIndex >= 0 {
+		// Link is selected - show link navigation hints
+		keys = " | n/p: next/prev link, Enter: follow, Esc: deselect"
+	} else if m.HasLinks() {
+		// Has links but none selected
+		keys = " | j/k: scroll, l: links, m: metadata, q: close"
+	} else {
+		// No links
+		keys = " | j/k: scroll, m: metadata, q: close"
+	}
 
 	footer := scrollInfo + keys
 

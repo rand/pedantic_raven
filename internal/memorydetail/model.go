@@ -51,11 +51,39 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (Model, tea.Cmd) {
 		m.ToggleMetadata()
 		return m, nil
 
-	case "q", "esc":
+	case "l":
+		// Enter link navigation mode (select first link)
+		if m.HasLinks() {
+			m.SelectFirstLink()
+		}
+		return m, nil
+
+	case "tab", "n":
+		// Navigate to next link
+		m.SelectNextLink()
+		return m, nil
+
+	case "shift+tab", "p":
+		// Navigate to previous link
+		m.SelectPreviousLink()
+		return m, nil
+
+	case "q":
+		return m, m.closeCmd()
+
+	case "esc":
+		// Clear link selection if active, otherwise close
+		if m.selectedLinkIndex >= 0 {
+			m.ClearLinkSelection()
+			return m, nil
+		}
 		return m, m.closeCmd()
 
 	case "enter":
-		// TODO: Navigate to selected link (if any)
+		// Navigate to selected link
+		if link := m.SelectedLink(); link != nil {
+			return m, m.navigateLinkCmd(link.TargetId)
+		}
 		return m, nil
 	}
 
@@ -167,5 +195,14 @@ func (m Model) contentLines() int {
 func (m Model) closeCmd() tea.Cmd {
 	return func() tea.Msg {
 		return CloseRequestMsg{}
+	}
+}
+
+// navigateLinkCmd returns a command to navigate to a linked memory.
+func (m Model) navigateLinkCmd(targetID string) tea.Cmd {
+	return func() tea.Msg {
+		return LinkSelectedMsg{
+			TargetID: targetID,
+		}
 	}
 }

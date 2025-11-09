@@ -355,3 +355,196 @@ func TestScrollWithNoMemory(t *testing.T) {
 		t.Error("Expected scrollOffset to remain 0 when memory is nil")
 	}
 }
+
+// --- Link Navigation Keyboard Tests ---
+
+func TestLKeySelectsFirstLink(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	memory.Links = []*pb.MemoryLink{
+		{TargetId: "link-1"},
+		{TargetId: "link-2"},
+	}
+	m.SetMemory(memory)
+
+	// Press 'l' to select first link
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'l'}})
+
+	if m.SelectedLinkIndex() != 0 {
+		t.Errorf("Expected link index 0 after 'l', got %d", m.SelectedLinkIndex())
+	}
+}
+
+func TestLKeyWithNoLinks(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	m.SetMemory(memory)
+
+	// Press 'l' when there are no links
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'l'}})
+
+	if m.SelectedLinkIndex() != -1 {
+		t.Errorf("Expected link index to remain -1, got %d", m.SelectedLinkIndex())
+	}
+}
+
+func TestTabKeyNextLink(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	memory.Links = []*pb.MemoryLink{
+		{TargetId: "link-1"},
+		{TargetId: "link-2"},
+		{TargetId: "link-3"},
+	}
+	m.SetMemory(memory)
+
+	// Press tab to select next link
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+
+	if m.SelectedLinkIndex() != 0 {
+		t.Errorf("Expected link index 0 after first tab, got %d", m.SelectedLinkIndex())
+	}
+
+	// Press tab again
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyTab})
+
+	if m.SelectedLinkIndex() != 1 {
+		t.Errorf("Expected link index 1 after second tab, got %d", m.SelectedLinkIndex())
+	}
+}
+
+func TestNKeyNextLink(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	memory.Links = []*pb.MemoryLink{
+		{TargetId: "link-1"},
+		{TargetId: "link-2"},
+	}
+	m.SetMemory(memory)
+
+	// Press 'n' to select next link
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
+
+	if m.SelectedLinkIndex() != 0 {
+		t.Errorf("Expected link index 0 after 'n', got %d", m.SelectedLinkIndex())
+	}
+}
+
+func TestPKeyPreviousLink(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	memory.Links = []*pb.MemoryLink{
+		{TargetId: "link-1"},
+		{TargetId: "link-2"},
+	}
+	m.SetMemory(memory)
+
+	m.selectedLinkIndex = 1
+
+	// Press 'p' to select previous link
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'p'}})
+
+	if m.SelectedLinkIndex() != 0 {
+		t.Errorf("Expected link index 0 after 'p', got %d", m.SelectedLinkIndex())
+	}
+}
+
+func TestEscClearsLinkSelection(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	memory.Links = []*pb.MemoryLink{
+		{TargetId: "link-1"},
+	}
+	m.SetMemory(memory)
+
+	m.selectedLinkIndex = 0
+
+	// Press Esc to clear link selection
+	m, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+
+	if m.SelectedLinkIndex() != -1 {
+		t.Errorf("Expected link selection cleared, got index %d", m.SelectedLinkIndex())
+	}
+
+	// Should not close the view
+	if cmd != nil {
+		t.Error("Expected nil cmd when clearing link selection")
+	}
+}
+
+func TestEscClosesWhenNoLinkSelected(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	m.SetMemory(memory)
+
+	// Press Esc when no link is selected
+	m, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+
+	if cmd == nil {
+		t.Error("Expected non-nil cmd to close view")
+	}
+
+	msg := cmd()
+	if _, ok := msg.(CloseRequestMsg); !ok {
+		t.Errorf("Expected CloseRequestMsg, got %T", msg)
+	}
+}
+
+func TestEnterNavigatesToSelectedLink(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	memory.Links = []*pb.MemoryLink{
+		{TargetId: "target-memory-123"},
+	}
+	m.SetMemory(memory)
+
+	m.selectedLinkIndex = 0
+
+	// Press Enter to navigate
+	m, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+
+	if cmd == nil {
+		t.Error("Expected non-nil cmd for link navigation")
+	}
+
+	msg := cmd()
+	linkMsg, ok := msg.(LinkSelectedMsg)
+	if !ok {
+		t.Fatalf("Expected LinkSelectedMsg, got %T", msg)
+	}
+
+	if linkMsg.TargetID != "target-memory-123" {
+		t.Errorf("Expected target ID 'target-memory-123', got '%s'", linkMsg.TargetID)
+	}
+}
+
+func TestEnterWithNoLinkSelected(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	m.SetMemory(memory)
+
+	// Press Enter when no link is selected
+	m, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+
+	if cmd != nil {
+		t.Error("Expected nil cmd when no link is selected")
+	}
+}

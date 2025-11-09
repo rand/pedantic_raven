@@ -18,6 +18,9 @@ type Model struct {
 	// Panel visibility
 	showMetadata bool
 
+	// Link selection state
+	selectedLinkIndex int // -1 means no link selected
+
 	// UI state
 	focused bool
 	err     error
@@ -50,12 +53,13 @@ type (
 // NewModel creates a new memory detail model.
 func NewModel() Model {
 	return Model{
-		memory:       nil,
-		scrollOffset: 0,
-		height:       20,
-		width:        80,
-		showMetadata: true,
-		focused:      true,
+		memory:            nil,
+		scrollOffset:      0,
+		height:            20,
+		width:             80,
+		showMetadata:      true,
+		selectedLinkIndex: -1,
+		focused:           true,
 	}
 }
 
@@ -91,6 +95,7 @@ func (m Model) IsFocused() bool {
 func (m *Model) SetMemory(memory *pb.MemoryNote) {
 	m.memory = memory
 	m.scrollOffset = 0
+	m.selectedLinkIndex = -1
 	m.err = nil
 }
 
@@ -127,4 +132,62 @@ func (m *Model) SetClient(client interface{}) {
 // Client returns the mnemosyne client, if set.
 func (m Model) Client() interface{} {
 	return m.client
+}
+
+// Link navigation methods
+
+// SelectNextLink selects the next link in the list.
+func (m *Model) SelectNextLink() {
+	if m.memory == nil || len(m.memory.Links) == 0 {
+		return
+	}
+
+	m.selectedLinkIndex++
+	if m.selectedLinkIndex >= len(m.memory.Links) {
+		m.selectedLinkIndex = len(m.memory.Links) - 1
+	}
+}
+
+// SelectPreviousLink selects the previous link in the list.
+func (m *Model) SelectPreviousLink() {
+	if m.memory == nil || len(m.memory.Links) == 0 {
+		return
+	}
+
+	m.selectedLinkIndex--
+	if m.selectedLinkIndex < -1 {
+		m.selectedLinkIndex = -1
+	}
+}
+
+// SelectFirstLink selects the first link.
+func (m *Model) SelectFirstLink() {
+	if m.memory == nil || len(m.memory.Links) == 0 {
+		return
+	}
+
+	m.selectedLinkIndex = 0
+}
+
+// ClearLinkSelection clears the link selection.
+func (m *Model) ClearLinkSelection() {
+	m.selectedLinkIndex = -1
+}
+
+// SelectedLink returns the currently selected link, or nil if none.
+func (m Model) SelectedLink() *pb.MemoryLink {
+	if m.memory == nil || m.selectedLinkIndex < 0 || m.selectedLinkIndex >= len(m.memory.Links) {
+		return nil
+	}
+	return m.memory.Links[m.selectedLinkIndex]
+}
+
+// SelectedLinkIndex returns the selected link index (-1 if none).
+func (m Model) SelectedLinkIndex() int {
+	return m.selectedLinkIndex
+}
+
+// HasLinks returns true if the memory has links.
+func (m Model) HasLinks() bool {
+	return m.memory != nil && len(m.memory.Links) > 0
 }

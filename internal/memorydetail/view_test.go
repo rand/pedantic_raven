@@ -533,3 +533,109 @@ func TestMetadataToggleInView(t *testing.T) {
 		t.Error("View without metadata should not contain 'Metadata' header")
 	}
 }
+
+// --- Link Highlighting Tests ---
+
+func TestRenderMetadataLineWithSelectedLink(t *testing.T) {
+	m := NewModel()
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	memory.Links = []*pb.MemoryLink{
+		{TargetId: "link-1"},
+		{TargetId: "link-2"},
+	}
+	m.SetMemory(memory)
+
+	// No link selected
+	line18 := m.renderMetadataLine(18)
+	if !strings.Contains(line18, "→") {
+		t.Error("Expected unselected link to have '→' indicator")
+	}
+
+	// Select first link
+	m.selectedLinkIndex = 0
+	line18Selected := m.renderMetadataLine(18)
+	if !strings.Contains(line18Selected, "▸") {
+		t.Error("Expected selected link to have '▸' indicator")
+	}
+
+	// Second link should not be selected
+	line19 := m.renderMetadataLine(19)
+	if !strings.Contains(line19, "→") {
+		t.Error("Expected unselected second link to have '→' indicator")
+	}
+}
+
+func TestFooterWithLinkNavigation(t *testing.T) {
+	m := NewModel()
+	m.SetSize(80, 10)
+
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	memory.Links = []*pb.MemoryLink{
+		{TargetId: "link-1"},
+	}
+	m.SetMemory(memory)
+
+	// No link selected - should show 'l: links' hint
+	footer := m.renderFooter()
+	if !strings.Contains(footer, "l: links") {
+		t.Error("Expected footer to show 'l: links' hint when links available")
+	}
+
+	// Link selected - should show link navigation hints
+	m.selectedLinkIndex = 0
+	footerSelected := m.renderFooter()
+	if !strings.Contains(footerSelected, "n/p") {
+		t.Error("Expected footer to show 'n/p' navigation hints")
+	}
+	if !strings.Contains(footerSelected, "Enter: follow") {
+		t.Error("Expected footer to show 'Enter: follow' hint")
+	}
+	if !strings.Contains(footerSelected, "Esc: deselect") {
+		t.Error("Expected footer to show 'Esc: deselect' hint")
+	}
+}
+
+func TestFooterWithoutLinks(t *testing.T) {
+	m := NewModel()
+	m.SetSize(80, 10)
+
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	m.SetMemory(memory)
+
+	footer := m.renderFooter()
+
+	// Should not mention links
+	if strings.Contains(footer, "l: links") {
+		t.Error("Footer should not show link hints when there are no links")
+	}
+	if strings.Contains(footer, "n/p") {
+		t.Error("Footer should not show link navigation when there are no links")
+	}
+}
+
+func TestViewWithSelectedLink(t *testing.T) {
+	m := NewModel()
+	m.SetSize(80, 20)
+	m.showMetadata = true
+
+	memory := createTestMemory("test-1", "Test content", 8, nil)
+	memory.Links = []*pb.MemoryLink{
+		{TargetId: "link-target-123"},
+	}
+	m.SetMemory(memory)
+
+	// Select the link
+	m.selectedLinkIndex = 0
+
+	view := m.View()
+
+	// Should show the selected link indicator
+	if !strings.Contains(view, "▸") {
+		t.Error("Expected view to show selected link indicator '▸'")
+	}
+
+	// Should show link navigation hints in footer
+	if !strings.Contains(view, "Enter: follow") {
+		t.Error("Expected view to show 'Enter: follow' hint")
+	}
+}
