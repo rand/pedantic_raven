@@ -3,8 +3,8 @@ package orchestrate
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"testing"
+	"time"
 )
 
 // BenchmarkWorkPlanJSONParsing benchmarks parsing WorkPlan JSON.
@@ -13,12 +13,13 @@ func BenchmarkWorkPlanJSONParsing(b *testing.B) {
 
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("%dtasks", size), func(b *testing.B) {
-			jsonData := generateWorkPlanJSON(size)
+			plan := createBenchmarkWorkPlan(size, size*2)
+			jsonData, _ := json.Marshal(plan)
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				var plan WorkPlan
-				_ = json.Unmarshal(jsonData, &plan)
+				var parsed WorkPlan
+				_ = json.Unmarshal(jsonData, &parsed)
 			}
 		})
 	}
@@ -30,7 +31,7 @@ func BenchmarkWorkPlanValidation(b *testing.B) {
 
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("%dtasks", size), func(b *testing.B) {
-			plan := createTestWorkPlan(size, size*2)
+			plan := createBenchmarkWorkPlan(size, size*2)
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
@@ -81,7 +82,7 @@ func BenchmarkWorkPlanJSONMarshaling(b *testing.B) {
 
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("%dtasks", size), func(b *testing.B) {
-			plan := createTestWorkPlan(size, size*2)
+			plan := createBenchmarkWorkPlan(size, size*2)
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
@@ -111,8 +112,9 @@ func BenchmarkTaskValidation(b *testing.B) {
 func BenchmarkCyclicDependencyDetection(b *testing.B) {
 	// Create a plan with potential cycles
 	plan := &WorkPlan{
-		Version:     "1.0",
-		ProjectName: "test",
+		Name:          "test",
+		Description:   "Test plan with cycle",
+		MaxConcurrent: 2,
 		Tasks: []Task{
 			{ID: "task-1", Description: "Task 1", Dependencies: []string{"task-2"}},
 			{ID: "task-2", Description: "Task 2", Dependencies: []string{"task-3"}},
@@ -129,14 +131,15 @@ func BenchmarkCyclicDependencyDetection(b *testing.B) {
 
 // BenchmarkLargeWorkPlanParsing benchmarks parsing large work plans.
 func BenchmarkLargeWorkPlanParsing(b *testing.B) {
-	jsonData := generateWorkPlanJSON(500)
+	plan := createBenchmarkWorkPlan(500, 1000)
+	jsonData, _ := json.Marshal(plan)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
-		var plan WorkPlan
-		_ = json.Unmarshal(jsonData, &plan)
+		var parsed WorkPlan
+		_ = json.Unmarshal(jsonData, &parsed)
 	}
 }
 
@@ -145,9 +148,10 @@ func BenchmarkDeepDependencyTree(b *testing.B) {
 	// Create a deep dependency chain
 	numTasks := 50
 	plan := &WorkPlan{
-		Version:     "1.0",
-		ProjectName: "test",
-		Tasks:       make([]Task, numTasks),
+		Name:          "test",
+		Description:   "Deep dependency tree",
+		MaxConcurrent: 2,
+		Tasks:         make([]Task, numTasks),
 	}
 
 	// Create linear dependency chain
@@ -172,14 +176,12 @@ func BenchmarkDeepDependencyTree(b *testing.B) {
 // BenchmarkAgentEventJSONMarshaling benchmarks marshaling AgentEvent to JSON.
 func BenchmarkAgentEventJSONMarshaling(b *testing.B) {
 	event := AgentEvent{
-		Timestamp:   "2024-01-01T12:00:00Z",
-		AgentType:   AgentExecutor,
-		EventType:   EventProgress,
-		TaskID:      "task-123",
-		Message:     "Task in progress",
-		Metadata:    map[string]interface{}{"progress": 0.5},
-		FromAgentID: "agent-1",
-		ToAgentID:   "agent-2",
+		Timestamp: mustParseTime("2024-01-01T12:00:00Z"),
+		Agent:     AgentExecutor,
+		EventType: EventProgress,
+		TaskID:    "task-123",
+		Message:   "Task in progress",
+		Metadata:  map[string]interface{}{"progress": 0.5},
 	}
 
 	b.ResetTimer()
@@ -192,13 +194,11 @@ func BenchmarkAgentEventJSONMarshaling(b *testing.B) {
 func BenchmarkAgentEventJSONUnmarshaling(b *testing.B) {
 	jsonData := []byte(`{
 		"timestamp": "2024-01-01T12:00:00Z",
-		"agent_type": 3,
-		"event_type": 1,
-		"task_id": "task-123",
+		"agent": 3,
+		"eventType": 1,
+		"taskId": "task-123",
 		"message": "Task in progress",
-		"metadata": {"progress": 0.5},
-		"from_agent_id": "agent-1",
-		"to_agent_id": "agent-2"
+		"metadata": {"progress": 0.5}
 	}`)
 
 	b.ResetTimer()
@@ -208,26 +208,9 @@ func BenchmarkAgentEventJSONUnmarshaling(b *testing.B) {
 	}
 }
 
-// BenchmarkSessionStateJSONMarshaling benchmarks marshaling SessionState to JSON.
-func BenchmarkSessionStateJSONMarshaling(b *testing.B) {
-	state := SessionState{
-		SessionID:      "session-123",
-		StartTime:      "2024-01-01T12:00:00Z",
-		Status:         "active",
-		TasksCompleted: 15,
-		TasksTotal:     50,
-		ActiveAgents:   []string{"agent-1", "agent-2", "agent-3"},
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = json.Marshal(state)
-	}
-}
-
 // BenchmarkMemoryAllocationJSON benchmarks memory allocations during JSON operations.
 func BenchmarkMemoryAllocationJSON(b *testing.B) {
-	plan := createTestWorkPlan(50, 100)
+	plan := createBenchmarkWorkPlan(50, 100)
 
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -271,39 +254,47 @@ func BenchmarkAgentTypeStringConversion(b *testing.B) {
 
 // Helper functions
 
-func generateWorkPlanJSON(numTasks int) []byte {
-	var tasks []string
+func createBenchmarkWorkPlan(numTasks, numDependencies int) *WorkPlan {
+	plan := &WorkPlan{
+		Name:          "benchmark-test",
+		Description:   "Test work plan",
+		Tasks:         make([]Task, numTasks),
+		MaxConcurrent: 4,
+	}
+
+	// Create tasks
 	for i := 0; i < numTasks; i++ {
-		deps := []string{}
-		if i > 0 {
-			for j := 0; j < min(3, i); j++ {
-				deps = append(deps, fmt.Sprintf("\"task-%d\"", i-j-1))
+		plan.Tasks[i] = Task{
+			ID:           fmt.Sprintf("task-%d", i),
+			Description:  fmt.Sprintf("Test task %d", i),
+			Dependencies: []string{},
+		}
+	}
+
+	// Add dependencies (avoid cycles)
+	depCount := 0
+	for i := 1; i < numTasks && depCount < numDependencies; i++ {
+		// Each task depends on 1-3 previous tasks
+		maxDeps := 3
+		if i < maxDeps {
+			maxDeps = i
+		}
+		for j := 0; j < maxDeps && depCount < numDependencies; j++ {
+			depIdx := i - j - 1
+			if depIdx >= 0 {
+				plan.Tasks[i].Dependencies = append(
+					plan.Tasks[i].Dependencies,
+					fmt.Sprintf("task-%d", depIdx),
+				)
+				depCount++
 			}
 		}
-		depsStr := strings.Join(deps, ",")
-
-		task := fmt.Sprintf(`{
-			"id": "task-%d",
-			"description": "Task %d description",
-			"dependencies": [%s],
-			"type": %d,
-			"priority": %d
-		}`, i, i, depsStr, i%3, (i%10)+1)
-		tasks = append(tasks, task)
 	}
 
-	json := fmt.Sprintf(`{
-		"version": "1.0",
-		"project_name": "benchmark-test",
-		"tasks": [%s]
-	}`, strings.Join(tasks, ","))
-
-	return []byte(json)
+	return plan
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
+func mustParseTime(s string) time.Time {
+	t, _ := time.Parse(time.RFC3339, s)
+	return t
 }

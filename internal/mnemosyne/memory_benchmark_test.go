@@ -99,7 +99,6 @@ func BenchmarkListMemoriesOptionsCreation(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = ListMemoriesOptions{
 			Namespace:     ProjectNamespace("test"),
-			MemoryTypes:   []pb.MemoryType{pb.MemoryType_MEMORY_TYPE_NOTE},
 			Tags:          []string{"important", "work"},
 			MinImportance: &minImportance,
 			MaxResults:    50,
@@ -116,7 +115,6 @@ func BenchmarkGraphTraverseOptionsCreation(b *testing.B) {
 		_ = GraphTraverseOptions{
 			SeedIDs:         []string{"mem1", "mem2", "mem3"},
 			MaxHops:         3,
-			LinkTypes:       []pb.LinkType{pb.LinkType_LINK_TYPE_RELATED},
 			MinLinkStrength: &minStrength,
 		}
 	}

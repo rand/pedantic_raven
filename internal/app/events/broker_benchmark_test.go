@@ -13,8 +13,8 @@ func BenchmarkBrokerPublish(b *testing.B) {
 		b.Run(string(rune(bufSize))+"buffer", func(b *testing.B) {
 			broker := NewBroker(bufSize)
 			event := NewEvent(SemanticAnalysisComplete, SemanticAnalysisData{
-				EntityCount:       10,
-				RelationshipCount: 5,
+				BufferID: "test-buffer",
+				Progress: 1.0,
 			})
 
 			b.ResetTimer()
@@ -33,8 +33,8 @@ func BenchmarkBrokerPublishWithSubscribers(b *testing.B) {
 		b.Run(string(rune(subCount))+"subscribers", func(b *testing.B) {
 			broker := NewBroker(100)
 			event := NewEvent(SemanticAnalysisComplete, SemanticAnalysisData{
-				EntityCount:       10,
-				RelationshipCount: 5,
+				BufferID: "test-buffer",
+				Progress: 1.0,
 			})
 
 			// Create subscribers
@@ -112,8 +112,8 @@ func BenchmarkBrokerPublishConcurrent(b *testing.B) {
 		b.Run(string(rune(concurrency))+"goroutines", func(b *testing.B) {
 			broker := NewBroker(1000)
 			event := NewEvent(SemanticAnalysisComplete, SemanticAnalysisData{
-				EntityCount:       10,
-				RelationshipCount: 5,
+				BufferID: "test-buffer",
+				Progress: 1.0,
 			})
 
 			b.ResetTimer()
@@ -130,9 +130,9 @@ func BenchmarkBrokerPublishConcurrent(b *testing.B) {
 func BenchmarkBrokerPublishMultipleEventTypes(b *testing.B) {
 	broker := NewBroker(100)
 	events := []Event{
-		NewEvent(SemanticAnalysisComplete, SemanticAnalysisData{EntityCount: 10}),
+		NewEvent(SemanticAnalysisComplete, SemanticAnalysisData{BufferID: "buf1", Progress: 1.0}),
 		NewEvent(MemoryRecalled, MemoryData{MemoryID: "mem1"}),
-		NewEvent(AgentTaskStarted, AgentData{AgentID: "agent1"}),
+		NewEvent(AgentStarted, AgentData{AgentID: "agent1"}),
 		NewEvent(FileChanged, FileData{Path: "/test/file.go"}),
 	}
 
@@ -192,8 +192,8 @@ func BenchmarkBrokerClear(b *testing.B) {
 func BenchmarkBrokerPublishSemanticAnalysis(b *testing.B) {
 	broker := NewBroker(100)
 	data := SemanticAnalysisData{
-		EntityCount:       10,
-		RelationshipCount: 5,
+		BufferID: "test-buffer",
+		Progress: 1.0,
 	}
 
 	b.ResetTimer()
@@ -206,8 +206,8 @@ func BenchmarkBrokerPublishSemanticAnalysis(b *testing.B) {
 func BenchmarkBrokerHighThroughput(b *testing.B) {
 	broker := NewBroker(10000)
 	event := NewEvent(SemanticAnalysisComplete, SemanticAnalysisData{
-		EntityCount:       10,
-		RelationshipCount: 5,
+		BufferID: "test-buffer",
+		Progress: 1.0,
 	})
 
 	// Create subscribers that actively drain
@@ -247,8 +247,8 @@ func BenchmarkBrokerMemoryAllocation(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		event := NewEvent(SemanticAnalysisComplete, SemanticAnalysisData{
-			EntityCount:       10,
-			RelationshipCount: 5,
+			BufferID: "test-buffer",
+			Progress: 1.0,
 		})
 		broker.Publish(event)
 	}

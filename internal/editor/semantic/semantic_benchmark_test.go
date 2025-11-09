@@ -100,7 +100,8 @@ func BenchmarkEntityClassification(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		word := testWords[i%len(testWords)]
-		_ = classifier.ClassifyEntity(word, ClassificationContext{})
+		ctx := &ClassificationContext{}
+		_ = classifier.ClassifyEntity(word, ctx)
 	}
 }
 
@@ -212,13 +213,13 @@ func BenchmarkEntityDeduplication(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		entityMap := make(map[string]*Entity)
-		for _, e := range entities {
+		for i := range entities {
+			e := &entities[i]
 			key := strings.ToLower(e.Text)
 			if existing, ok := entityMap[key]; ok {
 				existing.Count++
 			} else {
-				copied := e
-				entityMap[key] = &copied
+				entityMap[key] = e
 			}
 		}
 	}

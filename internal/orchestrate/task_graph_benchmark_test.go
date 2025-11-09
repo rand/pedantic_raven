@@ -11,7 +11,7 @@ func BenchmarkTaskGraphCreation(b *testing.B) {
 
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("%dnodes", size), func(b *testing.B) {
-			plan := createTestWorkPlan(size, size*2)
+			plan := createBenchmarkWorkPlan(size, size*2)
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
@@ -35,7 +35,7 @@ func BenchmarkTaskGraphLayout(b *testing.B) {
 
 	for _, size := range sizes {
 		b.Run(size.name, func(b *testing.B) {
-			plan := createTestWorkPlan(size.nodes, size.edges)
+			plan := createBenchmarkWorkPlan(size.nodes, size.edges)
 			graph, err := NewTaskGraph(plan, 80, 40)
 			if err != nil {
 				b.Fatalf("Failed to create task graph: %v", err)
@@ -67,7 +67,7 @@ func BenchmarkTaskGraphStabilize(b *testing.B) {
 		b.Run(size.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				b.StopTimer()
-				plan := createTestWorkPlan(size.nodes, size.edges)
+				plan := createBenchmarkWorkPlan(size.nodes, size.edges)
 				graph, err := NewTaskGraph(plan, 80, 40)
 				if err != nil {
 					b.Fatalf("Failed to create task graph: %v", err)
@@ -86,7 +86,7 @@ func BenchmarkTaskGraphRepulsion(b *testing.B) {
 
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("%dnodes", size), func(b *testing.B) {
-			plan := createTestWorkPlan(size, size*2)
+			plan := createBenchmarkWorkPlan(size, size*2)
 			graph, err := NewTaskGraph(plan, 80, 40)
 			if err != nil {
 				b.Fatalf("Failed to create task graph: %v", err)
@@ -106,7 +106,7 @@ func BenchmarkTaskGraphAttraction(b *testing.B) {
 
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("%dnodes", size), func(b *testing.B) {
-			plan := createTestWorkPlan(size, size*2)
+			plan := createBenchmarkWorkPlan(size, size*2)
 			graph, err := NewTaskGraph(plan, 80, 40)
 			if err != nil {
 				b.Fatalf("Failed to create task graph: %v", err)
@@ -126,7 +126,7 @@ func BenchmarkTaskGraphUpdatePositions(b *testing.B) {
 
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("%dnodes", size), func(b *testing.B) {
-			plan := createTestWorkPlan(size, size*2)
+			plan := createBenchmarkWorkPlan(size, size*2)
 			graph, err := NewTaskGraph(plan, 80, 40)
 			if err != nil {
 				b.Fatalf("Failed to create task graph: %v", err)
@@ -142,7 +142,7 @@ func BenchmarkTaskGraphUpdatePositions(b *testing.B) {
 
 // BenchmarkTaskGraphUpdateStatus benchmarks status updates.
 func BenchmarkTaskGraphUpdateStatus(b *testing.B) {
-	plan := createTestWorkPlan(100, 200)
+	plan := createBenchmarkWorkPlan(100, 200)
 	graph, err := NewTaskGraph(plan, 80, 40)
 	if err != nil {
 		b.Fatalf("Failed to create task graph: %v", err)
@@ -157,7 +157,7 @@ func BenchmarkTaskGraphUpdateStatus(b *testing.B) {
 
 // BenchmarkTaskGraphSelectNode benchmarks node selection.
 func BenchmarkTaskGraphSelectNode(b *testing.B) {
-	plan := createTestWorkPlan(100, 200)
+	plan := createBenchmarkWorkPlan(100, 200)
 	graph, err := NewTaskGraph(plan, 80, 40)
 	if err != nil {
 		b.Fatalf("Failed to create task graph: %v", err)
@@ -176,7 +176,7 @@ func BenchmarkTaskGraphGetBounds(b *testing.B) {
 
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("%dnodes", size), func(b *testing.B) {
-			plan := createTestWorkPlan(size, size*2)
+			plan := createBenchmarkWorkPlan(size, size*2)
 			graph, err := NewTaskGraph(plan, 80, 40)
 			if err != nil {
 				b.Fatalf("Failed to create task graph: %v", err)
@@ -192,7 +192,7 @@ func BenchmarkTaskGraphGetBounds(b *testing.B) {
 
 // BenchmarkTaskGraphResize benchmarks viewport resizing.
 func BenchmarkTaskGraphResize(b *testing.B) {
-	plan := createTestWorkPlan(50, 100)
+	plan := createBenchmarkWorkPlan(50, 100)
 	graph, err := NewTaskGraph(plan, 80, 40)
 	if err != nil {
 		b.Fatalf("Failed to create task graph: %v", err)
@@ -204,42 +204,3 @@ func BenchmarkTaskGraphResize(b *testing.B) {
 	}
 }
 
-// Helper function to create test work plans
-func createTestWorkPlan(numTasks, numDependencies int) *WorkPlan {
-	plan := &WorkPlan{
-		Version:     "1.0",
-		ProjectName: "benchmark-test",
-		Tasks:       make([]Task, numTasks),
-	}
-
-	// Create tasks
-	for i := 0; i < numTasks; i++ {
-		plan.Tasks[i] = Task{
-			ID:           fmt.Sprintf("task-%d", i),
-			Description:  fmt.Sprintf("Test task %d", i),
-			Dependencies: []string{},
-		}
-	}
-
-	// Add dependencies (avoid cycles)
-	depCount := 0
-	for i := 1; i < numTasks && depCount < numDependencies; i++ {
-		// Each task depends on 1-3 previous tasks
-		maxDeps := 3
-		if i < maxDeps {
-			maxDeps = i
-		}
-		for j := 0; j < maxDeps && depCount < numDependencies; j++ {
-			depIdx := i - j - 1
-			if depIdx >= 0 {
-				plan.Tasks[i].Dependencies = append(
-					plan.Tasks[i].Dependencies,
-					fmt.Sprintf("task-%d", depIdx),
-				)
-				depCount++
-			}
-		}
-	}
-
-	return plan
-}
