@@ -14,6 +14,7 @@ import (
 	"github.com/rand/pedantic-raven/internal/editor/semantic"
 	"github.com/rand/pedantic-raven/internal/gliner"
 	"github.com/rand/pedantic-raven/internal/modes"
+	"github.com/rand/pedantic-raven/internal/orchestrate"
 	"github.com/rand/pedantic-raven/internal/overlay"
 	"github.com/rand/pedantic-raven/internal/palette"
 )
@@ -67,10 +68,12 @@ func initialModel() model {
 	editMode := editor.NewEditModeWithAnalyzer(analyzer)
 	exploreMode := modes.NewExploreMode()
 	analyzeMode := modes.NewBaseMode(modes.ModeAnalyze, "Analyze", "Semantic analysis")
+	orchestrateMode := orchestrate.NewModeAdapter()
 
 	modeRegistry.Register(editMode)
 	modeRegistry.Register(exploreMode)
 	modeRegistry.Register(analyzeMode)
+	modeRegistry.Register(orchestrateMode)
 
 	// Set Edit as default mode
 	modeRegistry.SwitchTo(modes.ModeEdit)
@@ -187,6 +190,19 @@ func (m *model) registerCommands() {
 		},
 	})
 
+	m.paletteRegistry.Register(palette.Command{
+		ID:          "mode.orchestrate",
+		Name:        "Switch to Orchestrate Mode",
+		Description: "Multi-agent coordination and task management",
+		Keybinding:  "4",
+		Category:    palette.CategoryMode,
+		Execute: func() tea.Cmd {
+			m.modeRegistry.SwitchTo(modes.ModeOrchestrate)
+			m.logEvent("Switched to Orchestrate mode")
+			return nil
+		},
+	})
+
 	// Help commands
 	m.paletteRegistry.Register(palette.Command{
 		ID:          "help.about",
@@ -198,7 +214,7 @@ func (m *model) registerCommands() {
 			dialog := overlay.NewMessageDialog(
 				"about",
 				"Pedantic Raven",
-				"Interactive Context Engineering Environment\n\nPhase 2 Complete:\n✓ Semantic Analysis\n✓ Context Panel\n✓ Terminal Integration\n✓ Edit Mode\n\n291 tests passing",
+				"Interactive Context Engineering Environment\n\nPhase 7 (Orchestrate Mode) Complete:\n✓ Multi-agent coordination\n✓ Work plan management\n✓ Real-time dashboard\n✓ Task dependency graphs\n✓ Agent communication logs\n\n130+ orchestrate tests passing",
 				func() tea.Cmd {
 					m.logEvent("Closed about dialog")
 					return nil
@@ -271,7 +287,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.logEvent("Opened command palette")
 			return m, tea.Batch(cmds...)
 
-		case "1", "2", "3":
+		case "1", "2", "3", "4":
 			// Quick mode switching
 			switch keyMsg.String() {
 			case "1":
@@ -286,6 +302,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmd := m.modeRegistry.SwitchTo(modes.ModeAnalyze)
 				cmds = append(cmds, cmd)
 				m.logEvent("Switched to Analyze mode")
+			case "4":
+				cmd := m.modeRegistry.SwitchTo(modes.ModeOrchestrate)
+				cmds = append(cmds, cmd)
+				m.logEvent("Switched to Orchestrate mode")
 			}
 			return m, tea.Batch(cmds...)
 
@@ -294,7 +314,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			dialog := overlay.NewMessageDialog(
 				"about",
 				"Pedantic Raven",
-				"Interactive Context Engineering Environment\n\nPhase 2 Complete:\n✓ Semantic Analysis\n✓ Context Panel\n✓ Terminal Integration\n✓ Edit Mode\n\n291 tests passing",
+				"Interactive Context Engineering Environment\n\nPhase 7 (Orchestrate Mode) Complete:\n✓ Multi-agent coordination\n✓ Work plan management\n✓ Real-time dashboard\n✓ Task dependency graphs\n✓ Agent communication logs\n\n130+ orchestrate tests passing",
 				func() tea.Cmd {
 					m.logEvent("Closed about dialog")
 					return nil
@@ -365,7 +385,7 @@ func (m model) View() string {
 	}
 
 	// Help
-	help := helpStyle.Render("Keys: 1,2,3=modes | Tab=focus | Ctrl+K=palette | ?=about | Ctrl+C=quit")
+	help := helpStyle.Render("Keys: 1,2,3,4=modes | Tab=focus | Ctrl+K=palette | ?=about | Ctrl+C=quit")
 	b.WriteString(help)
 
 	// Render overlays on top
