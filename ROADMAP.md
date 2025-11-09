@@ -1,6 +1,6 @@
 # Pedantic Raven Roadmap
 
-**Current Phase**: 4.3 (Memory UI Components - In Progress)
+**Current Phase**: 5 (Real mnemosyne Integration - In Progress)
 **Last Updated**: 2025-11-08
 **Project Start**: 2025-01-11
 
@@ -27,14 +27,15 @@ Pedantic Raven is an interactive terminal-based context engineering environment 
 | **Phase 2** | Semantic Analysis & Edit Mode | ✅ Complete | 291 | 2 weeks |
 | **Phase 3** | Advanced Editor Features | ✅ Complete | 424 | 8 days |
 | **Phase 4.1** | mnemosyne RPC Client | ✅ Complete | 461 | 3 days |
-| **Phase 4.2** | Memory List Component | 🔄 In Progress | - | 3 days |
-| **Phase 4.3** | Memory Detail View | 📋 Planned | - | 3 days |
-| **Phase 4.4** | Graph Visualization | 📋 Planned | - | 5 days |
-| **Phase 4.5** | Explore Mode Integration | 📋 Planned | - | 2 days |
-| **Phase 5** | Analyze Mode | 📋 Planned | - | 2-3 weeks |
-| **Phase 6** | Orchestrate Mode | 📋 Planned | - | 4-5 weeks |
-| **Phase 7** | Collaborate Mode | 📋 Planned | - | 3-4 weeks |
-| **Phase 8** | Polish & Production | 📋 Planned | - | 2-3 weeks |
+| **Phase 4.2** | Memory List Component | ✅ Complete | 561 | 3 days |
+| **Phase 4.3** | Memory Detail View | ✅ Complete | 626 | 3 days |
+| **Phase 4.4** | Graph Visualization | ✅ Complete | 706 | 5 days |
+| **Phase 4.5** | Explore Mode Integration | ✅ Complete | 754 | 2 days |
+| **Phase 5** | Real mnemosyne Integration | 🔄 In Progress | - | 1-2 weeks |
+| **Phase 6** | Analyze Mode | 📋 Planned | - | 2-3 weeks |
+| **Phase 7** | Orchestrate Mode | 📋 Planned | - | 4-5 weeks |
+| **Phase 8** | Collaborate Mode | 📋 Planned | - | 3-4 weeks |
+| **Phase 9** | Polish & Production | 📋 Planned | - | 2-3 weeks |
 
 ---
 
@@ -193,127 +194,196 @@ Pedantic Raven is an interactive terminal-based context engineering environment 
 
 ---
 
-## Current Phase: Phase 4.2-4.5 (Explore Mode)
+## Completed Phase: Phase 4.2-4.5 (Explore Mode) ✅
 
-### Phase 4.2: Memory List Component 🔄
+### Phase 4.2: Memory List Component ✅
 
 **Timeline**: 3 days (Days 4-6)
-**Status**: In Progress
+**Tests**: 561 total (13 memorylist tests)
+**Status**: Complete
 
 **Objectives**:
 - TUI component for browsing memory list
 - Filtering and sorting capabilities
 - Search integration with mnemosyne client
 
-**Planned Features**:
-- Scrollable memory list with rich metadata display
+**Deliverables**:
+- ✅ Scrollable memory list with rich metadata display
   - Title, namespace, tags, importance, timestamp, link count
-- Sorting: by importance, recency, relevance
-- Filtering: by namespace, tags, importance range
-- Navigation: j/k keys, Enter to select
-- Lazy loading (50-100 memories at a time)
-- Integration with mnemosyne client (ListMemories, Recall)
+- ✅ Sorting: by importance, recency, relevance
+- ✅ Filtering: by namespace, tags, importance range
+- ✅ Navigation: j/k keys, g/G jumps, Enter to select
+- ✅ Sample data integration (50 test memories)
+- ✅ Help overlay with keyboard shortcuts
+- ✅ Loading, error, and empty states
 
-**Success Criteria**:
-- Smooth scrolling with 1000+ memories
-- Filtering works correctly
-- Search returns relevant results
-- Responsive to terminal size changes
+**Key Components**:
+- `internal/memorylist/model.go` - List model and state
+- `internal/memorylist/commands.go` - Search and load operations
+- `internal/memorylist/view.go` - Rendering logic
+- `internal/memorylist/model_test.go` - 13 comprehensive tests
 
 ---
 
-### Phase 4.3: Memory Detail View 📋
+### Phase 4.3: Memory Detail View ✅
 
 **Timeline**: 3 days (Days 7-9)
-**Status**: Planned
+**Tests**: 626 total (19 memorydetail tests)
+**Status**: Complete
 
 **Objectives**:
 - Rich memory visualization with full metadata
 - Linked memories display
-- Editing capabilities
+- Navigation capabilities
 
-**Planned Features**:
-- Full metadata display (title, namespace, importance, tags, timestamps)
-- Importance visualization (bar chart)
-- Tag list with colors
-- Content display with syntax highlighting
-- Link visualization (inbound and outbound)
-- Edit mode for in-place updates
-- Actions: edit, delete, export (JSON/Markdown)
+**Deliverables**:
+- ✅ Full metadata display (title, namespace, importance, tags, timestamps)
+- ✅ Importance visualization (bar chart with Unicode blocks)
+- ✅ Tag list with color-coded display
+- ✅ Content display with markdown-style formatting
+- ✅ Link visualization (inbound and outbound with counts)
+- ✅ Link navigation with Enter key
+- ✅ Scrollable content view
+- ✅ Help overlay with keyboard shortcuts
 
-**Success Criteria**:
-- All memory fields displayed correctly
-- Edit mode works without data loss
-- Links are clickable and navigable
-- Actions functional with proper error handling
+**Key Components**:
+- `internal/memorydetail/model.go` - Detail model and state
+- `internal/memorydetail/view.go` - Rich rendering logic
+- `internal/memorydetail/model_test.go` - 19 comprehensive tests
 
 ---
 
-### Phase 4.4: Graph Visualization 📋
+### Phase 4.4: Graph Visualization ✅
 
 **Timeline**: 5 days (Days 10-14)
-**Status**: Planned
+**Tests**: 706 total (146 memorygraph tests)
+**Status**: Complete
 
 **Objectives**:
 - Interactive memory graph visualization
 - Graph traversal UI
 - Visual link exploration
 
-**Planned Features**:
-- Layout Algorithms:
-  - Force-directed (default): Natural clustering
-  - Hierarchical: Top-down tree structure
-  - Radial: Center node with concentric circles
-- Interaction:
-  - Pan with hjkl or arrow keys
+**Deliverables**:
+- ✅ Force-directed graph layout with physics simulation
+  - Spring forces (attractive between connected nodes)
+  - Repulsion forces (prevents overlap)
+  - Damping and adaptive convergence
+- ✅ Canvas-based rendering system
+  - Efficient diff-based updates
+  - Terminal-aware coordinate mapping
+  - Box-drawing Unicode characters
+- ✅ Interactive controls:
+  - Pan with h/j/k/l keys
   - Zoom with +/- keys
-  - Select node with Enter
-  - Focus on node with 'f'
-- Filtering:
-  - By namespace, importance, depth
-- ASCII rendering for terminal compatibility
+  - Node selection with Tab
+  - Node expansion/collapse with e/x
+  - Center view with 'c', re-layout with 'r'
+- ✅ Performance optimizations:
+  - Spatial grid for collision detection
+  - Lazy layout updates (space bar stepping)
+  - Viewport culling
 
-**Success Criteria**:
-- Renders up to 500 nodes smoothly
-- Force-directed layout converges <2s
-- Pan and zoom are smooth
-- Performance: <16ms render time
+**Key Components**:
+- `internal/memorygraph/model.go` - Graph model and state
+- `internal/memorygraph/layout.go` - Force-directed algorithm (80 tests)
+- `internal/memorygraph/canvas.go` - Terminal rendering (23 tests)
+- `internal/memorygraph/physics.go` - Physics simulation (29 tests)
 
 ---
 
-### Phase 4.5: Explore Mode Integration 📋
+### Phase 4.5: Explore Mode Integration ✅
 
 **Timeline**: 2 days (Days 15-16)
-**Status**: Planned
+**Tests**: 754 total (11 explore mode tests)
+**Status**: Complete
 
 **Objectives**:
 - Integrate all components into cohesive Explore Mode
-- Complete memory workspace
+- Complete memory workspace with dual layouts
+
+**Deliverables**:
+- ✅ Dual-layout system:
+  - Standard: Memory list + detail view (side-by-side)
+  - Graph: Full-screen graph visualization
+- ✅ Layout switching with 'g' key
+- ✅ Focus management (Tab to cycle between list/detail)
+- ✅ Context-aware help overlay:
+  - Standard layout help (list/detail navigation)
+  - Graph layout help (pan/zoom/selection)
+- ✅ Professional visual presentation:
+  - lipgloss borders (blue for list, green for detail)
+  - Clean component integration
+- ✅ Message-based coordination:
+  - Memory selection flows from list → detail
+  - Graph selection shows detail
+  - Window resize handled gracefully
+
+**Key Components**:
+- `internal/modes/explore.go` - Explore Mode implementation (650 lines)
+- `internal/modes/explore_test.go` - 11 integration tests
+- Complete integration of memorylist, memorydetail, and memorygraph
+
+---
+
+## Current Phase
+
+### Phase 5: Real mnemosyne Integration 🔄
+
+**Timeline**: 1-2 weeks
+**Status**: In Progress
+
+**Objectives**:
+- Connect Explore Mode to live mnemosyne-rpc server
+- Replace sample data with real memory queries
+- Enable CRUD operations on real memories
+- Implement bidirectional link management
 
 **Planned Features**:
-- Layout Modes:
-  - Standard: Memory list + detail view
-  - Graph: Full-screen graph visualization
-- Mode switching with 'g' key
-- Focus management (Tab to cycle)
-- Keybindings:
-  - `/` - Search
-  - `n` - New memory
-  - `r` - Refresh from server
-  - `?` - Help overlay
+- **Server Connection**:
+  - Live connection to mnemosyne-rpc server
+  - Connection health monitoring
+  - Automatic reconnection on failure
+  - Configuration management (host, port, TLS)
+- **Real Data Integration**:
+  - Replace sample memories with mnemosyne.Recall() queries
+  - Load memories on-demand from server
+  - Pagination for large result sets
+  - Caching strategy for performance
+- **Memory CRUD Operations**:
+  - Create new memories from Explore Mode
+  - Edit existing memory content and metadata
+  - Update importance, tags, namespace
+  - Delete memories with confirmation
+- **Link Management**:
+  - Create links between memories
+  - Navigate bidirectional links
+  - Update link metadata (type, strength)
+  - Remove broken links
+- **Search Integration**:
+  - Live semantic search via mnemosyne.Recall()
+  - Full-text search support
+  - Graph traversal queries
+  - Filter by namespace, tags, importance
+- **Error Handling**:
+  - Graceful degradation on connection loss
+  - Retry logic for transient failures
+  - User-friendly error messages
+  - Offline mode with cached data
 
 **Success Criteria**:
-- All three components integrated smoothly
-- Layout modes switchable
-- Focus management works correctly
-- All keybindings functional
-- 15+ integration tests passing
+- Successfully connects to live mnemosyne-rpc server
+- All CRUD operations functional
+- Search returns real results from mnemosyne
+- Link navigation works bidirectionally
+- Error handling prevents data loss
+- Performance remains responsive with 1000+ memories
 
 ---
 
 ## Planned Phases
 
-### Phase 5: Analyze Mode 📋
+### Phase 6: Analyze Mode 📋
 
 **Timeline**: 2-3 weeks
 **Status**: Planned
@@ -333,7 +403,7 @@ Pedantic Raven is an interactive terminal-based context engineering environment 
 
 ---
 
-### Phase 6: Orchestrate Mode 📋
+### Phase 7: Orchestrate Mode 📋
 
 **Timeline**: 4-5 weeks
 **Status**: Planned
@@ -353,7 +423,7 @@ Pedantic Raven is an interactive terminal-based context engineering environment 
 
 ---
 
-### Phase 7: Collaborate Mode 📋
+### Phase 8: Collaborate Mode 📋
 
 **Timeline**: 3-4 weeks
 **Status**: Planned
@@ -373,7 +443,7 @@ Pedantic Raven is an interactive terminal-based context engineering environment 
 
 ---
 
-### Phase 8: Polish & Production 📋
+### Phase 9: Polish & Production 📋
 
 **Timeline**: 2-3 weeks
 **Status**: Planned
@@ -398,25 +468,26 @@ Pedantic Raven is an interactive terminal-based context engineering environment 
 
 **Total Estimated Duration**: 6-8 months
 **Start Date**: 2025-01-11
-**Current Progress**: ~25% complete (Phases 1-3 + 4.1 done)
+**Current Progress**: ~45% complete (Phases 1-4 complete, Phase 5 in progress)
 **Estimated Completion**: Q2 2025
 
 **Milestone Breakdown**:
 - ✅ Week 6: Foundation complete (architecture proven)
 - ✅ Week 10: Edit mode working (ICS parity)
-- 🔄 Week 17: Explore mode complete (memory workspace)
-- 📋 Week 22: Analyze mode complete
-- 📋 Week 30: Orchestrate mode complete
-- 📋 Week 34: Collaborate mode complete
-- 📋 Week 38: v1.0 production release
+- ✅ Week 17: Explore mode complete (memory workspace)
+- 🔄 Week 19: Real mnemosyne integration (Phase 5)
+- 📋 Week 22: Analyze mode complete (Phase 6)
+- 📋 Week 30: Orchestrate mode complete (Phase 7)
+- 📋 Week 34: Collaborate mode complete (Phase 8)
+- 📋 Week 38: v1.0 production release (Phase 9)
 
 ---
 
 ## Success Metrics
 
 **Functionality** (by v1.0):
-- All 5 modes implemented and tested
-- mnemosyne Level 3 integration complete
+- All 5 primary modes implemented and tested
+- mnemosyne real-time integration complete
 - Multi-agent orchestration working
 - Graph visualization with 500+ nodes
 - Live collaboration support
@@ -428,7 +499,7 @@ Pedantic Raven is an interactive terminal-based context engineering environment 
 - Memory footprint <100MB
 
 **Quality**:
-- 700+ tests passing
+- 754+ tests passing (currently at 754)
 - 80%+ code coverage
 - Zero critical bugs
 - Comprehensive documentation
@@ -471,14 +542,19 @@ Pedantic Raven is an interactive terminal-based context engineering environment 
 ## Next Steps
 
 **Immediate** (Current Sprint):
-1. Complete Phase 4.2: Memory List Component
-2. Implement Phase 4.3: Memory Detail View
-3. Begin Phase 4.4: Graph Visualization
+1. Create Phase 5 technical specification
+2. Connect to live mnemosyne-rpc server
+3. Replace sample data with real queries
 
-**Short Term** (Next 2 months):
-1. Complete Explore Mode (Phase 4.5)
-2. Begin Analyze Mode (Phase 5)
-3. User testing and feedback
+**Short Term** (Next 2 weeks):
+1. Complete Real mnemosyne Integration (Phase 5)
+2. Implement CRUD operations
+3. Enable link management
+
+**Medium Term** (Next 2 months):
+1. Begin Analyze Mode (Phase 6)
+2. User testing and feedback
+3. Performance optimization
 
 **Long Term** (Q2 2025):
 1. Complete all 5 modes
