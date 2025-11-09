@@ -1,105 +1,90 @@
 # Pedantic Raven
 
-> **Interactive Context Engineering Environment**
+**Terminal-based context engineering with semantic analysis and memory integration.**
 
-Pedantic Raven combines the specialized context engineering capabilities of ICS (Integrated Context Studio) with the rich interaction patterns of Crush TUI to create a powerful, production-ready terminal interface for creating, editing, and refining context with semantic analysis and memory integration.
+Extract entities, relationships, and typed holes from your text. Edit AI context documents with real-time semantic feedback. Connect to [mnemosyne](https://github.com/rand/mnemosyne) for persistent memory and multi-agent orchestration.
 
-[![Go Version](https://img.shields.io/badge/Go-1.25%2B-blue.svg)](https://golang.org/dl/)
-[![Tests](https://img.shields.io/badge/tests-637%20passing-brightgreen.svg)](#testing)
-[![Phase](https://img.shields.io/badge/phase-4.3%20complete-success.svg)](#features)
+[![Go 1.25+](https://img.shields.io/badge/Go-1.25%2B-blue.svg)](https://golang.org/dl/)
+[![Tests](https://img.shields.io/badge/tests-762%20passing-brightgreen.svg)](#testing)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
 
-## Features
+## What It Does
 
-### Phase 1: Foundation ✅ (Complete)
+Pedantic Raven helps you create structured context documents for AI systems like Claude. It analyzes your text as you type, extracting:
 
-- **Multi-Pane Layouts**: Hierarchical pane composition with 5 layout modes
-- **Mode System**: 5 application modes (Edit, Explore, Analyze, Orchestrate, Collaborate)
-- **Event-Driven Architecture**: Decoupled PubSub event system
-- **Overlay System**: Modal and non-modal dialogs with flexible positioning
-- **Command Palette**: Fuzzy search for command discovery (Ctrl+K)
-- **Focus Management**: Keyboard navigation between panes
-- **Responsive Design**: Adapts to terminal size
+- **Entities** - People, places, concepts, technologies (6 types)
+- **Relationships** - Subject-predicate-object patterns with confidence scoring
+- **Typed Holes** - `??Type` markers for incomplete sections with priority/complexity scores
+- **Dependencies** - Imports, requires, and references across your context
+- **Triples** - RDF-style semantic structures for knowledge graphs
 
-### Phase 2: Semantic Analysis & Edit Mode ✅ (Complete)
+All this happens in a **rich terminal UI** with syntax highlighting, integrated terminal, and direct connection to the mnemosyne memory system.
 
-- **Semantic Analyzer**: Real-time NLP-style text analysis
-  - Entity extraction with 6 types (Person, Place, Thing, Concept, Organization, Technology)
-  - Relationship detection (subject-predicate-object patterns)
-  - Typed holes (??Type and !!constraint markers)
-  - Dependency tracking (imports, requires, references)
-  - Triple generation (RDF-style semantic structures)
-- **Context Panel**: Rich semantic results display
-  - 5 sections (Entities, Relationships, Typed Holes, Dependencies, Triples)
+---
+
+## Why Use It?
+
+**Problem**: Creating context for AI systems is tedious. You write documentation, but lose track of entities, relationships, and gaps. Context becomes stale and disorganized.
+
+**Solution**: Pedantic Raven gives you live semantic feedback as you write. See what entities you've mentioned, what relationships exist, what sections need filling in. Store everything in mnemosyne's semantic memory for easy recall across projects.
+
+**Use Cases**:
+- Writing structured prompts for Claude with semantic validation
+- Building knowledge graphs from documentation
+- Tracking architectural decisions with typed hole markers
+- Creating AI context that stays organized and searchable
+
+---
+
+## Current Status
+
+**Phase**: 4.3 (Memory UI Components - In Progress)
+**Project State**: Active Development
+**Production Ready**: No (expect breaking changes)
+
+### What Works Now
+
+- ✅ **Edit Mode** - Full-featured text editor
+  - Syntax highlighting (Go, Markdown)
+  - Search and replace (literal and regex)
+  - Undo/redo support
+  - File operations (open, save, atomic writes)
+- ✅ **Semantic Analysis** - Real-time extraction
+  - 6 entity types with occurrence counting
+  - Relationship detection with confidence scores
+  - Typed hole markers (??Type, !!constraint)
+  - Dependency tracking
+  - RDF-style triple generation
+- ✅ **Context Panel** - Live semantic results
+  - 5 sections (entities, relationships, typed holes, dependencies, triples)
   - Filtering and navigation
-  - Priority/complexity scoring
-- **Integrated Terminal**: Command execution with history
-  - Built-in commands (:help, :clear, :history)
-  - Shell command execution
-  - mnemosyne CLI integration
-  - Scrollable output buffer
-- **Edit Mode**: Complete context editing environment
-  - Auto-triggered semantic analysis (500ms debounce)
-  - Multi-component layout (editor, context panel, terminal)
-  - Focus management across components
+  - Priority/complexity indicators
+- ✅ **Integrated Terminal** - Command execution
+  - Built-in commands (`:help`, `:clear`, `:history`)
+  - Shell command pass-through
+  - Command history (100 entries)
+- ✅ **mnemosyne Integration** - Memory system client
+  - Full CRUD operations (create, read, update, delete, list)
+  - Advanced search (hybrid, semantic, graph traversal)
+  - Streaming support for progressive results
+  - Namespace management (global, project, session)
 
-### Phase 3: Advanced Editor Features ✅ (Complete)
+### In Development
 
-**Phase 3.1** ✅ Complete:
-- Buffer Manager integration with undo/redo support
-- Undo/redo keybindings (Ctrl+Z, Ctrl+Y)
-- Cursor position management
+- 🔄 **Memory List UI** - Browse stored memories
+- 🔄 **Memory Detail View** - Rich memory visualization
+- 📋 **Graph Visualization** - Visual memory relationships
+- 📋 **Explore Mode** - Complete memory workspace
 
-**Phase 3.2** ✅ Complete:
-- File I/O operations (OpenFile, SaveFile, SaveFileAs)
-- Atomic file saves (temp + rename)
-- Error handling and path management
-- Dirty flag tracking
+### Planned
 
-**Phase 3.3** ✅ Complete:
-- Search engine with literal and regex support
-- Case sensitive/insensitive search
-- Whole word matching
-- Replace current match and replace all
-- Multi-line search support
-- Undo integration for replacements
+- 📋 **Analyze Mode** - Statistical analysis and insights
+- 📋 **Orchestrate Mode** - Multi-agent coordination
+- 📋 **Collaborate Mode** - Live multi-user editing
 
-**Phase 3.4** ✅ Complete:
-- Token-based syntax highlighting system
-- Go language full tokenization
-- Markdown formatting support
-- Automatic language detection (by extension and content)
-- Extensible tokenizer architecture
-- 12 token types with default color scheme
-
-### Phase 4.1: mnemosyne RPC Client ✅ (Complete)
-
-- **gRPC Client Library**: Full-featured client for mnemosyne memory system
-  - Connection management with configurable timeouts
-  - Health checks and server statistics
-- **CRUD Operations**: Complete memory lifecycle management
-  - StoreMemory, GetMemory, UpdateMemory, DeleteMemory, ListMemories
-  - Namespace support (Global, Project, Session)
-  - Importance scoring and tagging
-  - Optional LLM enrichment
-- **Search Operations**: Advanced memory retrieval
-  - Recall: Hybrid search (semantic + FTS + graph)
-  - SemanticSearch: Pure embedding-based search
-  - GraphTraverse: Multi-hop graph traversal
-  - GetContext: Retrieve memories with linked context
-- **Streaming Support**: Progressive result delivery
-  - RecallStream, ListMemoriesStream, StoreMemoryStream
-  - Progress updates for long-running operations
-- **Error Handling**: Comprehensive gRPC status mapping
-  - Domain-specific errors (NotFound, InvalidArgument, etc.)
-  - Helper functions for error checking
-
-**Next Phase**:
-- **Phase 4.2**: Memory List Component - TUI display and interaction
-- **Phase 4.3**: Memory Detail View - Rich memory visualization
-- **Phase 4.4**: Graph Visualization - Interactive memory graph
-- **Phase 4.5**: Explore Mode Integration - Complete memory workspace
+See [ROADMAP.md](ROADMAP.md) for detailed timeline and [docs/CHANGELOG.md](docs/CHANGELOG.md) for development history.
 
 ---
 
@@ -108,10 +93,10 @@ Pedantic Raven combines the specialized context engineering capabilities of ICS 
 ### Prerequisites
 
 - Go 1.25 or higher
-- Terminal with 256+ colors
-- Minimum 120x30 terminal size (80x24 supported with compact layout)
+- Terminal with 256+ colors (most modern terminals)
+- Minimum 120x30 terminal size recommended (80x24 supported with compact layout)
 
-### Installation
+### Build and Run
 
 ```bash
 # Clone repository
@@ -121,193 +106,309 @@ cd pedantic_raven
 # Build
 go build -o pedantic_raven .
 
-# Run demo
+# Run
 ./pedantic_raven
 ```
 
-### Usage
+### Basic Usage
 
-**Quick Reference:**
+**Mode Switching:**
+- `1` - Edit mode (default)
+- `2` - Explore mode (memory workspace)
+- `3` - Analyze mode (semantic insights)
 
-| Key | Action |
-|-----|--------|
-| `1`, `2`, `3` | Switch modes (Edit, Explore, Analyze) |
-| `Tab` | Cycle focus between panes |
-| `Ctrl+K` | Open command palette |
-| `?` | Show about dialog |
-| `Ctrl+C` | Quit |
+**Edit Mode:**
+- Type to enter text (semantic analysis runs automatically after 500ms pause)
+- `Tab` - Cycle focus between editor, context panel, and terminal
+- `Ctrl+K` - Open command palette
+- `Ctrl+Z` / `Ctrl+Y` - Undo / Redo
+- `Ctrl+F` - Search
+- `Ctrl+S` - Save file
 
-**Edit Mode (when editor focused):**
-- Type to enter text (triggers automatic semantic analysis)
-- `Backspace` - Delete character
-- `Enter` - New line
-- `Ctrl+Z` - Undo
-- `Ctrl+Y` or `Ctrl+Shift+Z` - Redo
+**Context Panel** (when focused):
+- `j` / `k` or `↓` / `↑` - Scroll results
+- `Enter` - Expand/collapse sections
+- `PgUp` / `PgDn` - Page navigation
 
-**Edit Mode (when context panel focused):**
-- `j`/`k` or `↓`/`↑` - Scroll
-- `PgUp`/`PgDn` - Scroll by page
-- `Enter` - Toggle section
-
-**Edit Mode (when terminal focused):**
+**Terminal** (when focused):
 - Type commands and press `Enter`
-- `↑`/`↓` - Command history
-- Built-in commands: `:help`, `:clear`, `:history`, `:exit`
+- `↑` / `↓` - Command history
+- `:help` - Show built-in commands
 
-📚 **See [docs/USAGE.md](docs/USAGE.md) for complete keyboard reference and feature guide**
+📖 **Full guide**: [docs/USAGE.md](docs/USAGE.md)
+
+---
+
+## mnemosyne Ecosystem
+
+Pedantic Raven is part of the **mnemosyne ecosystem** - a suite of tools for semantic memory and context engineering.
+
+### The Ecosystem
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                 mnemosyne Ecosystem                     │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  ┌──────────────┐         ┌──────────────────────┐     │
+│  │  mnemosyne   │◄────────┤  Pedantic Raven      │     │
+│  │  (server)    │  gRPC   │  (TUI client)        │     │
+│  │              │         │  - Context editor    │     │
+│  │  - Memory DB │         │  - Semantic analysis │     │
+│  │  - Search    │         │  - Memory workspace  │     │
+│  │  - Graph     │         └──────────────────────┘     │
+│  │  - Agents    │                                      │
+│  └──────────────┘         ┌──────────────────────┐     │
+│         │                 │  ICS (Legacy)        │     │
+│         │                 │  Being replaced by   │     │
+│         └─────────────────┤  Pedantic Raven      │     │
+│                           └──────────────────────┘     │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Components
+
+**[mnemosyne](https://github.com/rand/mnemosyne)** - Semantic memory system
+- gRPC server for memory storage and retrieval
+- Graph-based memory relationships with link types
+- Semantic search with embedding vectors (768d/1536d)
+- Multi-agent orchestration capabilities
+- Rust-based for performance and safety
+
+**Pedantic Raven** - Context engineering interface (this project)
+- Terminal UI for creating and editing AI context
+- Real-time semantic analysis during editing
+- Client for mnemosyne memory operations
+- Visual memory workspace and graph exploration
+- Go-based with Bubble Tea framework
+
+**ICS (Integrated Context Studio)** - Original context tool
+- Legacy Python-based context editor
+- Being replaced by Pedantic Raven
+- Simpler feature set, less interactive
+
+### Data Flow
+
+```
+User types in Pedantic Raven
+      ↓
+Semantic analysis extracts entities/relationships
+      ↓
+Results shown in context panel
+      ↓
+User stores to mnemosyne (via gRPC)
+      ↓
+mnemosyne indexes and enriches memory
+      ↓
+User recalls memories (hybrid search)
+      ↓
+Pedantic Raven displays results
+```
+
+### Why This Architecture?
+
+- **Separation of concerns**: UI (Pedantic Raven) vs storage/search (mnemosyne)
+- **Multiple clients**: CLI, TUI, future web interface all use same mnemosyne backend
+- **Language strengths**: Go for TUI responsiveness, Rust for database performance
+- **Scalability**: mnemosyne server can handle multiple users and agents
+- **Persistence**: Memories survive across Pedantic Raven sessions
+
+---
+
+## Features in Detail
+
+### Semantic Analysis
+
+The analyzer runs automatically as you type (500ms debounce to avoid lag):
+
+**Entity Extraction** - 6 types with context-aware classification
+- Person: "Alice", "Dr. Smith"
+- Place: "San Francisco", "Building 42"
+- Thing: "database", "API"
+- Concept: "authentication", "scalability"
+- Organization: "Google", "Team Alpha"
+- Technology: "PostgreSQL", "React"
+
+**Relationship Detection** - Subject-predicate-object patterns
+- Pattern: "PostgreSQL stores user data" → (PostgreSQL, stores, user data)
+- Confidence scoring based on pattern strength
+- Verb detection for predicate extraction
+
+**Typed Holes** - Mark incomplete sections
+- `??Architecture` - Priority 5, Complexity 3 (needs design decisions)
+- `??Implementation:high` - Priority 8, Complexity 5 (urgent implementation gap)
+- `!!SecurityReview` - Constraint marker (must satisfy security requirements)
+
+**Dependencies** - Track references
+- Imports: `import auth from "./auth"`
+- Requires: `require database connection`
+- References: `See [Architecture Doc]`
+
+### mnemosyne Integration
+
+**CRUD Operations** (via gRPC client):
+```go
+// Store memory with enrichment
+client.StoreMemory(ctx, StoreMemoryOptions{
+    Content: "System uses event sourcing for audit trail",
+    Namespace: ProjectNamespace("myapp"),
+    Importance: 8,
+    Tags: []string{"architecture", "patterns"},
+    EnrichWithLLM: true,
+})
+
+// Recall with hybrid search
+results, _ := client.Recall(ctx, RecallOptions{
+    Query: "authentication flow",
+    MaxResults: 10,
+    SemanticWeight: 0.7,  // Prefer semantic similarity
+    FtsWeight: 0.2,       // Some full-text matching
+    GraphWeight: 0.1,     // Consider graph connections
+})
+```
+
+**Search Capabilities**:
+- **Recall**: Hybrid search (semantic + full-text + graph)
+- **SemanticSearch**: Pure embedding similarity (768d or 1536d vectors)
+- **GraphTraverse**: Multi-hop graph exploration from seed nodes
+- **GetContext**: Retrieve memory with all linked memories (configurable depth)
+
+**Streaming**: Progressive results for long-running operations
+- RecallStream: Results arrive as found
+- ListMemoriesStream: Batch delivery for large result sets
+- StoreMemoryStream: Progress updates ("enriching", "embedding", "indexing")
+
+### Text Editor
+
+**File Operations**:
+- Open/save with atomic writes (temp file + rename)
+- Dirty flag tracking for unsaved changes
+- UTF-8 encoding support
+- Error handling for permissions and missing files
+
+**Search & Replace**:
+- Literal and regex pattern matching
+- Case sensitive/insensitive toggle
+- Whole word matching
+- Replace current match or all matches
+- Full undo support for replacements
+
+**Syntax Highlighting**:
+- Token-based system (12 token types)
+- Go: Keywords, types, functions, strings, comments, numbers, operators
+- Markdown: Headers, code blocks, lists, links, bold, italic
+- Extensible: Easy to add new language tokenizers
+- Auto-detection by file extension or content
+
+**Editing Features**:
+- Undo/redo with full history
+- Multi-line operations
+- Cursor position tracking
+- Line-based editing with buffer manager
 
 ---
 
 ## Architecture
 
-Pedantic Raven is built on the **Elm Architecture** using [Bubble Tea](https://github.com/charmbracelet/bubbletea):
+### Technology Stack
 
-- **Immutable state updates**
-- **Pure functions**
-- **Command-based side effects**
-- **Message passing**
+- **Language**: Go 1.25+
+- **TUI Framework**: [Bubble Tea](https://github.com/charmbracelet/bubbletea) (Elm Architecture)
+- **Styling**: [Lipgloss](https://github.com/charmbracelet/lipgloss)
+- **Components**: [Bubbles](https://github.com/charmbracelet/bubbles)
+- **RPC**: gRPC + Protocol Buffers (mnemosyne integration)
 
-### Component Overview
+### Design Patterns
 
-```
-┌─────────────────────────────────────────┐
-│          Application Model              │
-├─────────────────────────────────────────┤
-│  ┌─────────────┐  ┌──────────────────┐ │
-│  │ Event Broker│  │  Overlay Manager │ │
-│  └─────────────┘  └──────────────────┘ │
-│  ┌─────────────┐  ┌──────────────────┐ │
-│  │Mode Registry│  │  Layout Engine   │ │
-│  └─────────────┘  └──────────────────┘ │
-│  ┌─────────────┐                       │
-│  │  Palette    │                       │
-│  └─────────────┘                       │
-└─────────────────────────────────────────┘
-```
+**Elm Architecture** (Model-Update-View):
+- Immutable state updates
+- Pure functions for rendering
+- Commands for side effects
+- Message-based communication
 
-### Foundation Components
+**Event-Driven**:
+- PubSub event broker for component decoupling
+- 40+ domain event types
+- Non-blocking publish/subscribe
 
-1. **PubSub Event System** ([`internal/app/events/`](internal/app/events/))
-   - Thread-safe event broker
-   - 40+ domain event types
-   - Non-blocking publish
+**Mode-Based UI**:
+- 5 application modes (Edit, Explore, Analyze, Orchestrate, Collaborate)
+- Each mode has its own layout and lifecycle
+- Mode registry for switching with history
 
-2. **Layout Engine** ([`internal/layout/`](internal/layout/))
-   - Hierarchical pane composition
-   - 5 layout modes
-   - Focus management
-   - Responsive design
+**Component Composition**:
+- Hierarchical pane system (composite pattern)
+- 5 layout modes (Focus, Standard, Analysis, Compact, Custom)
+- Responsive design adapts to terminal size
 
-3. **Mode Registry** ([`internal/modes/`](internal/modes/))
-   - 5 application modes
-   - Lifecycle hooks (Init, OnEnter, OnExit)
-   - Mode switching with history
-
-4. **Overlay System** ([`internal/overlay/`](internal/overlay/))
-   - Modal and non-modal overlays
-   - Stack-based management
-   - Built-in dialogs (Confirm, Message)
-   - Flexible positioning strategies
-
-5. **Command Palette** ([`internal/palette/`](internal/palette/))
-   - Fuzzy search with scoring
-   - Category-based organization
-   - Command execution framework
-
----
-
-## Project Structure
+### Project Structure
 
 ```
 pedantic_raven/
-├── main.go                      # Demo application
-├── spec.md                      # Comprehensive specification
-├── README.md                    # This file
-├── go.mod                       # Go module definition
+├── main.go                    # Application entry point
+├── internal/
+│   ├── app/events/            # PubSub event system (18 tests)
+│   ├── context/               # Context panel component (25 tests)
+│   ├── editor/                # Text editor (78 tests)
+│   │   ├── buffer/            # Buffer manager (52 tests)
+│   │   ├── search/            # Search engine (35 tests)
+│   │   ├── semantic/          # Semantic analyzer (63 tests)
+│   │   └── syntax/            # Syntax highlighting (31 tests)
+│   ├── layout/                # Layout engine (34 tests)
+│   ├── mnemosyne/             # mnemosyne RPC client (66 tests)
+│   ├── modes/                 # Mode registry (13 tests)
+│   ├── overlay/               # Overlay system (25 tests)
+│   ├── palette/               # Command palette (19 tests)
+│   └── terminal/              # Terminal component (38 tests)
+├── proto/mnemosyne/v1/        # Protobuf schemas
 ├── docs/
-│   └── PHASE1_COMPLETE.md       # Phase 1 completion summary
-└── internal/
-    ├── app/
-    │   └── events/              # PubSub event system
-    │       ├── types.go         # Event types (40+ events)
-    │       ├── broker.go        # Event broker
-    │       └── broker_test.go   # 7 tests (53% coverage)
-    ├── layout/                  # Multi-pane layout engine
-    │   ├── types.go             # Pane hierarchy
-    │   ├── engine.go            # Layout engine
-    │   └── layout_test.go       # 19 tests (54.5% coverage)
-    ├── modes/                   # Mode registry
-    │   ├── registry.go          # Mode management
-    │   └── registry_test.go     # 17 tests (92% coverage)
-    ├── overlay/                 # Overlay system
-    │   ├── types.go             # Overlay interface
-    │   ├── manager.go           # Stack manager
-    │   └── overlay_test.go      # 24 tests (66.7% coverage)
-    └── palette/                 # Command palette
-        ├── types.go             # Command registry
-        ├── palette.go           # Palette overlay
-        └── palette_test.go      # 20 tests (88.3% coverage)
+│   ├── USAGE.md               # User guide and keyboard reference
+│   ├── CHANGELOG.md           # Development history
+│   └── PHASE*.md              # Phase completion summaries
+├── spec.md                    # Technical specification
+└── ROADMAP.md                 # Project timeline and milestones
 ```
-
----
-
-## Testing
-
-### Run Tests
-
-```bash
-# All tests
-go test ./...
-
-# With coverage
-go test ./... -coverprofile=coverage.out
-
-# View coverage report
-go tool cover -html=coverage.out
-```
-
-### Test Summary
-
-| Package | Tests | Coverage | Status |
-|---------|-------|----------|--------|
-| app/events  | 18 | ~70% | ✅ |
-| context | 25 | ~80% | ✅ |
-| editor | 78 | ~85% | ✅ |
-| editor/buffer | 52 | ~85% | ✅ |
-| editor/search | 35 | ~90% | ✅ |
-| editor/semantic | 63 | ~90% | ✅ |
-| editor/syntax | 31 | ~85% | ✅ |
-| layout  | 34 | ~65% | ✅ |
-| mnemosyne | 66 | ~95% | ✅ |
-| modes   | 13 | ~92% | ✅ |
-| overlay | 25 | ~70% | ✅ |
-| palette | 19 | ~88% | ✅ |
-| terminal | 38 | ~80% | ✅ |
-| **Total** | **461** | **~84%** | **✅** |
-
-All tests passing ✅
-
-📊 **See [docs/PHASE4.1_SUMMARY.md](docs/PHASE4.1_SUMMARY.md) for Phase 4.1 details**
-📊 **See [docs/PHASE3_SUMMARY.md](docs/PHASE3_SUMMARY.md) for Phase 3 details**
-📊 **See [docs/PHASE2_SUMMARY.md](docs/PHASE2_SUMMARY.md) for Phase 2 details**
 
 ---
 
 ## Development
 
-### Prerequisites
-
-- Go 1.25+
-- [Bubble Tea](https://github.com/charmbracelet/bubbletea) v1.2.6+
-- [Lipgloss](https://github.com/charmbracelet/lipgloss) v1.0.0+
-
-### Dependencies
+### Running Tests
 
 ```bash
-go get github.com/charmbracelet/bubbletea@v1.2.6
-go get github.com/charmbracelet/lipgloss@v1.0.0
-go get github.com/charmbracelet/bubbles@v0.21.0
+# All tests
+go test ./...
+
+# With verbose output
+go test ./... -v
+
+# With coverage
+go test ./... -coverprofile=coverage.out
+go tool cover -html=coverage.out
+
+# Specific package
+go test ./internal/editor/...
 ```
+
+### Test Coverage
+
+| Package | Tests | Coverage | Focus |
+|---------|-------|----------|-------|
+| app/events | 18 | ~70% | Event broker, pub/sub |
+| context | 25 | ~80% | Context panel rendering |
+| editor | 78 | ~85% | Text editing, file ops |
+| editor/buffer | 52 | ~85% | Buffer management, undo/redo |
+| editor/search | 35 | ~90% | Search and replace |
+| editor/semantic | 63 | ~90% | Semantic analysis |
+| editor/syntax | 31 | ~85% | Syntax highlighting |
+| layout | 34 | ~65% | Layout engine, panes |
+| mnemosyne | 66 | ~95% | gRPC client, CRUD, search |
+| modes | 13 | ~92% | Mode registry, switching |
+| overlay | 25 | ~70% | Overlays, dialogs |
+| palette | 19 | ~88% | Command palette, fuzzy search |
+| terminal | 38 | ~80% | Terminal component, execution |
+| **Total** | **762** | **~64%** | **Passing** |
 
 ### Building
 
@@ -315,198 +416,91 @@ go get github.com/charmbracelet/bubbles@v0.21.0
 # Development build
 go build -o pedantic_raven .
 
-# Production build with optimizations
+# Optimized production build
 go build -ldflags="-s -w" -o pedantic_raven .
 
 # Run without building
 go run main.go
+
+# Cross-compile for Linux
+GOOS=linux GOARCH=amd64 go build -o pedantic_raven-linux .
 ```
-
-### Code Organization
-
-- **`internal/`**: All internal packages (not importable by external code)
-- **Component pattern**: Each package contains `types.go`, implementation, and tests
-- **Test co-location**: Tests live alongside the code they test
-- **Interface-first**: Define interfaces before implementations
-
-### Design Patterns
-
-1. **Elm Architecture** (Model-Update-View)
-2. **Composite Pattern** (Hierarchical panes)
-3. **Observer Pattern** (PubSub events)
-4. **Registry Pattern** (Modes, commands, components)
-5. **Strategy Pattern** (Position strategies, layout modes)
-
----
-
-## Contributing
-
-### Development Workflow
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Write** tests for your changes
-4. **Implement** your feature
-5. **Run** tests (`go test ./...`)
-6. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-7. **Push** to your branch (`git push origin feature/amazing-feature`)
-8. **Open** a Pull Request
 
 ### Code Standards
 
-- Follow Go conventions (gofmt, golint)
-- Write tests for all new code (aim for 70%+ coverage)
-- Document all exported types and functions
-- Use meaningful variable and function names
-- Keep functions focused and short (<50 lines when possible)
+- Go fmt/vet/lint clean
+- Tests for all new code (target 70%+ coverage)
+- Document exported types and functions
+- Meaningful names (no single-letter variables except loop counters)
+- Small focused functions (<50 lines preferred)
 
-### Commit Messages
+### Contributing
 
-Follow the pattern:
-```
-<type>: <subject>
-
-<body>
-
-<footer>
-```
-
-Types: `feat`, `fix`, `docs`, `test`, `refactor`, `style`, `chore`
-
-Example:
-```
-feat: Add command palette fuzzy search
-
-Implement fuzzy matching algorithm with scoring:
-- Exact match: +100
-- Name contains: +50
-- Description contains: +20
-- Subsequence match: +30
-
-Tests: 8 new tests for fuzzy matching
-```
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Write tests for your changes
+4. Implement your feature
+5. Run tests (`go test ./...`)
+6. Commit changes (`git commit -m 'Add amazing feature'`)
+7. Push to branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
 
 ---
 
 ## Documentation
 
-### Comprehensive Docs
+### User Documentation
 
-- **[USAGE.md](docs/USAGE.md)**: Complete user guide with keyboard shortcuts, features, and examples
-- **[PHASE2_SUMMARY.md](docs/PHASE2_SUMMARY.md)**: Phase 2 completion summary with architecture details
-- **[PHASE1_COMPLETE.md](docs/PHASE1_COMPLETE.md)**: Phase 1 completion summary
-- **[spec.md](spec.md)**: Full specification with requirements and architecture
-- **Package docs**: Each package has detailed comments and examples
+- **[USAGE.md](docs/USAGE.md)** - Complete user guide
+  - All keyboard shortcuts
+  - Feature walkthroughs
+  - Examples and workflows
+  - Tips and tricks
 
-### External Resources
+- **[ROADMAP.md](ROADMAP.md)** - Project roadmap
+  - Phase breakdown and timeline
+  - Completed features
+  - Planned features
+  - Success metrics
 
-- [Bubble Tea Tutorial](https://github.com/charmbracelet/bubbletea/tree/master/tutorials)
-- [Lipgloss Docs](https://github.com/charmbracelet/lipgloss)
-- [Crush TUI Reference](https://github.com/charmbracelet/crush)
+### Technical Documentation
 
----
+- **[spec.md](spec.md)** - Technical specification
+  - Requirements (functional and non-functional)
+  - Architecture details
+  - Interfaces and contracts
+  - Design decisions
 
-## Roadmap
+- **[CHANGELOG.md](docs/CHANGELOG.md)** - Development history
+  - Phase summaries
+  - Feature additions
+  - Technical achievements
+  - Lessons learned
 
-### Phase 1: Foundation ✅ (Complete)
-- [x] PubSub event system
-- [x] Multi-pane layout engine
-- [x] Mode registry
-- [x] Overlay system
-- [x] Command palette
+### Phase Summaries
 
-### Phase 2: Semantic Analysis & Edit Mode ✅ (Complete)
-- [x] Semantic analyzer with streaming
-- [x] Entity extraction (6 types)
-- [x] Relationship detection
-- [x] Typed holes (??Type, !!constraint)
-- [x] Context panel with 5 sections
-- [x] Terminal integration
-- [x] Edit Mode with auto-analysis
-- [x] 291 tests passing
-
-### Phase 3: Advanced Editor ✅ (Complete - 8 days)
-- [x] **Phase 3.1**: Buffer Manager integration, undo/redo (Days 1-2) ✅
-- [x] **Phase 3.2**: File operations - open, save, save-as (Days 3-4) ✅
-- [x] **Phase 3.3**: Search and replace - literal and regex (Days 5-6) ✅
-- [x] **Phase 3.4**: Syntax highlighting - Go and Markdown (Days 7-8) ✅
-
-### Phase 4: Explore Mode (3-4 weeks) - In Progress
-- [x] **Phase 4.1**: mnemosyne RPC Client (Days 1-3) ✅
-  - gRPC client library with full CRUD operations
-  - Advanced search (Recall, SemanticSearch, GraphTraverse, GetContext)
-  - Streaming support for progressive results
-  - 66 tests, comprehensive error handling
-- [ ] **Phase 4.2**: Memory List Component (Days 4-6)
-  - TUI component for memory display
-  - Filtering and navigation
-  - Integration with mnemosyne client
-- [ ] **Phase 4.3**: Memory Detail View (Days 7-9)
-  - Rich memory visualization
-  - Linked memories display
-  - Editing capabilities
-- [ ] **Phase 4.4**: Graph Visualization (Days 10-14)
-  - Interactive memory graph
-  - Graph traversal UI
-  - Visual link exploration
-- [ ] **Phase 4.5**: Explore Mode Integration (Days 15-16)
-  - Complete workspace integration
-  - Namespace navigation
-  - Triple exploration
-
-### Phase 5: Analyze Mode (2-3 weeks)
-- [ ] Statistical analysis
-- [ ] Entity relationship graphs
-- [ ] Typed hole prioritization UI
-- [ ] Dependency tree visualization
-
-### Phase 6: Orchestrate Mode (4-5 weeks)
-- [ ] Agent coordination
-- [ ] Task management
-- [ ] Progress monitoring
-- [ ] Multi-agent workflows
-
-### Phase 7: Collaborate Mode (3-4 weeks)
-- [ ] Live multi-user editing
-- [ ] Presence awareness
-- [ ] Conflict resolution
-- [ ] Shared annotations
-
-### Phase 8: Polish & Production (2-3 weeks)
-- [ ] Performance optimization
-- [ ] Comprehensive documentation
-- [ ] Packaging and distribution
-- [ ] Release 1.0
-
-**Estimated Timeline**: 4-6 months remaining
+- **[PHASE1_COMPLETE.md](docs/PHASE1_COMPLETE.md)** - Foundation (87 tests)
+- **[PHASE2_SUMMARY.md](docs/PHASE2_SUMMARY.md)** - Semantic Analysis (291 tests)
+- **[PHASE3_SUMMARY.md](docs/PHASE3_SUMMARY.md)** - Advanced Editor (424 tests)
+- **[PHASE4.1_SUMMARY.md](docs/PHASE4.1_SUMMARY.md)** - mnemosyne Client (461 tests)
 
 ---
 
-## Related Projects
+## Statistics
 
-- **[mnemosyne](https://github.com/rand/mnemosyne)**: Semantic memory system with RPC server
-- **[ICS](https://github.com/rand/mnemosyne/src/ics)**: Original Integrated Context Studio
-- **[Crush](https://github.com/charmbracelet/crush)**: Rich TUI inspiration
+**Current Metrics** (as of latest commit):
+- **Tests**: 762 passing (1 known failure in memorygraph)
+- **Code**: ~33,368 lines of Go
+- **Coverage**: ~64% average
+- **Phases**: 4.1 of 8 complete (~25% of planned features)
 
----
+**Performance**:
+- Render time: <16ms target (60 FPS)
+- Semantic analysis: ~500ms for typical files
+- Memory usage: ~10MB typical
+- Startup time: <100ms
 
-## Performance
-
-### Benchmarks
-
-```
-Terminal Size: 120x30
-Render Time: <16ms (60 FPS)
-Memory Usage: ~10MB
-Startup Time: <100ms
-```
-
-### Optimization
-
-- Non-blocking event publishing
-- Efficient pane rendering (only changed regions)
-- Lazy component initialization
-- Smart terminal updates (Bubble Tea handles this)
+**Commits**: 600+ commits since project start (2025-01-11)
 
 ---
 
@@ -514,27 +508,68 @@ Startup Time: <100ms
 
 ### Terminal Too Small
 
-Pedantic Raven automatically switches to compact layout for terminals smaller than 120x30. For best experience, use at least 120x30.
+Pedantic Raven auto-switches to compact layout for terminals <120x30. For best experience, use at least 120x30. Check your terminal size:
+
+```bash
+echo "Cols: $(tput cols), Rows: $(tput lines)"
+```
 
 ### Rendering Issues
 
 Ensure your terminal supports:
-- 256 colors (most modern terminals)
+- 256 colors: `echo $TERM` should show `xterm-256color` or similar
 - UTF-8 encoding
 - ANSI escape sequences
 
-Test with:
-```bash
-echo $TERM
-# Should show: xterm-256color or similar
-```
+### Tests Failing
+
+If you see test failures:
+1. Update dependencies: `go mod download`
+2. Clear test cache: `go clean -testcache`
+3. Run specific failing package: `go test -v ./internal/memorygraph`
 
 ### Performance Issues
 
 If experiencing lag:
 - Close other terminal applications
-- Increase terminal buffer size
-- Update to latest version of Pedantic Raven
+- Check CPU usage (`top` or `htop`)
+- Reduce terminal size temporarily
+- Update to latest version
+
+### Connection to mnemosyne
+
+If can't connect to mnemosyne server:
+```bash
+# Check if mnemosyne is running
+netstat -an | grep 50051
+
+# Start mnemosyne server (from mnemosyne project)
+cd ../mnemosyne
+cargo run --bin mnemosyne-rpc
+```
+
+---
+
+## Roadmap Summary
+
+**Completed** (~25%):
+- ✅ Foundation (event system, layout, modes, overlays, palette)
+- ✅ Edit Mode (semantic analysis, context panel, terminal)
+- ✅ Advanced editing (undo/redo, files, search, syntax highlighting)
+- ✅ mnemosyne RPC client (CRUD, search, streaming)
+
+**In Progress**:
+- 🔄 Explore Mode (memory list, detail view, graph visualization)
+
+**Planned**:
+- 📋 Analyze Mode - Statistical analysis and insights
+- 📋 Orchestrate Mode - Multi-agent coordination
+- 📋 Collaborate Mode - Live multi-user editing
+- 📋 Production Release - Performance optimization, docs, packaging
+
+**Timeline**: 6-8 months total (started Jan 2025, targeting Q2 2025)
+
+See [ROADMAP.md](ROADMAP.md) for detailed breakdown.
 
 ---
 
@@ -542,28 +577,16 @@ If experiencing lag:
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-This project is part of the mnemosyne ecosystem.
+---
+
+## Links
+
+**Project**: [github.com/rand/pedantic_raven](https://github.com/rand/pedantic_raven)
+**mnemosyne**: [github.com/rand/mnemosyne](https://github.com/rand/mnemosyne)
+**Bubble Tea**: [github.com/charmbracelet/bubbletea](https://github.com/charmbracelet/bubbletea)
 
 ---
 
-## Acknowledgments
-
-- **Bubble Tea**: Excellent TUI framework by Charm
-- **ICS**: Original context engineering system
-- **Crush**: Rich TUI inspiration and patterns
-- **Go Community**: For amazing tooling and libraries
-
----
-
-## Contact
-
-- **Repository**: https://github.com/rand/pedantic_raven
-- **Related**: [mnemosyne](https://github.com/rand/mnemosyne) memory system
-
----
-
-**Status**: Phase 4.1 Complete ✅ | Next: Phase 4.2 (Memory List Component)
-
-**Stats**: 461 tests passing | ~11,000 lines of code | 84% coverage
-
-Built with ❤️ using [Bubble Tea](https://github.com/charmbracelet/bubbletea)
+**Current Phase**: 4.3 (Memory UI Components)
+**Last Updated**: 2025-11-08
+**Status**: Active Development 🚧
