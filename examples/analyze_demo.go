@@ -18,7 +18,7 @@ import (
 
 func main() {
 	fmt.Println("Pedantic Raven - Analyze Mode Demo")
-	fmt.Println("===================================\n")
+	fmt.Println("===================================")
 
 	// Step 1: Create sample semantic analysis data
 	// In a real application, this would come from the semantic analyzer
@@ -33,7 +33,7 @@ func main() {
 
 	// Step 3: Set the analysis data
 	mode.SetAnalysis(analysis)
-	fmt.Println("Loaded analysis data into Analyze Mode\n")
+	fmt.Println("Loaded analysis data into Analyze Mode")
 
 	// Step 4: Demonstrate entity frequency analysis
 	demonstrateEntityAnalysis(analysis)
