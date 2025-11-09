@@ -1,13 +1,32 @@
 package modes
 
 import (
+	"os"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rand/pedantic-raven/internal/memorygraph"
 )
 
+// setupTest disables mnemosyne for testing
+func setupTest(t *testing.T) func() {
+	// Disable mnemosyne connection during tests
+	oldEnabled := os.Getenv("MNEMOSYNE_ENABLED")
+	os.Setenv("MNEMOSYNE_ENABLED", "false")
+
+	return func() {
+		// Restore original value
+		if oldEnabled != "" {
+			os.Setenv("MNEMOSYNE_ENABLED", oldEnabled)
+		} else {
+			os.Unsetenv("MNEMOSYNE_ENABLED")
+		}
+	}
+}
+
 func TestNewExploreMode(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 
 	if mode == nil {
@@ -29,6 +48,8 @@ func TestNewExploreMode(t *testing.T) {
 }
 
 func TestExploreModeInit(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 
 	// Graph should be nil before Init
@@ -51,6 +72,8 @@ func TestExploreModeInit(t *testing.T) {
 }
 
 func TestExploreModeOnEnter(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -69,6 +92,8 @@ func TestExploreModeOnEnter(t *testing.T) {
 }
 
 func TestExploreModeOnExit(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -81,6 +106,8 @@ func TestExploreModeOnExit(t *testing.T) {
 }
 
 func TestExploreModeUpdateWindowSize(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -105,6 +132,8 @@ func TestExploreModeUpdateWindowSize(t *testing.T) {
 }
 
 func TestExploreModeUpdateWithNilGraph(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	// Don't call Init, so graph remains nil
 
@@ -125,6 +154,8 @@ func TestExploreModeUpdateWithNilGraph(t *testing.T) {
 }
 
 func TestExploreModeUpdateForwardsToGraph(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -152,6 +183,8 @@ func TestExploreModeUpdateForwardsToGraph(t *testing.T) {
 }
 
 func TestExploreModeViewWithNilGraph(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	// Don't call Init, so components remain nil
 
@@ -164,6 +197,8 @@ func TestExploreModeViewWithNilGraph(t *testing.T) {
 }
 
 func TestExploreModeViewWithGraph(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -186,6 +221,8 @@ func TestExploreModeViewWithGraph(t *testing.T) {
 }
 
 func TestExploreModeKeybindings(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 
 	// Test standard layout keybindings (default)
@@ -250,6 +287,8 @@ func TestExploreModeKeybindings(t *testing.T) {
 }
 
 func TestExploreModeSampleGraphStructure(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -313,6 +352,8 @@ func TestExploreModeSampleGraphStructure(t *testing.T) {
 // --- Additional Explore Mode Tests for Coverage ---
 
 func TestExploreModeLayoutToggle(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -340,6 +381,8 @@ func TestExploreModeLayoutToggle(t *testing.T) {
 }
 
 func TestExploreModeFocusCycle(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -362,6 +405,8 @@ func TestExploreModeFocusCycle(t *testing.T) {
 }
 
 func TestExploreModeFocusSynchronization(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -388,6 +433,8 @@ func TestExploreModeFocusSynchronization(t *testing.T) {
 }
 
 func TestExploreModeUpdateHelpToggle(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -413,6 +460,8 @@ func TestExploreModeUpdateHelpToggle(t *testing.T) {
 }
 
 func TestExploreModeUpdateEscapeKey(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -429,6 +478,8 @@ func TestExploreModeUpdateEscapeKey(t *testing.T) {
 }
 
 func TestExploreModeUpdateGKeyTogglesToGraph(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -447,6 +498,8 @@ func TestExploreModeUpdateGKeyTogglesToGraph(t *testing.T) {
 }
 
 func TestExploreModeUpdateGKeyDisabledWhenHelpOpen(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -464,6 +517,8 @@ func TestExploreModeUpdateGKeyDisabledWhenHelpOpen(t *testing.T) {
 }
 
 func TestExploreModeUpdateTabCycleFocus(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -479,6 +534,8 @@ func TestExploreModeUpdateTabCycleFocus(t *testing.T) {
 }
 
 func TestExploreModeUpdateTabDisabledInGraphMode(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -497,6 +554,8 @@ func TestExploreModeUpdateTabDisabledInGraphMode(t *testing.T) {
 }
 
 func TestExploreModeHandleWindowSize(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -515,6 +574,8 @@ func TestExploreModeHandleWindowSize(t *testing.T) {
 }
 
 func TestExploreModeHandleWindowSizeMinimumHeight(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -533,6 +594,8 @@ func TestExploreModeHandleWindowSizeMinimumHeight(t *testing.T) {
 }
 
 func TestExploreModeView(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -554,6 +617,8 @@ func TestExploreModeView(t *testing.T) {
 }
 
 func TestExploreModeViewInGraphMode(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -578,6 +643,8 @@ func TestExploreModeViewInGraphMode(t *testing.T) {
 }
 
 func TestExploreModeViewHelp(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -602,6 +669,8 @@ func TestExploreModeViewHelp(t *testing.T) {
 }
 
 func TestExploreModeViewHelpGraphMode(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -629,6 +698,8 @@ func TestExploreModeViewHelpGraphMode(t *testing.T) {
 }
 
 func TestExploreModeConcurrentUpdates(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -650,6 +721,8 @@ func TestExploreModeConcurrentUpdates(t *testing.T) {
 }
 
 func TestExploreModeLayoutToggleWithSize(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -672,6 +745,8 @@ func TestExploreModeLayoutToggleWithSize(t *testing.T) {
 }
 
 func TestExploreModeSampleMemoriesLoaded(t *testing.T) {
+	defer setupTest(t)()
+
 	mode := NewExploreMode()
 	mode.Init()
 
@@ -694,4 +769,339 @@ func TestExploreModeSampleMemoriesLoaded(t *testing.T) {
 			break
 		}
 	}
+}
+
+// --- Tests for uncovered functions ---
+
+func TestExploreModeNavigateToMemory(t *testing.T) {
+	defer setupTest(t)()
+
+	mode := NewExploreMode()
+	mode.Init()
+
+	// Navigate to a memory
+	cmd := mode.navigateToMemory("mem-123")
+
+	// Should return a command
+	if cmd == nil {
+		t.Error("navigateToMemory should return a command")
+	}
+
+	// Breadcrumb trail should be updated
+	if len(mode.breadcrumbTrail) != 1 {
+		t.Errorf("Expected 1 item in breadcrumb trail, got %d", len(mode.breadcrumbTrail))
+	}
+
+	if mode.breadcrumbTrail[0] != "mem-123" {
+		t.Errorf("Expected breadcrumb trail to contain 'mem-123', got %s", mode.breadcrumbTrail[0])
+	}
+}
+
+func TestExploreModeUpdateBreadcrumbTrail(t *testing.T) {
+	defer setupTest(t)()
+
+	mode := NewExploreMode()
+	mode.Init()
+
+	// Test adding first item
+	mode.updateBreadcrumbTrail("mem-1")
+	if len(mode.breadcrumbTrail) != 1 {
+		t.Errorf("Expected 1 item, got %d", len(mode.breadcrumbTrail))
+	}
+
+	// Test adding more items
+	mode.updateBreadcrumbTrail("mem-2")
+	mode.updateBreadcrumbTrail("mem-3")
+	if len(mode.breadcrumbTrail) != 3 {
+		t.Errorf("Expected 3 items, got %d", len(mode.breadcrumbTrail))
+	}
+
+	// Test empty string (should be ignored)
+	mode.updateBreadcrumbTrail("")
+	if len(mode.breadcrumbTrail) != 3 {
+		t.Error("Empty string should not be added to breadcrumb trail")
+	}
+}
+
+func TestExploreModeUpdateBreadcrumbTrailMaxDepth(t *testing.T) {
+	defer setupTest(t)()
+
+	mode := NewExploreMode()
+	mode.Init()
+
+	// Set a small max depth for testing
+	mode.breadcrumbMaxDepth = 3
+
+	// Add more items than max depth
+	for i := 1; i <= 10; i++ {
+		mode.updateBreadcrumbTrail("mem-" + string(rune('0'+i)))
+	}
+
+	// Should not exceed max depth + 1 (for ellipsis)
+	if len(mode.breadcrumbTrail) > mode.breadcrumbMaxDepth+1 {
+		t.Errorf("Breadcrumb trail should not exceed max depth + 1, got %d", len(mode.breadcrumbTrail))
+	}
+
+	// First item should be ellipsis
+	if mode.breadcrumbTrail[0] != "..." {
+		t.Error("First item should be ellipsis when trail exceeds max depth")
+	}
+}
+
+func TestExploreModeRenderBreadcrumbEmpty(t *testing.T) {
+	defer setupTest(t)()
+
+	mode := NewExploreMode()
+	mode.Init()
+
+	// Empty breadcrumb trail should return empty string
+	breadcrumb := mode.renderBreadcrumb()
+	if breadcrumb != "" {
+		t.Error("Empty breadcrumb trail should return empty string")
+	}
+}
+
+func TestExploreModeRenderBreadcrumbSingleItem(t *testing.T) {
+	defer setupTest(t)()
+
+	mode := NewExploreMode()
+	mode.Init()
+
+	mode.breadcrumbTrail = []string{"mem-123"}
+
+	breadcrumb := mode.renderBreadcrumb()
+	if breadcrumb == "" {
+		t.Error("Breadcrumb with items should not be empty")
+	}
+}
+
+func TestExploreModeRenderBreadcrumbMultipleItems(t *testing.T) {
+	defer setupTest(t)()
+
+	mode := NewExploreMode()
+	mode.Init()
+
+	mode.breadcrumbTrail = []string{"mem-1", "mem-2", "mem-3"}
+
+	breadcrumb := mode.renderBreadcrumb()
+	if breadcrumb == "" {
+		t.Error("Breadcrumb with multiple items should not be empty")
+	}
+}
+
+func TestExploreModeRenderBreadcrumbWithEllipsis(t *testing.T) {
+	defer setupTest(t)()
+
+	mode := NewExploreMode()
+	mode.Init()
+
+	mode.breadcrumbTrail = []string{"...", "mem-8", "mem-9", "mem-10"}
+
+	breadcrumb := mode.renderBreadcrumb()
+	if breadcrumb == "" {
+		t.Error("Breadcrumb with ellipsis should not be empty")
+	}
+}
+
+func TestExploreModeRenderBreadcrumbLongIDs(t *testing.T) {
+	defer setupTest(t)()
+
+	mode := NewExploreMode()
+	mode.Init()
+
+	// Use a long memory ID (should be truncated in display)
+	mode.breadcrumbTrail = []string{"mem-very-long-id-that-should-be-truncated"}
+
+	breadcrumb := mode.renderBreadcrumb()
+	if breadcrumb == "" {
+		t.Error("Breadcrumb with long IDs should not be empty")
+	}
+}
+
+// Test Update with various message types for better coverage
+func TestExploreModeUpdateWithMemoriesLoaded(t *testing.T) {
+	defer setupTest(t)()
+
+	mode := NewExploreMode()
+	mode.Init()
+
+	// Simulate MemoriesLoadedMsg
+	cmd := mode.OnEnter()
+	if cmd != nil {
+		msg := cmd()
+		batchMsg, ok := msg.(tea.BatchMsg)
+		if ok {
+			for _, batchCmd := range batchMsg {
+				msg := batchCmd()
+				updatedMode, _ := mode.Update(msg)
+				mode = updatedMode.(*ExploreMode)
+			}
+		}
+	}
+
+	// Mode should still be valid
+	if mode == nil {
+		t.Fatal("Mode should not be nil after update")
+	}
+}
+
+// Test OnExit
+func TestExploreModeOnExitCleanup(t *testing.T) {
+	defer setupTest(t)()
+
+	mode := NewExploreMode()
+	mode.Init()
+
+	// Load data
+	cmd := mode.OnEnter()
+	if cmd != nil {
+		cmd()
+	}
+
+	// Exit
+	cmd = mode.OnExit()
+
+	// Should return nil or cleanup command
+	// (Currently returns nil, but test is here for future changes)
+	_ = cmd
+}
+
+// Test Init with real data scenario
+func TestExploreModeInitWithoutMnemosyne(t *testing.T) {
+	defer setupTest(t)()
+
+	// Ensure mnemosyne is disabled (already done by setupTest)
+	mode := NewExploreMode()
+	cmd := mode.Init()
+
+	// Should initialize successfully without mnemosyne
+	if mode.memoryList == nil {
+		t.Error("Memory list should be initialized")
+	}
+
+	if mode.memoryDetail == nil {
+		t.Error("Memory detail should be initialized")
+	}
+
+	if mode.graph == nil {
+		t.Error("Graph should be initialized")
+	}
+
+	// Client should be nil or disabled
+	if mode.useRealData {
+		t.Error("Real data should not be enabled without mnemosyne")
+	}
+
+	// Command should be nil from BaseMode
+	if cmd != nil {
+		t.Log("Init returned command:", cmd)
+	}
+}
+
+// Test complete navigation flow
+func TestExploreModeCompleteNavigationFlow(t *testing.T) {
+	defer setupTest(t)()
+
+	mode := NewExploreMode()
+	mode.Init()
+
+	// Navigate through several memories
+	for i := 1; i <= 3; i++ {
+		memID := "mem-" + string(rune('0'+i))
+		cmd := mode.navigateToMemory(memID)
+		if cmd != nil {
+			// Execute command (would normally load memory)
+			msg := cmd()
+			if msg != nil {
+				mode.Update(msg)
+			}
+		}
+	}
+
+	// Breadcrumb trail should have 3 items
+	if len(mode.breadcrumbTrail) != 3 {
+		t.Errorf("Expected 3 items in breadcrumb trail, got %d", len(mode.breadcrumbTrail))
+	}
+
+	// Render breadcrumb
+	breadcrumb := mode.renderBreadcrumb()
+	if breadcrumb == "" {
+		t.Error("Breadcrumb should not be empty")
+	}
+}
+
+// Test Update with various key combinations
+func TestExploreModeUpdateKeySequences(t *testing.T) {
+	defer setupTest(t)()
+
+	mode := NewExploreMode()
+	mode.Init()
+
+	wsMsg := tea.WindowSizeMsg{Width: 100, Height: 50}
+	mode.Update(wsMsg)
+
+	// Test various key sequences
+	sequences := [][]tea.KeyMsg{
+		{
+			{Type: tea.KeyRunes, Runes: []rune{'g'}}, // Toggle to graph
+			{Type: tea.KeyRunes, Runes: []rune{'g'}}, // Toggle back
+		},
+		{
+			{Type: tea.KeyRunes, Runes: []rune{'?'}}, // Open help
+			{Type: tea.KeyEscape},                     // Close help
+		},
+		{
+			{Type: tea.KeyTab}, // Cycle focus
+			{Type: tea.KeyTab}, // Cycle again
+		},
+	}
+
+	for _, sequence := range sequences {
+		for _, keyMsg := range sequence {
+			updatedMode, _ := mode.Update(keyMsg)
+			if updatedMode == nil {
+				t.Fatal("Update should not return nil")
+			}
+			mode = updatedMode.(*ExploreMode)
+		}
+	}
+}
+
+// Test edge cases
+func TestExploreModeEdgeCases(t *testing.T) {
+	defer setupTest(t)()
+
+	t.Run("Multiple Init calls", func(t *testing.T) {
+		mode := NewExploreMode()
+		mode.Init()
+		mode.Init() // Second init should be safe
+
+		if mode.graph == nil {
+			t.Error("Graph should remain initialized")
+		}
+	})
+
+	t.Run("Update before Init", func(t *testing.T) {
+		mode := NewExploreMode()
+		// Don't call Init
+
+		keyMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}}
+		updatedMode, _ := mode.Update(keyMsg)
+
+		if updatedMode == nil {
+			t.Fatal("Update should not return nil even before Init")
+		}
+	})
+
+	t.Run("View with zero width", func(t *testing.T) {
+		mode := NewExploreMode()
+		mode.Init()
+
+		// Don't set window size
+		view := mode.View()
+
+		if view == "" {
+			t.Error("View should handle zero width gracefully")
+		}
+	})
 }
