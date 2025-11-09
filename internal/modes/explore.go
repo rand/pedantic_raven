@@ -48,6 +48,10 @@ type ExploreMode struct {
 	width  int
 	height int
 
+	// Navigation state
+	breadcrumbTrail []string // Memory IDs for breadcrumb display
+	breadcrumbMaxDepth int   // Max breadcrumb levels to display
+
 	// Mnemosyne client for real data
 	mnemosyneClient *mnemosyne.Client
 	useRealData     bool // If false, use sample data
@@ -61,11 +65,13 @@ func NewExploreMode() *ExploreMode {
 			"Explore",
 			"Memory workspace with list, detail, and graph views",
 		),
-		memoryList:   nil, // Will be initialized in Init
-		memoryDetail: nil, // Will be initialized in Init
-		graph:        nil, // Will be initialized in Init
-		layoutMode:   LayoutModeStandard,
-		focusTarget:  FocusTargetList,
+		memoryList:         nil, // Will be initialized in Init
+		memoryDetail:       nil, // Will be initialized in Init
+		graph:              nil, // Will be initialized in Init
+		layoutMode:         LayoutModeStandard,
+		focusTarget:        FocusTargetList,
+		breadcrumbTrail:    make([]string, 0),
+		breadcrumbMaxDepth: 5,
 	}
 }
 
@@ -195,6 +201,20 @@ func (m *ExploreMode) Update(msg tea.Msg) (Mode, tea.Cmd) {
 				m.cycleFocus()
 				return m, nil
 			}
+
+		case "alt+left", "ctrl+[":
+			// Navigate back in history
+			if !m.showHelp && m.memoryDetail != nil && m.memoryDetail.CanNavigateBack() {
+				return m, m.memoryDetail.NavigateBack()
+			}
+			return m, nil
+
+		case "alt+right", "ctrl+]":
+			// Navigate forward in history
+			if !m.showHelp && m.memoryDetail != nil && m.memoryDetail.CanNavigateForward() {
+				return m, m.memoryDetail.NavigateForward()
+			}
+			return m, nil
 		}
 	}
 
@@ -210,9 +230,14 @@ func (m *ExploreMode) Update(msg tea.Msg) (Mode, tea.Cmd) {
 	case memorydetail.LinkSelectedMsg:
 		// User wants to navigate to a linked memory
 		if m.mnemosyneClient != nil && msg.TargetID != "" {
-			// Load the linked memory from server
-			cmd := memorydetail.LoadMemory(m.mnemosyneClient, msg.TargetID)
-			return m, cmd
+			return m, m.navigateToMemory(msg.TargetID)
+		}
+		return m, nil
+
+	case memorydetail.MemoryLoadedMsg:
+		// Forward to memory detail and set memory
+		if m.memoryDetail != nil && msg.Memory != nil {
+			m.memoryDetail.SetMemory(msg.Memory)
 		}
 		return m, nil
 
@@ -245,6 +270,13 @@ func (m *ExploreMode) Update(msg tea.Msg) (Mode, tea.Cmd) {
 			}
 		}
 		return m, tea.Batch(cmds...)
+
+	case memorygraph.NodeSelectedMsg:
+		// User selected a node in the graph - navigate to it
+		if m.mnemosyneClient != nil && msg.NodeID != "" {
+			return m, m.navigateToMemory(msg.NodeID)
+		}
+		return m, nil
 	}
 
 	// Forward keyboard input to focused component (only if help is not showing)
@@ -427,7 +459,15 @@ func (m *ExploreMode) View() string {
 	detailContainer := detailBorderStyle.Width(detailWidth).Render(detailView)
 
 	// Join horizontally with a gap
-	return lipgloss.JoinHorizontal(lipgloss.Top, listContainer, " ", detailContainer)
+	mainView := lipgloss.JoinHorizontal(lipgloss.Top, listContainer, " ", detailContainer)
+
+	// Add breadcrumb if present
+	breadcrumb := m.renderBreadcrumb()
+	if breadcrumb != "" {
+		return lipgloss.JoinVertical(lipgloss.Left, breadcrumb, mainView)
+	}
+
+	return mainView
 }
 
 // renderHelp renders the help overlay with consistent styling per STYLE_GUIDE.md.
@@ -442,6 +482,10 @@ func (m *ExploreMode) renderHelp() string {
 			"  ↑↓ or j/k    Select memory in list",
 			"  Enter         View selected memory",
 			"  Page Up/Dn    Scroll list",
+			"  Alt+Left      Navigate back in history",
+			"  Alt+Right     Navigate forward in history",
+			"  Ctrl+[        Navigate back (alternative)",
+			"  Ctrl+]        Navigate forward (alternative)",
 			"",
 			"DISPLAY",
 			"  Tab           Toggle list/detail focus",
@@ -454,6 +498,7 @@ func (m *ExploreMode) renderHelp() string {
 			"  Delete        Delete memory",
 			"  c             Create link",
 			"  x             Delete link",
+			"  Enter (link)  Navigate to linked memory",
 			"",
 			"SEARCH & FILTER",
 			"  /             Start search",
@@ -591,6 +636,75 @@ func (m *ExploreMode) Keybindings() []Keybinding {
 		{Key: "r", Description: "Refresh"},
 		{Key: "?", Description: "Help"},
 	}
+}
+
+// navigateToMemory navigates to a memory by ID and adds it to breadcrumb trail.
+func (m *ExploreMode) navigateToMemory(memoryID string) tea.Cmd {
+	// Add to breadcrumb trail
+	m.updateBreadcrumbTrail(memoryID)
+
+	// Load memory details
+	return memorydetail.LoadMemory(m.mnemosyneClient, memoryID)
+}
+
+// updateBreadcrumbTrail adds a memory ID to the breadcrumb trail.
+func (m *ExploreMode) updateBreadcrumbTrail(memoryID string) {
+	if memoryID == "" {
+		return
+	}
+
+	// Add to breadcrumb trail
+	m.breadcrumbTrail = append(m.breadcrumbTrail, memoryID)
+
+	// Limit to max depth (use ellipsis for deeper)
+	if len(m.breadcrumbTrail) > m.breadcrumbMaxDepth {
+		m.breadcrumbTrail = append([]string{"..."}, m.breadcrumbTrail[len(m.breadcrumbTrail)-m.breadcrumbMaxDepth+1:]...)
+	}
+}
+
+// renderBreadcrumb renders the breadcrumb trail.
+func (m *ExploreMode) renderBreadcrumb() string {
+	if len(m.breadcrumbTrail) == 0 {
+		return ""
+	}
+
+	var parts []string
+	for i, memID := range m.breadcrumbTrail {
+		if memID == "..." {
+			parts = append(parts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("244")).
+				Render("..."))
+			continue
+		}
+
+		// Shorten memory ID for display (first 8 chars)
+		displayID := memID
+		if len(memID) > 8 {
+			displayID = memID[:8] + "…"
+		}
+
+		// Make current location bold
+		if i == len(m.breadcrumbTrail)-1 {
+			parts = append(parts, lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("39")).
+				Render(displayID))
+		} else {
+			parts = append(parts, lipgloss.NewStyle().
+				Foreground(lipgloss.Color("243")).
+				Render(displayID))
+		}
+	}
+
+	separator := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("244")).
+		Render(" > ")
+
+	breadcrumb := strings.Join(parts, separator)
+	return lipgloss.NewStyle().
+		Foreground(lipgloss.Color("244")).
+		PaddingBottom(1).
+		Render("Breadcrumb: " + breadcrumb)
 }
 
 // loadSampleGraph creates a sample graph for demonstration.
