@@ -513,6 +513,22 @@ GOOS=linux GOARCH=amd64 go build -o pedantic_raven-linux .
 
 ## Documentation
 
+### Developer Guides
+
+- **[.claude/CLAUDE.md](.claude/CLAUDE.md)** - Development guide for contributors
+  - Quick start and architecture overview
+  - Development workflow and testing strategy
+  - Common tasks and patterns
+  - Release process and repository organization
+  - Context-efficient reference for human and AI developers
+
+- **[.claude/AGENT_GUIDE.md](.claude/AGENT_GUIDE.md)** - Guide for autonomous development
+  - Decision trees for development workflows
+  - Repository organization and tidying protocols
+  - Documentation update procedures
+  - Release management processes
+  - Code generation templates and patterns
+
 ### User Documentation
 
 - **[USAGE.md](docs/USAGE.md)** - Complete user guide
