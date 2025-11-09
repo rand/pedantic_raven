@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	pb "github.com/rand/pedantic-raven/internal/mnemosyne/pb/mnemosyne/v1"
 )
 
 // --- Update Tests ---
