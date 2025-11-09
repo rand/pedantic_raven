@@ -3,6 +3,8 @@ package mnemosyne
 import (
 	"errors"
 	"fmt"
+	"net"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -10,14 +12,187 @@ import (
 
 // Common errors
 var (
-	ErrNotConnected    = errors.New("not connected to mnemosyne server")
-	ErrMemoryNotFound  = errors.New("memory not found")
-	ErrInvalidArgument = errors.New("invalid argument")
-	ErrAlreadyExists   = errors.New("memory already exists")
+	ErrNotConnected     = errors.New("not connected to mnemosyne server")
+	ErrMemoryNotFound   = errors.New("memory not found")
+	ErrInvalidArgument  = errors.New("invalid argument")
+	ErrAlreadyExists    = errors.New("memory already exists")
 	ErrPermissionDenied = errors.New("permission denied")
-	ErrUnavailable     = errors.New("service unavailable")
-	ErrInternal        = errors.New("internal server error")
+	ErrUnavailable      = errors.New("service unavailable")
+	ErrInternal         = errors.New("internal server error")
+	ErrTimeout          = errors.New("operation timed out")
+	ErrConnection       = errors.New("connection error")
 )
+
+// ErrorCategory classifies errors for appropriate handling
+type ErrorCategory int
+
+const (
+	ErrCategoryConnection ErrorCategory = iota
+	ErrCategoryServer
+	ErrCategoryValidation
+	ErrCategoryTimeout
+	ErrCategoryUnknown
+)
+
+// String returns the string representation of the error category.
+func (ec ErrorCategory) String() string {
+	switch ec {
+	case ErrCategoryConnection:
+		return "connection"
+	case ErrCategoryServer:
+		return "server"
+	case ErrCategoryValidation:
+		return "validation"
+	case ErrCategoryTimeout:
+		return "timeout"
+	case ErrCategoryUnknown:
+		return "unknown"
+	default:
+		return "unknown"
+	}
+}
+
+// MnemosyneError provides rich error context
+type MnemosyneError struct {
+	Category   ErrorCategory
+	Code       string
+	Message    string
+	Retryable  bool
+	Underlying error
+}
+
+// Error implements the error interface.
+func (e *MnemosyneError) Error() string {
+	if e.Underlying != nil {
+		return fmt.Sprintf("[%s] %s: %v", e.Code, e.Message, e.Underlying)
+	}
+	return fmt.Sprintf("[%s] %s", e.Code, e.Message)
+}
+
+// Unwrap implements the error unwrapping interface.
+func (e *MnemosyneError) Unwrap() error {
+	return e.Underlying
+}
+
+// CategorizeError determines the category of an error.
+func CategorizeError(err error) ErrorCategory {
+	if err == nil {
+		return ErrCategoryUnknown
+	}
+
+	// Check for MnemosyneError
+	var mnemosyneErr *MnemosyneError
+	if errors.As(err, &mnemosyneErr) {
+		return mnemosyneErr.Category
+	}
+
+	// Check for known error types
+	if errors.Is(err, ErrNotConnected) || errors.Is(err, ErrConnection) {
+		return ErrCategoryConnection
+	}
+
+	if errors.Is(err, ErrTimeout) {
+		return ErrCategoryTimeout
+	}
+
+	if errors.Is(err, ErrInvalidArgument) || errors.Is(err, ErrMemoryNotFound) || errors.Is(err, ErrAlreadyExists) {
+		return ErrCategoryValidation
+	}
+
+	// Check for network errors
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		if netErr.Timeout() {
+			return ErrCategoryTimeout
+		}
+		return ErrCategoryConnection
+	}
+
+	// Check gRPC status codes
+	st, ok := status.FromError(err)
+	if ok {
+		switch st.Code() {
+		case codes.Unavailable, codes.FailedPrecondition:
+			return ErrCategoryConnection
+		case codes.DeadlineExceeded:
+			return ErrCategoryTimeout
+		case codes.InvalidArgument, codes.OutOfRange:
+			return ErrCategoryValidation
+		case codes.Internal, codes.Unknown, codes.DataLoss:
+			return ErrCategoryServer
+		}
+	}
+
+	// Check error message for timeout-related keywords (before connection checks)
+	errMsg := strings.ToLower(err.Error())
+	if strings.Contains(errMsg, "timeout") ||
+		strings.Contains(errMsg, "timed out") ||
+		strings.Contains(errMsg, "deadline") {
+		return ErrCategoryTimeout
+	}
+
+	// Check error message for connection-related keywords
+	if strings.Contains(errMsg, "connection") ||
+		strings.Contains(errMsg, "network") ||
+		strings.Contains(errMsg, "dial") ||
+		strings.Contains(errMsg, "unreachable") {
+		return ErrCategoryConnection
+	}
+
+	// Default to server error
+	return ErrCategoryServer
+}
+
+// IsRetryable determines if an error should be retried.
+func IsRetryable(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// Check for MnemosyneError
+	var mnemosyneErr *MnemosyneError
+	if errors.As(err, &mnemosyneErr) {
+		return mnemosyneErr.Retryable
+	}
+
+	// Check category
+	category := CategorizeError(err)
+	switch category {
+	case ErrCategoryConnection, ErrCategoryTimeout:
+		return true
+	case ErrCategoryValidation:
+		return false
+	case ErrCategoryServer:
+		// Check gRPC status for retryability
+		st, ok := status.FromError(err)
+		if ok {
+			switch st.Code() {
+			case codes.Unavailable, codes.ResourceExhausted:
+				return true
+			case codes.InvalidArgument, codes.NotFound, codes.AlreadyExists:
+				return false
+			}
+		}
+		return true
+	}
+
+	return false
+}
+
+// WrapError wraps an error with additional context and categorization.
+func WrapError(err error, category ErrorCategory, message string) *MnemosyneError {
+	if err == nil {
+		return nil
+	}
+
+	return &MnemosyneError{
+		Category:   category,
+		Code:       category.String(),
+		Message:    message,
+		Retryable:  IsRetryable(err),
+		Underlying: err,
+	}
+}
 
 // wrapError converts gRPC status errors to domain errors.
 func wrapError(err error, operation string) error {
@@ -56,7 +231,7 @@ func wrapError(err error, operation string) error {
 		return fmt.Errorf("%s: %w: %s", operation, ErrInternal, st.Message())
 
 	case codes.DeadlineExceeded:
-		return fmt.Errorf("%s: deadline exceeded: %s", operation, st.Message())
+		return fmt.Errorf("%s: %w: %s", operation, ErrTimeout, st.Message())
 
 	case codes.Canceled:
 		return fmt.Errorf("%s: canceled: %s", operation, st.Message())
@@ -79,4 +254,15 @@ func IsInvalidArgument(err error) bool {
 // IsUnavailable returns true if the error is a "service unavailable" error.
 func IsUnavailable(err error) bool {
 	return errors.Is(err, ErrUnavailable)
+}
+
+// IsConnectionError returns true if the error is a connection error.
+func IsConnectionError(err error) bool {
+	return errors.Is(err, ErrNotConnected) || errors.Is(err, ErrConnection) ||
+		CategorizeError(err) == ErrCategoryConnection
+}
+
+// IsTimeout returns true if the error is a timeout error.
+func IsTimeout(err error) bool {
+	return errors.Is(err, ErrTimeout) || CategorizeError(err) == ErrCategoryTimeout
 }

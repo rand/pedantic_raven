@@ -86,6 +86,70 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		// Show delete confirmation dialog
 		m.showDeleteConfirm = true
 		return m, nil
+
+	case LinkCreatedMsg:
+		// Handle link creation result
+		if msg.Err != nil {
+			m.SetError(msg.Err)
+			return m, nil
+		}
+
+		// Add link to current memory's links
+		if m.memory != nil && msg.Link != nil {
+			m.memory.Links = append(m.memory.Links, msg.Link)
+		}
+
+		// Hide create link dialog
+		m.HideCreateLinkDialog()
+		return m, nil
+
+	case LinkDeletedMsg:
+		// Handle link deletion result
+		if msg.Err != nil {
+			m.SetError(msg.Err)
+			return m, nil
+		}
+
+		// Remove link from current memory's links
+		if m.memory != nil {
+			for i, link := range m.memory.Links {
+				if link.TargetId == msg.LinkID {
+					m.memory.Links = append(m.memory.Links[:i], m.memory.Links[i+1:]...)
+					break
+				}
+			}
+		}
+
+		// Clear link selection
+		m.ClearLinkSelection()
+		return m, nil
+
+	case LinkMetadataUpdatedMsg:
+		// Handle link metadata update result
+		if msg.Err != nil {
+			m.SetError(msg.Err)
+			return m, nil
+		}
+
+		// Update link in current memory's links
+		if m.memory != nil && msg.Link != nil {
+			for i, link := range m.memory.Links {
+				if link.TargetId == msg.Link.TargetId {
+					m.memory.Links[i] = msg.Link
+					break
+				}
+			}
+		}
+		return m, nil
+
+	case LinkedMemoriesLoadedMsg:
+		// Handle linked memories result
+		if msg.Err != nil {
+			m.SetError(msg.Err)
+			return m, nil
+		}
+		// For now, just acknowledge - could be used for link previews
+		return m, nil
 	}
 
 	return m, nil
@@ -134,9 +198,19 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (Model, tea.Cmd) {
 	// Normal view mode
 	switch msg.String() {
 	case "j", "down":
+		// If a link is selected, move to next link, otherwise scroll
+		if m.selectedLinkIndex >= 0 {
+			m.SelectNextLink()
+			return m, nil
+		}
 		return m.scrollDown(), nil
 
 	case "k", "up":
+		// If a link is selected, move to previous link, otherwise scroll
+		if m.selectedLinkIndex >= 0 {
+			m.SelectPreviousLink()
+			return m, nil
+		}
 		return m.scrollUp(), nil
 
 	case "g":
@@ -164,11 +238,33 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (Model, tea.Cmd) {
 		return m, m.DeleteCurrentMemory()
 
 	case "l":
-		// Enter link navigation mode (select first link)
+		// Toggle link selection mode - select first link if not selected
 		if m.HasLinks() {
 			m.SelectFirstLink()
 		}
 		return m, nil
+
+	case "c":
+		// Show create link dialog
+		if !m.ShowingCreateLinkDialog() {
+			m.ShowCreateLinkDialog()
+		}
+		return m, nil
+
+	case "x":
+		// Delete selected link
+		if m.selectedLinkIndex >= 0 {
+			return m, m.DeleteSelectedLink()
+		}
+		return m, nil
+
+	case "[":
+		// Navigate back
+		return m, m.NavigateBack()
+
+	case "]":
+		// Navigate forward
+		return m, m.NavigateForward()
 
 	case "tab", "n":
 		// Navigate to next link
@@ -194,7 +290,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (Model, tea.Cmd) {
 	case "enter":
 		// Navigate to selected link
 		if link := m.SelectedLink(); link != nil {
-			return m, m.navigateLinkCmd(link.TargetId)
+			return m, m.NavigateToLinkedMemory(link.TargetId)
 		}
 		return m, nil
 	}

@@ -87,13 +87,18 @@ func (cfg *ConnectionConfig) Validate() error {
 
 // ConnectionManager manages persistent connection to mnemosyne-rpc server.
 type ConnectionManager struct {
-	client      *Client
-	config      *ConnectionConfig
-	status      ConnectionStatus
-	mu          sync.RWMutex
-	healthCheck *time.Ticker
-	stopHealth  chan struct{}
-	retryCount  int
+	client        *Client
+	config        *ConnectionConfig
+	status        ConnectionStatus
+	mu            sync.RWMutex
+	healthCheck   *time.Ticker
+	stopHealth    chan struct{}
+	retryCount    int
+	offlineMode   bool
+	offlineCache  *OfflineCache
+	syncQueue     *SyncQueue
+	lastError     error
+	errorCallback func(error)
 }
 
 // NewConnectionManager creates a new connection manager.
@@ -103,8 +108,11 @@ func NewConnectionManager(config *ConnectionConfig) (*ConnectionManager, error) 
 	}
 
 	cm := &ConnectionManager{
-		config: config,
-		status: StatusDisconnected,
+		config:       config,
+		status:       StatusDisconnected,
+		offlineMode:  false,
+		offlineCache: NewOfflineCache(),
+		syncQueue:    NewSyncQueue(),
 	}
 
 	return cm, nil
@@ -144,6 +152,7 @@ func (cm *ConnectionManager) Connect() error {
 		cm.mu.Lock()
 		cm.status = StatusFailed
 		cm.mu.Unlock()
+		cm.enterOfflineMode(err)
 		return fmt.Errorf("failed to connect: %w", err)
 	}
 
@@ -156,6 +165,7 @@ func (cm *ConnectionManager) Connect() error {
 		cm.mu.Lock()
 		cm.status = StatusFailed
 		cm.mu.Unlock()
+		cm.enterOfflineMode(err)
 		return fmt.Errorf("health check failed: %w", err)
 	}
 
@@ -164,6 +174,9 @@ func (cm *ConnectionManager) Connect() error {
 	cm.client = client
 	cm.status = StatusConnected
 	cm.mu.Unlock()
+
+	// Exit offline mode if previously offline
+	cm.exitOfflineMode()
 
 	// Start health check monitoring
 	cm.startHealthCheckMonitoring()
@@ -228,7 +241,8 @@ func (cm *ConnectionManager) HealthCheck() error {
 
 	_, err := client.HealthCheck(ctx)
 	if err != nil {
-		// Health check failed, trigger reconnection
+		// Health check failed, enter offline mode and trigger reconnection
+		cm.enterOfflineMode(err)
 		go cm.attemptReconnect()
 		return fmt.Errorf("health check failed: %w", err)
 	}
@@ -385,6 +399,9 @@ func (cm *ConnectionManager) attemptReconnect() {
 		cm.retryCount = 0
 		cm.mu.Unlock()
 
+		// Exit offline mode and sync
+		cm.exitOfflineMode()
+
 		// Restart health check monitoring
 		cm.startHealthCheckMonitoring()
 		return
@@ -402,4 +419,114 @@ func (cm *ConnectionManager) calculateBackoff(attempt int) time.Duration {
 	}
 
 	return time.Duration(backoff)
+}
+
+// IsOffline returns true if the connection is in offline mode.
+func (cm *ConnectionManager) IsOffline() bool {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	return cm.offlineMode
+}
+
+// GetOfflineCache returns the offline cache.
+func (cm *ConnectionManager) GetOfflineCache() *OfflineCache {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	return cm.offlineCache
+}
+
+// GetSyncQueue returns the sync queue.
+func (cm *ConnectionManager) GetSyncQueue() *SyncQueue {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	return cm.syncQueue
+}
+
+// SetErrorCallback sets a callback function to be called when errors occur.
+func (cm *ConnectionManager) SetErrorCallback(callback func(error)) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	cm.errorCallback = callback
+}
+
+// GetLastError returns the last error that occurred.
+func (cm *ConnectionManager) GetLastError() error {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	return cm.lastError
+}
+
+// TriggerSync attempts to synchronize offline changes with the server.
+// Returns the number of successfully synced operations and any error.
+func (cm *ConnectionManager) TriggerSync() (int, error) {
+	cm.mu.RLock()
+	client := cm.client
+	cache := cm.offlineCache
+	queue := cm.syncQueue
+	isOffline := cm.offlineMode
+	cm.mu.RUnlock()
+
+	if isOffline {
+		return 0, fmt.Errorf("cannot sync while in offline mode")
+	}
+
+	if client == nil {
+		return 0, ErrNotConnected
+	}
+
+	// Perform sync
+	count, err := cache.Sync(client, queue)
+	if err != nil {
+		cm.mu.Lock()
+		cm.lastError = err
+		if cm.errorCallback != nil {
+			go cm.errorCallback(err)
+		}
+		cm.mu.Unlock()
+		return count, err
+	}
+
+	return count, nil
+}
+
+// enterOfflineMode switches the connection manager to offline mode.
+func (cm *ConnectionManager) enterOfflineMode(err error) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	if cm.offlineMode {
+		return // Already in offline mode
+	}
+
+	cm.offlineMode = true
+	cm.lastError = err
+
+	if cm.errorCallback != nil {
+		go cm.errorCallback(WrapError(err, ErrCategoryConnection, "entering offline mode"))
+	}
+}
+
+// exitOfflineMode exits offline mode and attempts to sync.
+func (cm *ConnectionManager) exitOfflineMode() {
+	cm.mu.Lock()
+	isOffline := cm.offlineMode
+	cm.offlineMode = false
+	cm.mu.Unlock()
+
+	if !isOffline {
+		return // Was not in offline mode
+	}
+
+	// Trigger sync in background
+	go func() {
+		count, err := cm.TriggerSync()
+		if err != nil {
+			cm.mu.Lock()
+			cm.lastError = err
+			if cm.errorCallback != nil {
+				cm.errorCallback(WrapError(err, ErrCategoryServer, fmt.Sprintf("sync failed after reconnection (synced %d operations)", count)))
+			}
+			cm.mu.Unlock()
+		}
+	}()
 }

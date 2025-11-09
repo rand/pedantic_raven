@@ -33,6 +33,13 @@ type Model struct {
 	editState         *EditState
 	showDeleteConfirm bool
 	isNewMemory       bool // True if creating a new memory
+
+	// Link management state
+	showCreateLink    bool
+	linkTargetSearch  string
+	linkType          pb.LinkType
+	linkStrength      float32 // 0.0-1.0
+	navigationHistory *NavigationHistory
 }
 
 // Messages for the memory detail component.
@@ -69,6 +76,11 @@ func NewModel() Model {
 		editState:         nil,
 		showDeleteConfirm: false,
 		isNewMemory:       false,
+		showCreateLink:    false,
+		linkTargetSearch:  "",
+		linkType:          pb.LinkType_LINK_TYPE_REFERENCES, // Default link type
+		linkStrength:      0.7,                              // Default strength
+		navigationHistory: NewNavigationHistory(),
 	}
 }
 
@@ -302,6 +314,12 @@ func (m *Model) SelectNextLink() {
 		return
 	}
 
+	// If no link is selected (-1), select the first link (0)
+	if m.selectedLinkIndex < 0 {
+		m.selectedLinkIndex = 0
+		return
+	}
+
 	m.selectedLinkIndex++
 	if m.selectedLinkIndex >= len(m.memory.Links) {
 		m.selectedLinkIndex = len(m.memory.Links) - 1
@@ -350,4 +368,136 @@ func (m Model) SelectedLinkIndex() int {
 // HasLinks returns true if the memory has links.
 func (m Model) HasLinks() bool {
 	return m.memory != nil && len(m.memory.Links) > 0
+}
+
+// Link management dialog methods
+
+// ShowCreateLinkDialog shows the create link dialog.
+func (m *Model) ShowCreateLinkDialog() {
+	m.showCreateLink = true
+	m.linkTargetSearch = ""
+	m.linkType = pb.LinkType_LINK_TYPE_REFERENCES
+	m.linkStrength = 0.7
+}
+
+// HideCreateLinkDialog hides the create link dialog.
+func (m *Model) HideCreateLinkDialog() {
+	m.showCreateLink = false
+	m.linkTargetSearch = ""
+}
+
+// ShowingCreateLinkDialog returns true if showing the create link dialog.
+func (m Model) ShowingCreateLinkDialog() bool {
+	return m.showCreateLink
+}
+
+// SetLinkType sets the link type for the new link.
+func (m *Model) SetLinkType(linkType pb.LinkType) {
+	m.linkType = linkType
+}
+
+// GetLinkType returns the current link type selection.
+func (m Model) GetLinkType() pb.LinkType {
+	return m.linkType
+}
+
+// SetLinkStrength sets the link strength (0.0-1.0).
+func (m *Model) SetLinkStrength(strength float32) {
+	if strength < 0.0 {
+		strength = 0.0
+	}
+	if strength > 1.0 {
+		strength = 1.0
+	}
+	m.linkStrength = strength
+}
+
+// GetLinkStrength returns the current link strength.
+func (m Model) GetLinkStrength() float32 {
+	return m.linkStrength
+}
+
+// SetLinkTargetSearch sets the link target search query.
+func (m *Model) SetLinkTargetSearch(query string) {
+	m.linkTargetSearch = query
+}
+
+// GetLinkTargetSearch returns the link target search query.
+func (m Model) GetLinkTargetSearch() string {
+	return m.linkTargetSearch
+}
+
+// CreateLinkToMemory creates a link from the current memory to a target memory.
+func (m *Model) CreateLinkToMemory(targetID string) tea.Cmd {
+	if m.memory == nil {
+		return nil
+	}
+
+	return CreateLink(
+		m.mnemosyneClient,
+		m.memory.Id,
+		targetID,
+		m.linkType,
+		m.linkStrength,
+		"", // Reason - could be added to UI later
+	)
+}
+
+// DeleteSelectedLink deletes the currently selected link.
+func (m *Model) DeleteSelectedLink() tea.Cmd {
+	link := m.SelectedLink()
+	if link == nil || m.memory == nil {
+		return nil
+	}
+
+	return DeleteLink(m.mnemosyneClient, m.memory.Id, link.TargetId)
+}
+
+// NavigateToLinkedMemory navigates to a linked memory.
+func (m *Model) NavigateToLinkedMemory(targetID string) tea.Cmd {
+	// Add current memory to navigation history
+	if m.memory != nil {
+		m.navigationHistory.Push(m.memory.Id)
+	}
+
+	// Navigate to the target
+	return func() tea.Msg {
+		return LinkSelectedMsg{
+			TargetID: targetID,
+		}
+	}
+}
+
+// NavigateBack navigates to the previous memory in history.
+func (m *Model) NavigateBack() tea.Cmd {
+	if memoryID, ok := m.navigationHistory.Back(); ok {
+		return func() tea.Msg {
+			return LinkSelectedMsg{
+				TargetID: memoryID,
+			}
+		}
+	}
+	return nil
+}
+
+// NavigateForward navigates to the next memory in history.
+func (m *Model) NavigateForward() tea.Cmd {
+	if memoryID, ok := m.navigationHistory.Forward(); ok {
+		return func() tea.Msg {
+			return LinkSelectedMsg{
+				TargetID: memoryID,
+			}
+		}
+	}
+	return nil
+}
+
+// CanNavigateBack returns true if can navigate back.
+func (m Model) CanNavigateBack() bool {
+	return m.navigationHistory.CanGoBack()
+}
+
+// CanNavigateForward returns true if can navigate forward.
+func (m Model) CanNavigateForward() bool {
+	return m.navigationHistory.CanGoForward()
 }
