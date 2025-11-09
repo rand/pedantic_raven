@@ -72,7 +72,7 @@
         } else if (currentSection && sectionComments[currentSection]) {
             sidebar.textContent = sectionComments[currentSection];
         } else {
-            sidebar.textContent = '// Semantic knowledge graph for Markdown';
+            sidebar.textContent = '// Context Engineering';
         }
     }
 
