@@ -9,14 +9,14 @@ import (
 	pb "github.com/rand/pedantic-raven/internal/mnemosyne/pb/mnemosyne/v1"
 )
 
-// Link operation errors
+// Link operation errors with clear, actionable messages
 var (
-	ErrLinkToSelf       = errors.New("cannot create link to self")
-	ErrLinkNotFound     = errors.New("link not found")
-	ErrInvalidLinkType  = errors.New("invalid link type")
-	ErrInvalidStrength  = errors.New("link strength must be between 0.0 and 1.0")
-	ErrTargetNotFound   = errors.New("target memory not found")
-	ErrSourceNotFound   = errors.New("source memory not found")
+	ErrLinkToSelf       = errors.New("✗ Link Error: Cannot create link to itself. Choose a different memory.")
+	ErrLinkNotFound     = errors.New("✗ Link Error: Link not found. It may have been deleted. Refresh list (Ctrl+R).")
+	ErrInvalidLinkType  = errors.New("✗ Link Error: Invalid link type. Use: related, depends, influences, causes.")
+	ErrInvalidStrength  = errors.New("✗ Link Error: Strength must be 0.0-1.0. Use decimal value (e.g., 0.8).")
+	ErrTargetNotFound   = errors.New("✗ Link Error: Target memory not found. It may have been deleted. Refresh (Ctrl+R).")
+	ErrSourceNotFound   = errors.New("✗ Link Error: Source memory not found. It may have been deleted. Refresh (Ctrl+R).")
 )
 
 // LinkDirection specifies the direction of link traversal.

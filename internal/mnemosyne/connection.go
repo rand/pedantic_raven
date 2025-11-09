@@ -65,22 +65,22 @@ type ConnectionConfig struct {
 // Validate checks if the configuration is valid.
 func (cfg *ConnectionConfig) Validate() error {
 	if cfg.Host == "" {
-		return fmt.Errorf("host cannot be empty")
+		return fmt.Errorf("✗ Config: Host cannot be empty. Check config.toml.")
 	}
 	if cfg.Port <= 0 || cfg.Port > 65535 {
-		return fmt.Errorf("port must be between 1 and 65535, got %d", cfg.Port)
+		return fmt.Errorf("✗ Config: Port invalid. Must be 1-65535, got %d. Check config.toml.", cfg.Port)
 	}
 	if cfg.Timeout <= 0 {
-		return fmt.Errorf("timeout must be positive, got %v", cfg.Timeout)
+		return fmt.Errorf("✗ Config: Timeout must be positive, got %v. Check config.toml.", cfg.Timeout)
 	}
 	if cfg.RetryPolicy.MaxAttempts < 0 {
-		return fmt.Errorf("max retry attempts must be non-negative, got %d", cfg.RetryPolicy.MaxAttempts)
+		return fmt.Errorf("✗ Config: Retry attempts must be >=0, got %d. Check config.toml.", cfg.RetryPolicy.MaxAttempts)
 	}
 	if cfg.RetryPolicy.InitialBackoff <= 0 {
-		return fmt.Errorf("initial backoff must be positive, got %v", cfg.RetryPolicy.InitialBackoff)
+		return fmt.Errorf("✗ Config: Initial backoff must be positive, got %v. Check config.toml.", cfg.RetryPolicy.InitialBackoff)
 	}
 	if cfg.RetryPolicy.MaxBackoff < cfg.RetryPolicy.InitialBackoff {
-		return fmt.Errorf("max backoff must be >= initial backoff")
+		return fmt.Errorf("✗ Config: Max backoff must be >= initial backoff. Check config.toml.")
 	}
 	return nil
 }

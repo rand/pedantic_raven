@@ -42,14 +42,14 @@ const (
 	OperationTimeout   = 30 * time.Second
 )
 
-// Validation errors
+// Validation errors with clear, actionable messages
 var (
-	ErrContentRequired   = errors.New("content is required")
-	ErrContentTooLong    = errors.New("content exceeds maximum length")
-	ErrImportanceInvalid = errors.New("importance must be between 1 and 10")
-	ErrTooManyTags       = errors.New("too many tags (max 20)")
-	ErrNamespaceRequired = errors.New("namespace is required")
-	ErrNoClient          = errors.New("mnemosyne client not configured")
+	ErrContentRequired   = errors.New("✗ Validation: Content is required. Enter at least 1 character.")
+	ErrContentTooLong    = errors.New("✗ Validation: Content exceeds 10000 characters. Truncate and try again.")
+	ErrImportanceInvalid = errors.New("✗ Validation: Importance must be 1-10. Enter a number in this range.")
+	ErrTooManyTags       = errors.New("✗ Validation: Too many tags (max 20). Remove some and retry.")
+	ErrNamespaceRequired = errors.New("✗ Validation: Namespace is required. Use format: project:name.")
+	ErrNoClient          = errors.New("✗ Config: Mnemosyne client not configured. Check config.toml and restart.")
 )
 
 // Messages for CRUD operations

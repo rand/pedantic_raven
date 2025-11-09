@@ -10,17 +10,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Common errors
+// Common errors with clear, actionable messages
 var (
-	ErrNotConnected     = errors.New("not connected to mnemosyne server")
-	ErrMemoryNotFound   = errors.New("memory not found")
-	ErrInvalidArgument  = errors.New("invalid argument")
-	ErrAlreadyExists    = errors.New("memory already exists")
-	ErrPermissionDenied = errors.New("permission denied")
-	ErrUnavailable      = errors.New("service unavailable")
-	ErrInternal         = errors.New("internal server error")
-	ErrTimeout          = errors.New("operation timed out")
-	ErrConnection       = errors.New("connection error")
+	ErrNotConnected     = errors.New("✗ Connection: Not connected to mnemosyne server. Check if running and config.")
+	ErrMemoryNotFound   = errors.New("✗ Memory: Not found. May have been deleted. Refresh (Ctrl+R).")
+	ErrInvalidArgument  = errors.New("✗ Validation: Invalid argument provided. Check format and required fields.")
+	ErrAlreadyExists    = errors.New("✗ Memory: Already exists. Cannot create duplicate.")
+	ErrPermissionDenied = errors.New("✗ Permission: Access denied. Check credentials and permissions.")
+	ErrUnavailable      = errors.New("✗ Connection: Mnemosyne server unavailable. Check if running.")
+	ErrInternal         = errors.New("✗ Server: Internal error. Check server logs for details.")
+	ErrTimeout          = errors.New("✗ Timeout: Operation took too long. Check connection or try again.")
+	ErrConnection       = errors.New("✗ Connection: Connection error. Check network and server status.")
 )
 
 // ErrorCategory classifies errors for appropriate handling
