@@ -400,7 +400,7 @@ func extractTitle(content string) string {
 	return title
 }
 
-// renderSearchInput renders the search input bar.
+// renderSearchInput renders the search input bar with filters.
 func (m Model) renderSearchInput() string {
 	prompt := "Search: "
 	cursor := "█"
@@ -419,6 +419,76 @@ func (m Model) renderSearchInput() string {
 	}
 
 	return style.Width(m.width).Render(line)
+}
+
+// renderFilterPills renders active filters as visual pills.
+func (m Model) renderFilterPills() string {
+	if m.searchQuery == "" && len(m.filterTags) == 0 && m.filterNS == "" && m.minImportance == 0 {
+		return "" // No active filters
+	}
+
+	var pills []string
+
+	// Search query pill
+	if m.searchQuery != "" {
+		queryPill := fmt.Sprintf("󰍉 %s", m.searchQuery)
+		pills = append(pills, queryPill)
+	}
+
+	// Tags pills
+	for _, tag := range m.filterTags {
+		tagPill := fmt.Sprintf("🏷  %s", tag)
+		pills = append(pills, tagPill)
+	}
+
+	// Namespace pill
+	if m.filterNS != "" {
+		nsPill := fmt.Sprintf("📦 %s", m.filterNS)
+		pills = append(pills, nsPill)
+	}
+
+	// Importance pill
+	if m.minImportance > 0 {
+		impPill := fmt.Sprintf("⭐ %d+", m.minImportance)
+		pills = append(pills, impPill)
+	}
+
+	if len(pills) == 0 {
+		return ""
+	}
+
+	// Build filter line
+	filterText := "Filters: " + strings.Join(pills, " ")
+
+	// Truncate if too long
+	if len(filterText) > m.width-4 {
+		filterText = filterText[:m.width-7] + "..."
+	}
+
+	pillStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("243")).
+		Background(lipgloss.Color("235")).
+		Padding(0, 1)
+
+	return pillStyle.Width(m.width).Render(filterText)
+}
+
+// renderSearchBar renders the complete search UI with input and filters.
+func (m Model) renderSearchBar() string {
+	var b strings.Builder
+
+	// Search input
+	b.WriteString(m.renderSearchInput())
+	b.WriteString("\n")
+
+	// Filter pills (if any active filters)
+	filterPills := m.renderFilterPills()
+	if filterPills != "" {
+		b.WriteString(filterPills)
+		b.WriteString("\n")
+	}
+
+	return b.String()
 }
 
 // renderHelp renders the help overlay.
