@@ -1,0 +1,357 @@
+package memorydetail
+
+import (
+	"strings"
+	"testing"
+
+	tea "github.com/charmbracelet/bubbletea"
+)
+
+// --- Update Tests ---
+
+func TestUpdateUnfocused(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(false)
+
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	msg := MemoryLoadedMsg{Memory: memory}
+
+	m, _ = m.Update(msg)
+
+	// Should not process messages when unfocused
+	if m.Memory() != nil {
+		t.Error("Expected unfocused model to ignore messages")
+	}
+}
+
+func TestUpdateMemoryLoadedMsg(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	memory := createTestMemory("test-1", "Test content", 8, []string{"tag1"})
+	msg := MemoryLoadedMsg{Memory: memory}
+
+	m, _ = m.Update(msg)
+
+	if m.Memory() == nil {
+		t.Fatal("Expected memory to be set")
+	}
+
+	if m.Memory().Id != "test-1" {
+		t.Errorf("Expected memory ID 'test-1', got '%s'", m.Memory().Id)
+	}
+}
+
+func TestUpdateMemoryErrorMsg(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	err := &testError{msg: "load failed"}
+	msg := MemoryErrorMsg{Err: err}
+
+	m, _ = m.Update(msg)
+
+	if m.Error() == nil {
+		t.Fatal("Expected error to be set")
+	}
+
+	if m.Error().Error() != "load failed" {
+		t.Errorf("Expected error 'load failed', got '%s'", m.Error().Error())
+	}
+}
+
+// --- Keyboard Handling Tests ---
+
+func TestScrollDown(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+	m.SetSize(80, 10)
+
+	// Create memory with multiple lines
+	content := strings.Repeat("Line of content\n", 20)
+	memory := createTestMemory("test-1", content, 8, nil)
+	m.SetMemory(memory)
+
+	// Scroll down
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+
+	if m.scrollOffset != 1 {
+		t.Errorf("Expected scrollOffset 1 after 'j', got %d", m.scrollOffset)
+	}
+
+	// Scroll down with arrow
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+
+	if m.scrollOffset != 2 {
+		t.Errorf("Expected scrollOffset 2 after down arrow, got %d", m.scrollOffset)
+	}
+}
+
+func TestScrollUp(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+	m.SetSize(80, 10)
+
+	content := strings.Repeat("Line\n", 20)
+	memory := createTestMemory("test-1", content, 8, nil)
+	m.SetMemory(memory)
+
+	m.scrollOffset = 5
+
+	// Scroll up
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
+
+	if m.scrollOffset != 4 {
+		t.Errorf("Expected scrollOffset 4 after 'k', got %d", m.scrollOffset)
+	}
+
+	// Scroll up with arrow
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyUp})
+
+	if m.scrollOffset != 3 {
+		t.Errorf("Expected scrollOffset 3 after up arrow, got %d", m.scrollOffset)
+	}
+}
+
+func TestScrollUpBoundary(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	m.SetMemory(memory)
+	m.scrollOffset = 0
+
+	// Try to scroll up past top
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
+
+	if m.scrollOffset != 0 {
+		t.Errorf("Expected scrollOffset to stay at 0, got %d", m.scrollOffset)
+	}
+}
+
+func TestScrollDownBoundary(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+	m.SetSize(80, 10)
+
+	// Short content that fits in viewport
+	memory := createTestMemory("test-1", "Line 1\nLine 2\nLine 3", 8, nil)
+	m.SetMemory(memory)
+
+	maxScroll := m.maxScrollOffset()
+
+	// Try to scroll past max
+	for i := 0; i < 20; i++ {
+		m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	}
+
+	if m.scrollOffset > maxScroll {
+		t.Errorf("Expected scrollOffset <= %d, got %d", maxScroll, m.scrollOffset)
+	}
+}
+
+func TestScrollToTop(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	m.SetMemory(memory)
+	m.scrollOffset = 10
+
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}})
+
+	if m.scrollOffset != 0 {
+		t.Errorf("Expected scrollOffset 0 after 'g', got %d", m.scrollOffset)
+	}
+}
+
+func TestScrollToBottom(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+	m.SetSize(80, 10)
+
+	content := strings.Repeat("Line\n", 20)
+	memory := createTestMemory("test-1", content, 8, nil)
+	m.SetMemory(memory)
+
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'G'}})
+
+	maxScroll := m.maxScrollOffset()
+	if m.scrollOffset != maxScroll {
+		t.Errorf("Expected scrollOffset %d after 'G', got %d", maxScroll, m.scrollOffset)
+	}
+}
+
+func TestPageDown(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+	m.SetSize(80, 10)
+
+	content := strings.Repeat("Line\n", 50)
+	memory := createTestMemory("test-1", content, 8, nil)
+	m.SetMemory(memory)
+
+	visibleLines := m.visibleLines()
+
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyCtrlD})
+
+	if m.scrollOffset != visibleLines {
+		t.Errorf("Expected scrollOffset %d after Ctrl+D, got %d", visibleLines, m.scrollOffset)
+	}
+}
+
+func TestPageUp(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+	m.SetSize(80, 10)
+
+	content := strings.Repeat("Line\n", 50)
+	memory := createTestMemory("test-1", content, 8, nil)
+	m.SetMemory(memory)
+
+	visibleLines := m.visibleLines()
+	m.scrollOffset = visibleLines * 2
+
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyCtrlU})
+
+	expectedOffset := visibleLines
+	if m.scrollOffset != expectedOffset {
+		t.Errorf("Expected scrollOffset %d after Ctrl+U, got %d", expectedOffset, m.scrollOffset)
+	}
+}
+
+func TestToggleMetadataKey(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	// Should be shown by default
+	if !m.ShowMetadata() {
+		t.Error("Expected metadata shown by default")
+	}
+
+	// Press 'm' to toggle
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'m'}})
+
+	if m.ShowMetadata() {
+		t.Error("Expected metadata hidden after 'm'")
+	}
+
+	// Press 'm' again
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'m'}})
+
+	if !m.ShowMetadata() {
+		t.Error("Expected metadata shown after second 'm'")
+	}
+}
+
+func TestCloseKeys(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	// Test 'q' key
+	m, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+
+	if cmd == nil {
+		t.Error("Expected non-nil cmd for 'q' key")
+	}
+
+	msg := cmd()
+	if _, ok := msg.(CloseRequestMsg); !ok {
+		t.Errorf("Expected CloseRequestMsg, got %T", msg)
+	}
+
+	// Test 'esc' key
+	m, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+
+	if cmd == nil {
+		t.Error("Expected non-nil cmd for 'esc' key")
+	}
+
+	msg = cmd()
+	if _, ok := msg.(CloseRequestMsg); !ok {
+		t.Errorf("Expected CloseRequestMsg, got %T", msg)
+	}
+}
+
+// --- Helper Function Tests ---
+
+func TestVisibleLines(t *testing.T) {
+	m := NewModel()
+	m.SetSize(80, 10)
+
+	visible := m.visibleLines()
+
+	// Height 10 - header (1) - footer (1) = 8
+	if visible != 8 {
+		t.Errorf("Expected 8 visible lines, got %d", visible)
+	}
+}
+
+func TestContentLines(t *testing.T) {
+	m := NewModel()
+
+	// Test with no memory
+	if m.contentLines() != 0 {
+		t.Error("Expected 0 content lines when memory is nil")
+	}
+
+	// Test with single line
+	memory := createTestMemory("test-1", "Single line", 8, nil)
+	m.SetMemory(memory)
+
+	if m.contentLines() != 1 {
+		t.Errorf("Expected 1 content line, got %d", m.contentLines())
+	}
+
+	// Test with multiple lines
+	memory2 := createTestMemory("test-2", "Line 1\nLine 2\nLine 3", 8, nil)
+	m.SetMemory(memory2)
+
+	if m.contentLines() != 3 {
+		t.Errorf("Expected 3 content lines, got %d", m.contentLines())
+	}
+}
+
+func TestMaxScrollOffset(t *testing.T) {
+	m := NewModel()
+	m.SetSize(80, 10)
+
+	// No memory
+	if m.maxScrollOffset() != 0 {
+		t.Error("Expected 0 max scroll when memory is nil")
+	}
+
+	// Content shorter than viewport
+	memory := createTestMemory("test-1", "Line 1\nLine 2", 8, nil)
+	m.SetMemory(memory)
+
+	if m.maxScrollOffset() != 0 {
+		t.Errorf("Expected 0 max scroll for short content, got %d", m.maxScrollOffset())
+	}
+
+	// Content longer than viewport
+	content := strings.Repeat("Line\n", 20)
+	memory2 := createTestMemory("test-2", content, 8, nil)
+	m.SetMemory(memory2)
+
+	maxScroll := m.maxScrollOffset()
+	visibleLines := m.visibleLines()
+	totalLines := m.contentLines()
+	expectedMax := totalLines - visibleLines
+
+	if maxScroll != expectedMax {
+		t.Errorf("Expected max scroll %d, got %d", expectedMax, maxScroll)
+	}
+}
+
+func TestScrollWithNoMemory(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	// Try scrolling with no memory set
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+
+	if m.scrollOffset != 0 {
+		t.Error("Expected scrollOffset to remain 0 when memory is nil")
+	}
+}
