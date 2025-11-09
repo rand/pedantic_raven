@@ -22,7 +22,7 @@ func TestNewExploreMode(t *testing.T) {
 		t.Errorf("Expected mode name 'Explore', got '%s'", mode.Name())
 	}
 
-	expectedDesc := "Memory workspace with graph visualization"
+	expectedDesc := "Memory workspace with list, detail, and graph views"
 	if mode.Description() != expectedDesc {
 		t.Errorf("Expected description '%s', got '%s'", expectedDesc, mode.Description())
 	}
@@ -56,15 +56,15 @@ func TestExploreModeOnEnter(t *testing.T) {
 
 	cmd := mode.OnEnter()
 
-	// OnEnter should return a command to load the sample graph
+	// OnEnter should return a command to load sample data
 	if cmd == nil {
 		t.Error("OnEnter should return a command")
 	}
 
-	// Execute the command to get the GraphLoadedMsg
+	// Execute the command - it returns a BatchMsg with multiple commands
 	msg := cmd()
-	if _, ok := msg.(memorygraph.GraphLoadedMsg); !ok {
-		t.Errorf("Expected GraphLoadedMsg, got %T", msg)
+	if _, ok := msg.(tea.BatchMsg); !ok {
+		t.Errorf("Expected tea.BatchMsg (batch of commands), got %T", msg)
 	}
 }
 
@@ -153,11 +153,11 @@ func TestExploreModeUpdateForwardsToGraph(t *testing.T) {
 
 func TestExploreModeViewWithNilGraph(t *testing.T) {
 	mode := NewExploreMode()
-	// Don't call Init, so graph remains nil
+	// Don't call Init, so components remain nil
 
 	view := mode.View()
 
-	expected := "Initializing graph visualization..."
+	expected := "Initializing memory workspace..."
 	if view != expected {
 		t.Errorf("Expected view '%s', got '%s'", expected, view)
 	}
@@ -188,35 +188,63 @@ func TestExploreModeViewWithGraph(t *testing.T) {
 func TestExploreModeKeybindings(t *testing.T) {
 	mode := NewExploreMode()
 
+	// Test standard layout keybindings (default)
 	keybindings := mode.Keybindings()
 
 	if len(keybindings) == 0 {
 		t.Error("Keybindings should not be empty")
 	}
 
-	// Check for expected keybindings
-	expectedKeys := map[string]bool{
-		"h/j/k/l": false,
-		"+/-":     false,
-		"0":       false,
-		"Tab":     false,
-		"Enter":   false,
-		"e":       false,
-		"x":       false,
-		"c":       false,
-		"r":       false,
-		"Space":   false,
+	// Check for expected standard layout keybindings
+	expectedKeysStandard := map[string]bool{
+		"g":     false, // Toggle to graph
+		"Tab":   false, // Switch focus
+		"j/k":   false, // Navigate
+		"Enter": false, // Select
+		"/":     false, // Search
+		"r":     false, // Refresh
+		"?":     false, // Help
 	}
 
 	for _, kb := range keybindings {
-		if _, exists := expectedKeys[kb.Key]; exists {
-			expectedKeys[kb.Key] = true
+		if _, exists := expectedKeysStandard[kb.Key]; exists {
+			expectedKeysStandard[kb.Key] = true
 		}
 	}
 
-	for key, found := range expectedKeys {
+	for key, found := range expectedKeysStandard {
 		if !found {
-			t.Errorf("Missing expected keybinding: %s", key)
+			t.Errorf("Missing expected standard layout keybinding: %s", key)
+		}
+	}
+
+	// Test graph layout keybindings
+	mode.layoutMode = LayoutModeGraph
+	keybindingsGraph := mode.Keybindings()
+
+	expectedKeysGraph := map[string]bool{
+		"g":       false, // Toggle to list
+		"h/j/k/l": false, // Pan
+		"+/-":     false, // Zoom
+		"0":       false, // Reset
+		"Tab":     false, // Select node
+		"Enter":   false, // Navigate
+		"e":       false, // Expand
+		"x":       false, // Collapse
+		"c":       false, // Center
+		"r":       false, // Re-layout
+		"Space":   false, // Layout step
+	}
+
+	for _, kb := range keybindingsGraph {
+		if _, exists := expectedKeysGraph[kb.Key]; exists {
+			expectedKeysGraph[kb.Key] = true
+		}
+	}
+
+	for key, found := range expectedKeysGraph {
+		if !found {
+			t.Errorf("Missing expected graph layout keybinding: %s", key)
 		}
 	}
 }
@@ -225,9 +253,30 @@ func TestExploreModeSampleGraphStructure(t *testing.T) {
 	mode := NewExploreMode()
 	mode.Init()
 
-	// Load sample graph
+	// Load sample data - OnEnter returns a batch command
 	loadCmd := mode.OnEnter()
-	graphMsg := loadCmd()
+	batchMsg := loadCmd()
+
+	// Extract the individual commands from the batch
+	batch, ok := batchMsg.(tea.BatchMsg)
+	if !ok {
+		t.Fatalf("Expected tea.BatchMsg, got %T", batchMsg)
+	}
+
+	// Execute each command in the batch
+	var graphMsg tea.Msg
+	for _, cmd := range batch {
+		msg := cmd()
+		// Look for GraphLoadedMsg
+		if _, isGraph := msg.(memorygraph.GraphLoadedMsg); isGraph {
+			graphMsg = msg
+			break
+		}
+	}
+
+	if graphMsg == nil {
+		t.Fatal("No GraphLoadedMsg found in batch")
+	}
 
 	if msg, ok := graphMsg.(memorygraph.GraphLoadedMsg); ok {
 		graph := msg.Graph
