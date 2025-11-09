@@ -148,10 +148,9 @@ explore_mode -> edit_mode: "Edit memory" {
   }
 }
 
-# Layout changes per mode
+# Layout changes per mode (positioned around diagram)
 edit_layout: {
-  near: edit_mode
-  label: "Layout:\n• Editor (70%)\n• Context panel (30%)\n• Terminal (bottom)"
+  label: "Edit Mode Layout:\n• Editor (70%)\n• Context panel (30%)\n• Terminal (bottom)"
   shape: rectangle
   style: {
     fill: "#EBF5FB"
@@ -161,8 +160,7 @@ edit_layout: {
 }
 
 explore_layout: {
-  near: explore_mode
-  label: "Layout Options:\n• Standard: List + Detail\n• Graph: Full-screen viz\n• Switch with Tab"
+  label: "Explore Mode Layout:\n• Standard: List + Detail\n• Graph: Full-screen viz\n• Switch with Tab"
   shape: rectangle
   style: {
     fill: "#EAFAF1"
@@ -172,8 +170,7 @@ explore_layout: {
 }
 
 analyze_layout: {
-  near: analyze_mode
-  label: "Layout:\n• Visualization (80%)\n• Controls (20%)\n• Tab to switch views"
+  label: "Analyze Mode Layout:\n• Visualization (80%)\n• Controls (20%)\n• Tab to switch views"
   shape: rectangle
   style: {
     fill: "#FEF5E7"

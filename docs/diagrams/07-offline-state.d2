@@ -132,8 +132,8 @@ failed -> offline: "User reset\n• Manual retry\n• Clear queue" {
 
 # Connected state operations
 connected_operations: {
-  near: connected
-  label: "Available Operations:\n• Create memory\n• Update memory\n• Delete memory\n• Search (all modes)\n• Graph visualization\n• Link management"
+  near: top-left
+  label: "Connected - Available Operations:\n• Create memory\n• Update memory\n• Delete memory\n• Search (all modes)\n• Graph visualization\n• Link management"
   shape: rectangle
   style: {
     fill: "#EAFAF1"
@@ -144,8 +144,8 @@ connected_operations: {
 
 # Offline state operations
 offline_operations: {
-  near: offline
-  label: "Available Operations:\n• View cached memories\n• Edit (queued)\n• Create (queued)\n• Delete (queued)\n• Limited search (cache only)"
+  near: top-right
+  label: "Offline - Available Operations:\n• View cached memories\n• Edit (queued)\n• Create (queued)\n• Delete (queued)\n• Limited search (cache only)"
   shape: rectangle
   style: {
     fill: "#FEF5E7"
@@ -156,7 +156,7 @@ offline_operations: {
 
 # Backoff strategy
 backoff_strategy: {
-  near: reconnecting
+  near: bottom-left
   label: "Exponential Backoff:\n1s → 2s → 4s → 8s → 16s → 30s (max)\n\nHealth Check Interval:\n• 30s when connected\n• On-demand when offline"
   shape: rectangle
   style: {
@@ -168,7 +168,7 @@ backoff_strategy: {
 
 # Sync queue details
 sync_queue: {
-  near: syncing
+  near: bottom-right
   label: "Sync Queue:\n• FIFO ordering\n• Conflict detection\n• Batch processing\n• SHA256 validation\n• Zero data loss guarantee"
   shape: rectangle
   style: {

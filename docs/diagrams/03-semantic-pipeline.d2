@@ -188,13 +188,7 @@ parallel_extraction.typed_hole_parser -> aggregator: "Holes"
 parallel_extraction.dependency_tracker -> aggregator: "Dependencies"
 
 # Results to context panel
-aggregator -> context_panel: "Complete analysis"
-
-context_panel -> context_panel.entities_section: "Route"
-context_panel -> context_panel.relationships_section: "Route"
-context_panel -> context_panel.holes_section: "Route"
-context_panel -> context_panel.dependencies_section: "Route"
-context_panel -> context_panel.triples_section: "Route"
+aggregator -> context_panel: "Complete analysis\n(Routes to 5 sections)"
 
 # External service call
 parallel_extraction.entity_extractor.gliner -> external_gliner: "HTTP request\n(if enabled)" {
