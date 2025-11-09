@@ -499,12 +499,12 @@ func TestRenderHelp(t *testing.T) {
 	}
 
 	// Should contain navigation shortcuts
-	if !strings.Contains(result, "j/↓") {
-		t.Error("Expected help to contain 'j/↓' navigation hint")
+	if !strings.Contains(result, "↑↓") {
+		t.Error("Expected help to contain '↑↓' navigation hint")
 	}
 
-	if !strings.Contains(result, "k/↑") {
-		t.Error("Expected help to contain 'k/↑' navigation hint")
+	if !strings.Contains(result, "Enter") {
+		t.Error("Expected help to contain 'Enter' key")
 	}
 
 	// Should contain search shortcuts
@@ -522,9 +522,9 @@ func TestRenderHelp(t *testing.T) {
 		t.Error("Expected help to contain 'r' reload hint")
 	}
 
-	// Should contain clear hint
-	if !strings.Contains(result, "c") {
-		t.Error("Expected help to contain 'c' clear hint")
+	// Should contain memory operations
+	if !strings.Contains(result, "NAVIGATION") || !strings.Contains(result, "SEARCH") {
+		t.Error("Expected help to contain section headers")
 	}
 }
 
