@@ -205,7 +205,7 @@ func BenchmarkEntityDeduplication(b *testing.B) {
 	for i := 0; i < 1000; i++ {
 		entities[i] = Entity{
 			Text:  string(rune('A' + (i % 26))),
-			Type:  EntityTypeConcept,
+			Type:  EntityConcept,
 			Count: 1,
 		}
 	}
