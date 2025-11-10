@@ -1,9 +1,8 @@
-name: Deploy Zensical Docs
+name: Deploy GitHub Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -19,24 +18,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies
-        run: pip install markdown jinja2 pygments
-
-      - name: Build documentation
-        run: python scripts/build-docs.py
+      - uses: actions/checkout@v4
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./site
+          path: docs
 
   deploy:
     environment:
