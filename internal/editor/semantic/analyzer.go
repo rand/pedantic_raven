@@ -120,7 +120,7 @@ func (a *StreamingAnalyzer) performAnalysis(ctx context.Context, content string)
 	}()
 
 	// Step 1: Tokenization (10% of progress)
-	a.sendUpdate(AnalysisUpdate{
+	a.sendUpdate(updateChan, AnalysisUpdate{
 		Type:     UpdateIncremental,
 		Progress: 0.1,
 	})
@@ -132,7 +132,7 @@ func (a *StreamingAnalyzer) performAnalysis(ctx context.Context, content string)
 	}
 
 	// Step 2: Extract entities (30%)
-	a.sendUpdate(AnalysisUpdate{
+	a.sendUpdate(updateChan, AnalysisUpdate{
 		Type:     UpdateIncremental,
 		Progress: 0.3,
 	})
@@ -143,7 +143,7 @@ func (a *StreamingAnalyzer) performAnalysis(ctx context.Context, content string)
 	a.mu.Unlock()
 
 	for _, entity := range entities {
-		a.sendUpdate(AnalysisUpdate{
+		a.sendUpdate(updateChan, AnalysisUpdate{
 			Type:     UpdateIncremental,
 			Progress: 0.3,
 			Data:     entity,
@@ -155,7 +155,7 @@ func (a *StreamingAnalyzer) performAnalysis(ctx context.Context, content string)
 	}
 
 	// Step 3: Extract relationships (50%)
-	a.sendUpdate(AnalysisUpdate{
+	a.sendUpdate(updateChan, AnalysisUpdate{
 		Type:     UpdateIncremental,
 		Progress: 0.5,
 	})
@@ -166,7 +166,7 @@ func (a *StreamingAnalyzer) performAnalysis(ctx context.Context, content string)
 	a.mu.Unlock()
 
 	for _, rel := range relationships {
-		a.sendUpdate(AnalysisUpdate{
+		a.sendUpdate(updateChan, AnalysisUpdate{
 			Type:     UpdateIncremental,
 			Progress: 0.5,
 			Data:     rel,
@@ -178,7 +178,7 @@ func (a *StreamingAnalyzer) performAnalysis(ctx context.Context, content string)
 	}
 
 	// Step 4: Extract typed holes (70%)
-	a.sendUpdate(AnalysisUpdate{
+	a.sendUpdate(updateChan, AnalysisUpdate{
 		Type:     UpdateIncremental,
 		Progress: 0.7,
 	})
@@ -189,7 +189,7 @@ func (a *StreamingAnalyzer) performAnalysis(ctx context.Context, content string)
 	a.mu.Unlock()
 
 	for _, hole := range typedHoles {
-		a.sendUpdate(AnalysisUpdate{
+		a.sendUpdate(updateChan, AnalysisUpdate{
 			Type:     UpdateIncremental,
 			Progress: 0.7,
 			Data:     hole,
@@ -201,7 +201,7 @@ func (a *StreamingAnalyzer) performAnalysis(ctx context.Context, content string)
 	}
 
 	// Step 5: Extract dependencies (85%)
-	a.sendUpdate(AnalysisUpdate{
+	a.sendUpdate(updateChan, AnalysisUpdate{
 		Type:     UpdateIncremental,
 		Progress: 0.85,
 	})
@@ -212,7 +212,7 @@ func (a *StreamingAnalyzer) performAnalysis(ctx context.Context, content string)
 	a.mu.Unlock()
 
 	for _, dep := range dependencies {
-		a.sendUpdate(AnalysisUpdate{
+		a.sendUpdate(updateChan, AnalysisUpdate{
 			Type:     UpdateIncremental,
 			Progress: 0.85,
 			Data:     dep,
@@ -224,7 +224,7 @@ func (a *StreamingAnalyzer) performAnalysis(ctx context.Context, content string)
 	}
 
 	// Step 6: Generate triples (100%)
-	a.sendUpdate(AnalysisUpdate{
+	a.sendUpdate(updateChan, AnalysisUpdate{
 		Type:     UpdateIncremental,
 		Progress: 0.95,
 	})
@@ -298,9 +298,9 @@ func (a *StreamingAnalyzer) generateTriples(relationships []Relationship) []Trip
 }
 
 // sendUpdate sends an update to the channel (non-blocking).
-func (a *StreamingAnalyzer) sendUpdate(update AnalysisUpdate) {
+func (a *StreamingAnalyzer) sendUpdate(updateChan chan<- AnalysisUpdate, update AnalysisUpdate) {
 	select {
-	case a.updateChan <- update:
+	case updateChan <- update:
 	default:
 		// Channel full, drop update
 	}

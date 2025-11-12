@@ -140,6 +140,10 @@ func TestConcurrentEventPublishing(t *testing.T) {
 
 // TestConcurrentAnalysisCalls tests concurrent analysis requests.
 func TestConcurrentAnalysisCalls(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow concurrent analysis test in short mode")
+	}
+
 	app := NewTestApp(t)
 	defer app.Cleanup()
 
@@ -162,7 +166,19 @@ func TestConcurrentAnalysisCalls(t *testing.T) {
 		}(a)
 	}
 
-	wg.Wait()
+	// Wait for all goroutines with timeout
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Success
+	case <-time.After(5 * time.Second):
+		t.Fatal("Test timed out waiting for concurrent analysis calls to complete")
+	}
 
 	// Verify app is still responsive
 	current := app.Editor().GetContent()
