@@ -549,3 +549,83 @@ func TestEnterWithNoLinkSelected(t *testing.T) {
 		t.Error("Expected nil cmd when no link is selected")
 	}
 }
+
+// --- Edit Confirmation Dialog Tests ---
+
+func TestConfirmationDialogYes(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	// Create a memory and set it
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	m.SetMemory(memory)
+
+	// Enter edit mode
+	m.editState = &EditState{
+		isEditing:    true,
+		editedMemory: memory,
+		fieldFocus:   FieldContent,
+		hasChanges:   true,
+	}
+
+	// Press Esc to trigger confirmation dialog
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+
+	if !m.showEditConfirm {
+		t.Error("Expected showEditConfirm to be true after Esc with unsaved changes")
+	}
+
+	// Press 'y' to confirm cancellation
+	m, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
+
+	if m.showEditConfirm {
+		t.Error("Expected showEditConfirm to be false after 'y' confirmation")
+	}
+
+	if m.IsEditing() {
+		t.Error("Expected editing to be cancelled after 'y' confirmation")
+	}
+
+	if cmd != nil {
+		t.Error("Expected nil cmd when confirming cancellation")
+	}
+}
+
+func TestConfirmationDialogNo(t *testing.T) {
+	m := NewModel()
+	m.SetFocus(true)
+
+	// Create a memory and set it
+	memory := createTestMemory("test-1", "Content", 8, nil)
+	m.SetMemory(memory)
+
+	// Enter edit mode
+	m.editState = &EditState{
+		isEditing:    true,
+		editedMemory: memory,
+		fieldFocus:   FieldContent,
+		hasChanges:   true,
+	}
+
+	// Press Esc to trigger confirmation dialog
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+
+	if !m.showEditConfirm {
+		t.Error("Expected showEditConfirm to be true after Esc with unsaved changes")
+	}
+
+	// Press 'n' to cancel the cancellation
+	m, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
+
+	if m.showEditConfirm {
+		t.Error("Expected showEditConfirm to be false after 'n' response")
+	}
+
+	if !m.IsEditing() {
+		t.Error("Expected editing to continue after 'n' response")
+	}
+
+	if cmd != nil {
+		t.Error("Expected nil cmd when cancelling the cancellation")
+	}
+}

@@ -169,6 +169,22 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Handle edit confirmation dialog (for unsaved changes)
+	if m.showEditConfirm {
+		switch msg.String() {
+		case "enter", "y":
+			// Confirm cancellation of unsaved changes
+			m.showEditConfirm = false
+			m.CancelEdit()
+			return m, nil
+		case "esc", "n":
+			// Cancel the cancellation (continue editing)
+			m.showEditConfirm = false
+			return m, nil
+		}
+		return m, nil
+	}
+
 	// Handle edit mode
 	if m.IsEditing() {
 		switch msg.String() {
@@ -179,8 +195,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (Model, tea.Cmd) {
 		case "esc":
 			// Cancel editing (with unsaved changes warning handled in UI)
 			if m.HasUnsavedChanges() {
-				// TODO: Show confirmation dialog
-				// For now, just cancel
+				m.showEditConfirm = true
+				return m, nil
 			}
 			m.CancelEdit()
 			return m, nil

@@ -753,3 +753,104 @@ func TestSearchModeHandlesKeys(t *testing.T) {
 		t.Error("Expected selectedIndex to remain at 0 in search mode")
 	}
 }
+
+// --- Relevance Scoring Tests ---
+
+func TestRelevanceScoringExactMatch(t *testing.T) {
+	m := NewModel()
+	memories := []*pb.MemoryNote{
+		createTestMemory("1", "Authentication system", 5, nil, time.Hour),
+		createTestMemory("2", "Database schema design", 8, nil, time.Hour),
+		createTestMemory("3", "Authentication middleware", 6, nil, time.Hour),
+	}
+	m.SetMemories(memories, 3)
+
+	// Set sort mode to relevance and search for "authentication"
+	m.SetSort(SortByRelevance, true)
+	m.searchQuery = "authentication"
+	m.applySorting()
+
+	// First result should be "Authentication system" (exact match in content)
+	if m.filteredMems[0].Id != "1" {
+		t.Errorf("Expected first memory to be ID '1' (exact match), got '%s'", m.filteredMems[0].Id)
+	}
+
+	// Second should be "Authentication middleware"
+	if m.filteredMems[1].Id != "3" {
+		t.Errorf("Expected second memory to be ID '3' (also exact match), got '%s'", m.filteredMems[1].Id)
+	}
+
+	// Last should be "Database schema design"
+	if m.filteredMems[2].Id != "2" {
+		t.Errorf("Expected last memory to be ID '2' (no match), got '%s'", m.filteredMems[2].Id)
+	}
+}
+
+func TestRelevanceScoringImportance(t *testing.T) {
+	m := NewModel()
+	memories := []*pb.MemoryNote{
+		createTestMemory("1", "Similar content", 3, nil, time.Hour),
+		createTestMemory("2", "Similar content", 9, nil, time.Hour),
+		createTestMemory("3", "Similar content", 6, nil, time.Hour),
+	}
+	m.SetMemories(memories, 3)
+
+	// Set sort mode to relevance and search for "similar"
+	m.SetSort(SortByRelevance, true)
+	m.searchQuery = "similar"
+	m.applySorting()
+
+	// First result should be memory with importance 9
+	if m.filteredMems[0].Importance != 9 {
+		t.Errorf("Expected first memory importance 9, got %d", m.filteredMems[0].Importance)
+	}
+
+	// Second should have importance 6
+	if m.filteredMems[1].Importance != 6 {
+		t.Errorf("Expected second memory importance 6, got %d", m.filteredMems[1].Importance)
+	}
+
+	// Last should have importance 3
+	if m.filteredMems[2].Importance != 3 {
+		t.Errorf("Expected last memory importance 3, got %d", m.filteredMems[2].Importance)
+	}
+}
+
+func TestRelevanceScoringRecency(t *testing.T) {
+	m := NewModel()
+	now := time.Now()
+	memories := []*pb.MemoryNote{
+		createTestMemory("1", "Similar content", 5, nil, 10*time.Hour), // Updated 10 hours ago
+		createTestMemory("2", "Similar content", 5, nil, 1*time.Hour),  // Updated 1 hour ago (newer)
+		createTestMemory("3", "Similar content", 5, nil, 5*time.Hour),  // Updated 5 hours ago
+	}
+	m.SetMemories(memories, 3)
+
+	// Manually update timestamps to be more recent
+	memories[0].UpdatedAt = uint64(now.Add(-10 * time.Hour).Unix())
+	memories[1].UpdatedAt = uint64(now.Add(-1 * time.Hour).Unix())
+	memories[2].UpdatedAt = uint64(now.Add(-5 * time.Hour).Unix())
+
+	m.memories = memories
+	m.SetMemories(memories, 3)
+
+	// Set sort mode to relevance and search for "similar"
+	m.SetSort(SortByRelevance, true)
+	m.searchQuery = "similar"
+	m.applySorting()
+
+	// First result should be the most recently updated memory (1 hour ago)
+	if m.filteredMems[0].Id != "2" {
+		t.Errorf("Expected first memory to be ID '2' (most recent), got '%s'", m.filteredMems[0].Id)
+	}
+
+	// Second should be 5 hours ago
+	if m.filteredMems[1].Id != "3" {
+		t.Errorf("Expected second memory to be ID '3' (5 hours ago), got '%s'", m.filteredMems[1].Id)
+	}
+
+	// Last should be 10 hours ago
+	if m.filteredMems[2].Id != "1" {
+		t.Errorf("Expected last memory to be ID '1' (least recent), got '%s'", m.filteredMems[2].Id)
+	}
+}

@@ -1,7 +1,10 @@
 package modes
 
 import (
+	"math"
+	"sort"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -116,6 +119,46 @@ func (m *ExploreMode) Init() tea.Cmd {
 	return nil
 }
 
+// selectRootMemory selects the most important/recent memory as the root for graph visualization.
+func selectRootMemory(memories []*pb.MemoryNote) *pb.MemoryNote {
+	if len(memories) == 0 {
+		return nil
+	}
+
+	// Strategy: Select memory with highest combined score
+	type scoredMemory struct {
+		memory *pb.MemoryNote
+		score  float64
+	}
+
+	scored := make([]scoredMemory, len(memories))
+	for i, mem := range memories {
+		score := 0.0
+
+		// Importance (0-10)
+		score += float64(mem.Importance) * 2.0
+
+		// Link count (more links = more central)
+		score += float64(len(mem.OutgoingLinks)) * 1.5
+		score += float64(len(mem.IncomingLinks)) * 1.0
+
+		// Recency (newer = more relevant)
+		updatedAt := time.Unix(int64(mem.UpdatedAt), 0)
+		age := time.Since(updatedAt)
+		recencyScore := math.Max(0, 10.0-(age.Hours()/24/7)) // Decay over weeks
+		score += recencyScore
+
+		scored[i] = scoredMemory{memory: mem, score: score}
+	}
+
+	// Sort by score descending
+	sort.Slice(scored, func(i, j int) bool {
+		return scored[i].score > scored[j].score
+	})
+
+	return scored[0].memory
+}
+
 // OnEnter is called when explore mode becomes active.
 func (m *ExploreMode) OnEnter() tea.Cmd {
 	var cmds []tea.Cmd
@@ -132,11 +175,8 @@ func (m *ExploreMode) OnEnter() tea.Cmd {
 			cmds = append(cmds, memorylist.LoadMemoriesFromServer(m.mnemosyneClient, filters))
 		}
 
-		// Load graph - we'll use the first memory from the list as root
-		// In a real implementation, you might want to track a specific root or let user choose
+		// Load graph with intelligent root memory selection
 		if m.graph != nil {
-			// For now, load a sample graph until we have a proper root selection mechanism
-			// TODO: Implement root memory selection or use most important/recent memory
 			cmds = append(cmds, m.loadSampleGraph())
 		}
 	} else {

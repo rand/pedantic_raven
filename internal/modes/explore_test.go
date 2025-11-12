@@ -3,9 +3,11 @@ package modes
 import (
 	"os"
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rand/pedantic-raven/internal/memorygraph"
+	pb "github.com/rand/pedantic-raven/internal/mnemosyne/pb/mnemosyne/v1"
 )
 
 // setupTest disables mnemosyne for testing
@@ -1104,4 +1106,95 @@ func TestExploreModeEdgeCases(t *testing.T) {
 			t.Error("View should handle zero width gracefully")
 		}
 	})
+}
+
+// --- Root Memory Selection Tests ---
+
+// Helper function to create test memories
+func createTestMemoryForRoot(id string, importance uint32, outgoingLinks, incomingLinks int, updatedSecondsAgo int64) *pb.MemoryNote {
+	now := time.Now()
+	return &pb.MemoryNote{
+		Id:          id,
+		Content:     "Test memory: " + id,
+		Importance:  importance,
+		Tags:        []string{},
+		CreatedAt:   uint64(now.Add(-24 * time.Hour).Unix()),
+		UpdatedAt:   uint64(now.Add(-time.Duration(updatedSecondsAgo) * time.Second).Unix()),
+		OutgoingLinks: make([]*pb.MemoryLink, outgoingLinks),
+		IncomingLinks: make([]*pb.MemoryLink, incomingLinks),
+		Links:       []*pb.MemoryLink{},
+		Namespace: &pb.Namespace{
+			Namespace: &pb.Namespace_Global{
+				Global: &pb.GlobalNamespace{},
+			},
+		},
+	}
+}
+
+func TestRootSelectionByImportance(t *testing.T) {
+	memories := []*pb.MemoryNote{
+		createTestMemoryForRoot("low-importance", 2, 0, 0, 3600),
+		createTestMemoryForRoot("high-importance", 9, 0, 0, 3600),
+		createTestMemoryForRoot("medium-importance", 5, 0, 0, 3600),
+	}
+
+	root := selectRootMemory(memories)
+
+	if root == nil {
+		t.Fatal("Expected non-nil root memory")
+	}
+
+	if root.Id != "high-importance" {
+		t.Errorf("Expected root to be 'high-importance' (importance 9), got '%s'", root.Id)
+	}
+
+	if root.Importance != 9 {
+		t.Errorf("Expected importance 9, got %d", root.Importance)
+	}
+}
+
+func TestRootSelectionByLinks(t *testing.T) {
+	memories := []*pb.MemoryNote{
+		createTestMemoryForRoot("few-links", 5, 1, 2, 3600),
+		createTestMemoryForRoot("many-links", 5, 5, 3, 3600), // Should be selected
+		createTestMemoryForRoot("some-links", 5, 2, 1, 3600),
+	}
+
+	root := selectRootMemory(memories)
+
+	if root == nil {
+		t.Fatal("Expected non-nil root memory")
+	}
+
+	if root.Id != "many-links" {
+		t.Errorf("Expected root to be 'many-links' (most connections), got '%s'", root.Id)
+	}
+}
+
+func TestRootSelectionByRecency(t *testing.T) {
+	memories := []*pb.MemoryNote{
+		createTestMemoryForRoot("old-memory", 5, 0, 0, 86400),      // Updated 1 day ago
+		createTestMemoryForRoot("recent-memory", 5, 0, 0, 3600),    // Updated 1 hour ago (most recent)
+		createTestMemoryForRoot("medium-memory", 5, 0, 0, 43200),   // Updated 12 hours ago
+	}
+
+	root := selectRootMemory(memories)
+
+	if root == nil {
+		t.Fatal("Expected non-nil root memory")
+	}
+
+	if root.Id != "recent-memory" {
+		t.Errorf("Expected root to be 'recent-memory' (most recent), got '%s'", root.Id)
+	}
+}
+
+func TestRootSelectionEmptyList(t *testing.T) {
+	memories := []*pb.MemoryNote{}
+
+	root := selectRootMemory(memories)
+
+	if root != nil {
+		t.Error("Expected nil root for empty memory list")
+	}
 }

@@ -1,8 +1,10 @@
 package memorylist
 
 import (
+	"math"
 	"sort"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	pb "github.com/rand/pedantic-raven/internal/mnemosyne/pb/mnemosyne/v1"
@@ -445,6 +447,50 @@ func (m Model) matchesFilters(mem *pb.MemoryNote) bool {
 	return true
 }
 
+// RelevanceScorer scores memories based on search relevance.
+type RelevanceScorer struct {
+	query string
+}
+
+// Score calculates a relevance score for a memory based on the search query.
+func (s *RelevanceScorer) Score(memory *pb.MemoryNote) float64 {
+	score := 0.0
+
+	// Exact match in content (high score)
+	if strings.Contains(strings.ToLower(memory.Content), strings.ToLower(s.query)) {
+		score += 10.0
+	}
+
+	// Match in tags (medium score)
+	for _, tag := range memory.Tags {
+		if strings.Contains(strings.ToLower(tag), strings.ToLower(s.query)) {
+			score += 5.0
+		}
+	}
+
+	// Importance boost
+	score += float64(memory.Importance)
+
+	// Recency boost (newer memories score higher)
+	updatedAt := time.Unix(int64(memory.UpdatedAt), 0)
+	age := time.Since(updatedAt)
+	recencyScore := math.Max(0, 5.0-(age.Hours()/24/30)) // Decay over months
+	score += recencyScore
+
+	return score
+}
+
+// SortByRelevance sorts memories by relevance to a query.
+func SortByRelevance(memories []*pb.MemoryNote, query string) []*pb.MemoryNote {
+	scorer := &RelevanceScorer{query: query}
+
+	sort.Slice(memories, func(i, j int) bool {
+		return scorer.Score(memories[i]) > scorer.Score(memories[j])
+	})
+
+	return memories
+}
+
 // applySorting sorts the filtered memories by the current sort mode.
 func (m *Model) applySorting() {
 	sort.SliceStable(m.filteredMems, func(i, j int) bool {
@@ -462,8 +508,9 @@ func (m *Model) applySorting() {
 			less = a.CreatedAt < b.CreatedAt
 
 		case SortByRelevance:
-			// TODO: Implement relevance scoring based on search query
-			less = a.Importance < b.Importance
+			// Use relevance scoring based on search query
+			scorer := &RelevanceScorer{query: m.searchQuery}
+			less = scorer.Score(a) < scorer.Score(b)
 
 		default:
 			less = false

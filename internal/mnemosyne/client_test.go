@@ -417,3 +417,314 @@ func TestListMemoriesDefaultMaxResults(t *testing.T) {
 
 	// The actual default of 100 is applied in the ListMemories method
 }
+
+// --- New Test Coverage Improvement Tests ---
+
+// TestClientConnectRetry tests connection retry with exponential backoff.
+func TestClientConnectRetry(t *testing.T) {
+	// Start a test server that fails the first N attempts
+	server, err := newTestServer()
+	if err != nil {
+		t.Fatalf("Failed to start test server: %v", err)
+	}
+	defer server.Stop()
+
+	// Make the server fail the first 2 health checks
+	server.memory.failAfter = 2
+
+	cfg := Config{
+		ServerAddr: server.address,
+		Timeout:    5 * time.Second,
+		MaxRetries: 3,
+	}
+
+	client, err := NewClient(cfg)
+	if err != nil {
+		t.Fatalf("NewClient failed: %v", err)
+	}
+	defer client.Close()
+
+	// Connect should succeed after retries
+	err = client.Connect()
+	if err != nil {
+		t.Fatalf("Connect failed after retries: %v", err)
+	}
+
+	if !client.IsConnected() {
+		t.Error("Expected client to be connected after retry")
+	}
+}
+
+// TestClientConnectTimeout tests connection timeout handling.
+func TestClientConnectTimeout(t *testing.T) {
+	// Use an address that will timeout (blackhole)
+	cfg := Config{
+		ServerAddr: "192.0.2.1:12345", // TEST-NET-1 address (should timeout)
+		Timeout:    1 * time.Second,
+		MaxRetries: 0,
+	}
+
+	client, err := NewClient(cfg)
+	if err != nil {
+		t.Fatalf("NewClient failed: %v", err)
+	}
+	defer client.Close()
+
+	// Connect should timeout
+	start := time.Now()
+	err = client.Connect()
+	duration := time.Since(start)
+
+	if err == nil {
+		t.Error("Expected Connect to fail with timeout")
+	}
+
+	// Should timeout within reasonable time (add buffer for test overhead)
+	if duration > 15*time.Second {
+		t.Errorf("Connect took too long: %v (expected ~10s)", duration)
+	}
+
+	if client.IsConnected() {
+		t.Error("Expected client to not be connected after timeout")
+	}
+}
+
+// TestClientDisconnectCleanup tests resource cleanup on disconnect.
+func TestClientDisconnectCleanup(t *testing.T) {
+	server, err := newTestServer()
+	if err != nil {
+		t.Fatalf("Failed to start test server: %v", err)
+	}
+	defer server.Stop()
+
+	cfg := Config{
+		ServerAddr: server.address,
+		Timeout:    5 * time.Second,
+	}
+
+	client, err := NewClient(cfg)
+	if err != nil {
+		t.Fatalf("NewClient failed: %v", err)
+	}
+
+	err = client.Connect()
+	if err != nil {
+		t.Fatalf("Connect failed: %v", err)
+	}
+
+	if !client.IsConnected() {
+		t.Fatal("Expected client to be connected")
+	}
+
+	// Disconnect and verify cleanup
+	err = client.Disconnect()
+	if err != nil {
+		t.Errorf("Disconnect failed: %v", err)
+	}
+
+	if client.IsConnected() {
+		t.Error("Expected client to not be connected after disconnect")
+	}
+
+	// Verify connection is nil
+	if client.conn != nil {
+		t.Error("Expected connection to be nil after disconnect")
+	}
+
+	if client.memoryClient != nil {
+		t.Error("Expected memoryClient to be nil after disconnect")
+	}
+
+	if client.healthClient != nil {
+		t.Error("Expected healthClient to be nil after disconnect")
+	}
+
+	// Multiple disconnects should be safe
+	err = client.Disconnect()
+	if err != nil {
+		t.Errorf("Second disconnect should not error: %v", err)
+	}
+}
+
+// TestClientConcurrentRequests tests multiple concurrent RPC calls.
+func TestClientConcurrentRequests(t *testing.T) {
+	server, err := newTestServer()
+	if err != nil {
+		t.Fatalf("Failed to start test server: %v", err)
+	}
+	defer server.Stop()
+
+	cfg := Config{
+		ServerAddr: server.address,
+		Timeout:    10 * time.Second,
+	}
+
+	client, err := NewClient(cfg)
+	if err != nil {
+		t.Fatalf("NewClient failed: %v", err)
+	}
+	defer client.Close()
+
+	err = client.Connect()
+	if err != nil {
+		t.Fatalf("Connect failed: %v", err)
+	}
+
+	// Store some test memories first
+	ctx := context.Background()
+	for i := 0; i < 5; i++ {
+		_, err := client.StoreMemory(ctx, StoreMemoryOptions{
+			Content:   fmt.Sprintf("test memory %d", i),
+			Namespace: GlobalNamespace(),
+		})
+		if err != nil {
+			t.Fatalf("StoreMemory failed: %v", err)
+		}
+	}
+
+	// Perform concurrent recalls
+	const numConcurrent = 10
+	var wg sync.WaitGroup
+	errors := make(chan error, numConcurrent)
+
+	for i := 0; i < numConcurrent; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+
+			_, err := client.Recall(ctx, RecallOptions{
+				Query:     fmt.Sprintf("test %d", id),
+				Namespace: GlobalNamespace(),
+			})
+			if err != nil {
+				errors <- err
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	close(errors)
+
+	// Check for errors
+	for err := range errors {
+		t.Errorf("Concurrent request failed: %v", err)
+	}
+
+	// Verify request count
+	if server.memory.requestCount != numConcurrent+5 {
+		t.Errorf("Expected %d requests, got %d", numConcurrent+5, server.memory.requestCount)
+	}
+}
+
+// TestClientContextCancellation tests request cancellation via context.
+func TestClientContextCancellation(t *testing.T) {
+	server, err := newTestServer()
+	if err != nil {
+		t.Fatalf("Failed to start test server: %v", err)
+	}
+	defer server.Stop()
+
+	// Add delay to store operation
+	server.memory.storeDelay = 2 * time.Second
+
+	cfg := Config{
+		ServerAddr: server.address,
+		Timeout:    10 * time.Second,
+	}
+
+	client, err := NewClient(cfg)
+	if err != nil {
+		t.Fatalf("NewClient failed: %v", err)
+	}
+	defer client.Close()
+
+	err = client.Connect()
+	if err != nil {
+		t.Fatalf("Connect failed: %v", err)
+	}
+
+	// Create context with short timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+
+	// This should be canceled
+	_, err = client.StoreMemory(ctx, StoreMemoryOptions{
+		Content:   "test memory",
+		Namespace: GlobalNamespace(),
+	})
+
+	if err == nil {
+		t.Error("Expected StoreMemory to fail with context cancellation")
+	}
+
+	if !IsCanceled(err) && !IsDeadlineExceeded(err) {
+		t.Errorf("Expected cancellation or deadline error, got: %v", err)
+	}
+}
+
+// TestClientReconnectAfterFailure tests automatic reconnection after failure.
+func TestClientReconnectAfterFailure(t *testing.T) {
+	server, err := newTestServer()
+	if err != nil {
+		t.Fatalf("Failed to start test server: %v", err)
+	}
+
+	cfg := Config{
+		ServerAddr: server.address,
+		Timeout:    5 * time.Second,
+	}
+
+	client, err := NewClient(cfg)
+	if err != nil {
+		t.Fatalf("NewClient failed: %v", err)
+	}
+	defer client.Close()
+
+	err = client.Connect()
+	if err != nil {
+		t.Fatalf("Connect failed: %v", err)
+	}
+
+	ctx := context.Background()
+
+	// Verify initial connection works
+	_, err = client.HealthCheck(ctx)
+	if err != nil {
+		t.Fatalf("Initial health check failed: %v", err)
+	}
+
+	// Stop the server to simulate failure
+	server.Stop()
+
+	// Wait a bit for connection to fail
+	time.Sleep(100 * time.Millisecond)
+
+	// Operations should fail now
+	_, err = client.HealthCheck(ctx)
+	if err == nil {
+		t.Error("Expected health check to fail after server stopped")
+	}
+
+	// Restart server
+	server, err = newTestServer()
+	if err != nil {
+		t.Fatalf("Failed to restart test server: %v", err)
+	}
+	defer server.Stop()
+
+	// Update client with new address (in real scenario, address would be same)
+	// For testing, we need to reconnect to new port
+	client.serverAddr = server.address
+
+	// Reconnect
+	err = client.Connect()
+	if err != nil {
+		t.Fatalf("Reconnect failed: %v", err)
+	}
+
+	// Health check should work again
+	_, err = client.HealthCheck(ctx)
+	if err != nil {
+		t.Errorf("Health check after reconnect failed: %v", err)
+	}
+}

@@ -32,6 +32,7 @@ type Model struct {
 	// CRUD state
 	editState         *EditState
 	showDeleteConfirm bool
+	showEditConfirm   bool // True when confirming unsaved changes
 	isNewMemory       bool // True if creating a new memory
 
 	// Link management state
@@ -75,6 +76,7 @@ func NewModel() Model {
 		focused:           true,
 		editState:         nil,
 		showDeleteConfirm: false,
+		showEditConfirm:   false,
 		isNewMemory:       false,
 		showCreateLink:    false,
 		linkTargetSearch:  "",
