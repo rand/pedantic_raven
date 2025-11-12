@@ -68,6 +68,10 @@ func TestConcurrentModeSwitching(t *testing.T) {
 
 // TestConcurrentBufferOperations tests concurrent buffer read/write operations.
 func TestConcurrentBufferOperations(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow concurrent buffer operations test in short mode")
+	}
+
 	app := NewTestApp(t)
 	defer app.Cleanup()
 
@@ -106,6 +110,10 @@ func TestConcurrentBufferOperations(t *testing.T) {
 
 // TestConcurrentEventPublishing tests publishing events concurrently.
 func TestConcurrentEventPublishing(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow concurrent event publishing test in short mode")
+	}
+
 	app := NewTestApp(t)
 	defer app.Cleanup()
 
@@ -258,6 +266,10 @@ func TestRaceConditionModeSwitchAndAnalysis(t *testing.T) {
 
 // TestConcurrentModeInitialization tests concurrent initialization of modes.
 func TestConcurrentModeInitialization(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow concurrent mode initialization test in short mode")
+	}
+
 	app := NewTestApp(t)
 	defer app.Cleanup()
 
@@ -294,6 +306,10 @@ func TestConcurrentModeInitialization(t *testing.T) {
 
 // TestDeadlockPrevention tests that concurrent operations don't cause deadlocks.
 func TestDeadlockPrevention(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow deadlock prevention test in short mode")
+	}
+
 	app := NewTestApp(t)
 	defer app.Cleanup()
 
@@ -350,6 +366,10 @@ func TestDeadlockPrevention(t *testing.T) {
 
 // TestConcurrentFileOperations tests concurrent file-like operations.
 func TestConcurrentFileOperations(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow concurrent file operations test in short mode")
+	}
+
 	app := NewTestApp(t)
 	defer app.Cleanup()
 
@@ -384,6 +404,10 @@ func TestConcurrentFileOperations(t *testing.T) {
 
 // TestStressTestConcurrentOperations performs a stress test with many operations.
 func TestStressTestConcurrentOperations(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow stress test in short mode")
+	}
+
 	app := NewTestApp(t)
 	defer app.Cleanup()
 
@@ -444,6 +468,10 @@ func TestStressTestConcurrentOperations(t *testing.T) {
 
 // TestConcurrentModeGetters tests concurrent access to mode getters.
 func TestConcurrentModeGetters(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow concurrent mode getters test in short mode")
+	}
+
 	app := NewTestApp(t)
 	defer app.Cleanup()
 
