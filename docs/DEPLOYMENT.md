@@ -11,14 +11,15 @@
 1. [Prerequisites](#prerequisites)
 2. [Installation](#installation)
 3. [Configuration](#configuration)
-4. [Deployment Options](#deployment-options)
-5. [mnemosyne Setup](#mnemosyne-setup)
-6. [GLiNER Integration](#gliner-integration)
-7. [Monitoring & Logging](#monitoring--logging)
-8. [Troubleshooting](#troubleshooting)
-9. [Security Considerations](#security-considerations)
-10. [Backup & Recovery](#backup--recovery)
-11. [Updating](#updating)
+4. [Authentication](#authentication)
+5. [Deployment Options](#deployment-options)
+6. [mnemosyne Setup](#mnemosyne-setup)
+7. [GLiNER Integration](#gliner-integration)
+8. [Monitoring & Logging](#monitoring--logging)
+9. [Troubleshooting](#troubleshooting)
+10. [Security Considerations](#security-considerations)
+11. [Backup & Recovery](#backup--recovery)
+12. [Updating](#updating)
 
 ---
 
@@ -232,6 +233,210 @@ custom = [
 # or specify path
 ./pedantic_raven --config /etc/pedantic_raven/config.toml
 ```
+
+---
+
+## Authentication
+
+### Overview
+
+Pedantic Raven supports simple token-based authentication for single-user deployments. Authentication is **disabled by default** for backward compatibility. When enabled, it requires a secret token to be provided by the application user.
+
+**Key Features**:
+- Environment variable-based configuration
+- Constant-time token comparison (timing attack resistant)
+- Backward compatible (disabled when not configured)
+- No performance overhead when disabled
+- Suitable for single-user, trusted environments
+
+### Enabling Authentication
+
+**Generate a secure token**:
+```bash
+# Generate 32-byte random token encoded in base64
+openssl rand -base64 32
+# Output: yB3xK9pL2m5nQ8rT1uV4wX7yZ0aB3cD6eF9gH2jK5lM8nP0qR3sT6uV9wX2yZ5
+```
+
+**Set environment variable**:
+```bash
+export PEDANTIC_RAVEN_TOKEN="yB3xK9pL2m5nQ8rT1uV4wX7yZ0aB3cD6eF9gH2jK5lM8nP0qR3sT6uV9wX2yZ5"
+./pedantic_raven
+```
+
+**Verify authentication is enabled**:
+
+The application will log on startup:
+```
+2025-11-12T10:30:45.123Z INFO  auth: Authentication enabled (PEDANTIC_RAVEN_TOKEN set)
+```
+
+### Token Configuration
+
+**Environment variable**:
+```bash
+export PEDANTIC_RAVEN_TOKEN="your-secret-token-here"
+```
+
+**Configuration file** (optional):
+
+While authentication settings are primarily environment-based, you can document them in your deployment:
+
+```toml
+# config.toml (informational only, actual token in PEDANTIC_RAVEN_TOKEN env var)
+[auth]
+# Token is read from environment variable: PEDANTIC_RAVEN_TOKEN
+# If not set, authentication is disabled
+enabled_via_env = "PEDANTIC_RAVEN_TOKEN"
+```
+
+### Best Practices
+
+**Token Generation**:
+```bash
+# Recommended: Use openssl for cryptographically secure randomness
+openssl rand -base64 32
+
+# Alternative: Python
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+
+# Alternative: Go
+go run -c 'package main; import ("crypto/rand"; "encoding/base64"; "fmt"; ); func main() { b := make([]byte, 32); rand.Read(b); fmt.Println(base64.StdEncoding.EncodeToString(b)) }'
+```
+
+**Token Storage**:
+- Store token in environment variable on deployment server
+- Use systemd EnvironmentFile for production deployments
+- Never commit token to version control
+- Consider using a secrets manager (e.g., HashiCorp Vault, AWS Secrets Manager)
+
+**Token Rotation**:
+```bash
+# 1. Generate new token
+NEW_TOKEN=$(openssl rand -base64 32)
+
+# 2. Update environment variable
+export PEDANTIC_RAVEN_TOKEN="$NEW_TOKEN"
+
+# 3. Restart application
+sudo systemctl restart pedantic-raven
+
+# 4. Verify in logs
+sudo journalctl -u pedantic-raven | grep "Authentication enabled"
+```
+
+### Systemd Integration
+
+**Store token securely in systemd service**:
+
+Create `/etc/pedantic_raven/auth.env`:
+```bash
+# This file contains sensitive data - protect with restricted permissions
+PEDANTIC_RAVEN_TOKEN="yB3xK9pL2m5nQ8rT1uV4wX7yZ0aB3cD6eF9gH2jK5lM8nP0qR3sT6uV9wX2yZ5"
+```
+
+Set restrictive permissions:
+```bash
+sudo chmod 600 /etc/pedantic_raven/auth.env
+sudo chown pedantic-raven:pedantic-raven /etc/pedantic_raven/auth.env
+```
+
+Update systemd service file:
+```ini
+[Service]
+# Load authentication token from environment file
+EnvironmentFile=/etc/pedantic_raven/auth.env
+ExecStart=/opt/pedantic-raven/bin/pedantic_raven
+```
+
+Reload and restart:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart pedantic-raven
+```
+
+### Docker Integration
+
+**Pass token to container**:
+```bash
+# Option 1: Via environment variable
+docker run -e PEDANTIC_RAVEN_TOKEN="your-token" pedantic-raven:latest
+
+# Option 2: Via .env file
+echo "PEDANTIC_RAVEN_TOKEN=your-token" > .env
+docker run --env-file .env pedantic-raven:latest
+
+# Option 3: In docker-compose.yml
+# .env file
+PEDANTIC_RAVEN_TOKEN=your-token-here
+
+# docker-compose.yml
+services:
+  pedantic-raven:
+    build: .
+    env_file: .env
+    environment:
+      - MNEMOSYNE_ADDR=mnemosyne:50051
+      - GLINER_SERVICE_URL=http://gliner:8765
+```
+
+**Do NOT commit .env files to version control**:
+```bash
+# .gitignore
+.env
+.env.local
+auth.env
+```
+
+### Security Properties
+
+**Timing Attack Resistance**:
+- Uses `crypto/subtle.ConstantTimeCompare` for token comparison
+- Comparison time is constant regardless of token length or position of mismatch
+- Prevents attackers from using timing measurements to guess tokens
+
+**Token Confidentiality**:
+- Token is stored in memory (not persisted to disk)
+- Token is never logged (private struct field)
+- Token not included in debug output
+- Environment variable not exposed to child processes unless explicitly passed
+
+**Authentication Disabled by Default**:
+- No breaking changes to existing deployments
+- Backward compatible with applications not using authentication
+- Can be enabled for specific deployments without code changes
+
+### Disabling Authentication
+
+If you need to temporarily disable authentication:
+```bash
+# Simply don't set the environment variable
+unset PEDANTIC_RAVEN_TOKEN
+./pedantic_raven
+
+# Or explicitly empty it (same effect as not set)
+export PEDANTIC_RAVEN_TOKEN=""
+./pedantic_raven
+```
+
+Application will log:
+```
+2025-11-12T10:30:45.123Z INFO  auth: Authentication disabled (PEDANTIC_RAVEN_TOKEN not set)
+```
+
+### Future Enhancements
+
+**Planned (not yet implemented)**:
+- Multiple token support for key rotation
+- Token expiration
+- Rate limiting based on authentication failures
+- Audit logging of authentication attempts
+- TLS client certificate authentication
+- OAuth2 integration
+
+**Current Status**: Suitable for single-user, trusted environments on trusted networks.
+
+---
 
 ### mnemosyne Configuration
 
