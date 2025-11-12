@@ -8,13 +8,14 @@ import (
 
 // StreamingAnalyzer performs streaming semantic analysis.
 type StreamingAnalyzer struct {
-	mu         sync.RWMutex
-	tokenizer  Tokenizer
-	extractor  EntityExtractor
-	analysis   *Analysis
-	running    bool
-	cancel     context.CancelFunc
-	updateChan chan AnalysisUpdate
+	mu            sync.RWMutex
+	tokenizer     Tokenizer
+	extractor     EntityExtractor
+	analysis      *Analysis
+	running       bool
+	cancel        context.CancelFunc
+	updateChan    chan AnalysisUpdate
+	channelClosed *sync.Once
 }
 
 // NewAnalyzer creates a new streaming analyzer with the default pattern-based extractor.
@@ -46,6 +47,7 @@ func (a *StreamingAnalyzer) Analyze(content string) <-chan AnalysisUpdate {
 	// Create new context and channel
 	ctx, cancel := context.WithCancel(context.Background())
 	a.cancel = cancel
+	a.channelClosed = &sync.Once{} // Reset for each new analysis
 	a.updateChan = make(chan AnalysisUpdate, 10)
 	a.running = true
 
@@ -108,8 +110,13 @@ func (a *StreamingAnalyzer) performAnalysis(ctx context.Context, content string)
 		a.mu.Lock()
 		a.running = false
 		a.analysis.Duration = time.Since(startTime)
+		closedOnce := a.channelClosed
 		a.mu.Unlock()
-		close(updateChan)
+
+		// Ensure channel is closed only once, even if called concurrently
+		closedOnce.Do(func() {
+			close(updateChan)
+		})
 	}()
 
 	// Step 1: Tokenization (10% of progress)

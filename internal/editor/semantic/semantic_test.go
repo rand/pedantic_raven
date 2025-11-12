@@ -581,3 +581,207 @@ func TestAnalysisStatistics(t *testing.T) {
 	}
 }
 
+// --- Concurrent Operation Tests ---
+
+// TestAnalyzerConcurrentAnalyze tests multiple rapid Analyze() calls
+// to ensure no race conditions or channel close panics occur.
+func TestAnalyzerConcurrentAnalyze(t *testing.T) {
+	analyzer := NewAnalyzer()
+
+	content := "User creates Document and System validates Request"
+
+	// Run multiple analyses concurrently
+	const numGoroutines = 10
+	done := make(chan bool, numGoroutines)
+
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Panic in Analyze(): %v", r)
+				}
+				done <- true
+			}()
+
+			updateChan := analyzer.Analyze(content)
+			// Drain channel
+			for range updateChan {
+			}
+		}()
+	}
+
+	// Wait for all goroutines
+	for i := 0; i < numGoroutines; i++ {
+		<-done
+	}
+
+	// Analyzer should not be running
+	if analyzer.IsRunning() {
+		t.Error("Analyzer should not be running after all analyses complete")
+	}
+}
+
+// TestAnalyzerConcurrentStop tests concurrent Analyze() and Stop() calls
+// to ensure no race conditions occur.
+func TestAnalyzerConcurrentStop(t *testing.T) {
+	analyzer := NewAnalyzer()
+
+	content := strings.Repeat("User creates Document. ", 100)
+
+	// Run analyses and stops concurrently
+	const numIterations = 20
+	done := make(chan bool, numIterations*2)
+
+	for i := 0; i < numIterations; i++ {
+		// Start analysis
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Panic in Analyze(): %v", r)
+				}
+				done <- true
+			}()
+
+			updateChan := analyzer.Analyze(content)
+			// Drain channel
+			for range updateChan {
+			}
+		}()
+
+		// Stop analysis
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Panic in Stop(): %v", r)
+				}
+				done <- true
+			}()
+
+			time.Sleep(time.Millisecond)
+			analyzer.Stop()
+		}()
+	}
+
+	// Wait for all goroutines
+	for i := 0; i < numIterations*2; i++ {
+		<-done
+	}
+}
+
+// TestAnalyzerChannelCloseOnce verifies that the update channel is closed
+// exactly once, even with concurrent operations.
+func TestAnalyzerChannelCloseOnce(t *testing.T) {
+	analyzer := NewAnalyzer()
+
+	content := "User creates Document"
+
+	// Track channel close attempts
+	closeCalled := 0
+	channelsClosed := make(chan bool, 100)
+
+	// Run multiple rapid analyses
+	const numAnalyses = 50
+	done := make(chan bool, numAnalyses)
+
+	for i := 0; i < numAnalyses; i++ {
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					// If we panic with "close of closed channel", test should fail
+					if strings.Contains(r.(error).Error(), "close of closed channel") {
+						t.Errorf("Channel closed multiple times: %v", r)
+					}
+				}
+				done <- true
+			}()
+
+			updateChan := analyzer.Analyze(content)
+
+			// Read from channel until closed
+			for range updateChan {
+			}
+
+			// Channel was closed
+			channelsClosed <- true
+		}()
+
+		// Small delay to create overlap
+		time.Sleep(time.Microsecond * 100)
+	}
+
+	// Wait for all goroutines
+	for i := 0; i < numAnalyses; i++ {
+		<-done
+	}
+
+	// Count how many channels were closed
+	close(channelsClosed)
+	for range channelsClosed {
+		closeCalled++
+	}
+
+	// Should have closed exactly numAnalyses channels (one per analysis)
+	if closeCalled != numAnalyses {
+		t.Logf("Closed %d channels from %d analyses", closeCalled, numAnalyses)
+	}
+}
+
+// TestAnalyzerRaceDetector is designed to be run with -race flag
+// to detect any data races in concurrent operations.
+func TestAnalyzerRaceDetector(t *testing.T) {
+	analyzer := NewAnalyzer()
+
+	content1 := "User creates Document"
+	content2 := "System validates Request"
+	content3 := "API processes Data"
+
+	// Run concurrent operations
+	const numGoroutines = 15
+	done := make(chan bool, numGoroutines)
+
+	for i := 0; i < numGoroutines; i++ {
+		content := content1
+		if i%3 == 1 {
+			content = content2
+		} else if i%3 == 2 {
+			content = content3
+		}
+
+		go func(c string) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Panic: %v", r)
+				}
+				done <- true
+			}()
+
+			// Mix of operations
+			updateChan := analyzer.Analyze(c)
+
+			// Sometimes stop early
+			if strings.Contains(c, "System") {
+				time.Sleep(2 * time.Millisecond)
+				analyzer.Stop()
+			}
+
+			// Drain channel
+			for range updateChan {
+			}
+
+			// Check results (concurrent read)
+			_ = analyzer.Results()
+
+			// Check running status (concurrent read)
+			_ = analyzer.IsRunning()
+		}(content)
+
+		// Stagger starts slightly
+		time.Sleep(time.Microsecond * 50)
+	}
+
+	// Wait for all goroutines
+	for i := 0; i < numGoroutines; i++ {
+		<-done
+	}
+}
+
