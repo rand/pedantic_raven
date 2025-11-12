@@ -648,6 +648,10 @@ func TestAnalyzerConcurrentAnalyze(t *testing.T) {
 // TestAnalyzerConcurrentStop tests concurrent Analyze() and Stop() calls
 // to ensure no race conditions occur.
 func TestAnalyzerConcurrentStop(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow concurrent stop test in short mode")
+	}
+
 	analyzer := NewAnalyzer()
 
 	content := strings.Repeat("User creates Document. ", 100)
@@ -686,9 +690,15 @@ func TestAnalyzerConcurrentStop(t *testing.T) {
 		}()
 	}
 
-	// Wait for all goroutines
+	// Wait for all goroutines with timeout
+	timeout := time.After(5 * time.Second)
 	for i := 0; i < numIterations*2; i++ {
-		<-done
+		select {
+		case <-done:
+			// Success
+		case <-timeout:
+			t.Fatalf("Test timed out waiting for concurrent analyses and stops to complete (received %d/%d)", i, numIterations*2)
+		}
 	}
 }
 
