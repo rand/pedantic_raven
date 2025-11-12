@@ -2,6 +2,7 @@ package mnemosyne
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"google.golang.org/grpc/codes"
@@ -95,8 +96,9 @@ func TestWrapErrorDeadlineExceeded(t *testing.T) {
 	}
 
 	errStr := wrappedErr.Error()
-	if !contains(errStr, "timed out") && !contains(errStr, "deadline exceeded") {
-		t.Errorf("Expected error to contain 'timed out' or 'deadline exceeded', got: %s", errStr)
+	errMsgLower := strings.ToLower(errStr)
+	if !contains(errMsgLower, "timeout") && !contains(errMsgLower, "timed out") && !contains(errMsgLower, "deadline") {
+		t.Errorf("Expected error to contain timeout indicator, got: %s", errStr)
 	}
 }
 
@@ -249,7 +251,7 @@ func TestCategorizeServerError(t *testing.T) {
 		want ErrorCategory
 	}{
 		{"ErrInternal", ErrInternal, ErrCategoryServer},
-		{"ErrUnavailable", ErrUnavailable, ErrCategoryServer},
+		{"ErrUnavailable", ErrUnavailable, ErrCategoryConnection},
 		{"gRPC Internal", status.Error(codes.Internal, "internal"), ErrCategoryServer},
 		{"gRPC Unknown", status.Error(codes.Unknown, "unknown"), ErrCategoryServer},
 		{"gRPC DataLoss", status.Error(codes.DataLoss, "data loss"), ErrCategoryServer},

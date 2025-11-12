@@ -2,7 +2,9 @@ package editor
 
 import (
 	"context"
+	"net/http"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -10,6 +12,35 @@ import (
 	"github.com/rand/pedantic-raven/internal/editor/semantic"
 	"github.com/rand/pedantic-raven/internal/gliner"
 )
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+func isDockerAvailable(t *testing.T) bool {
+	// Check Docker command
+	cmd := exec.Command("docker", "info")
+	if err := cmd.Run(); err != nil {
+		t.Logf("Docker not available: %v", err)
+		return false
+	}
+
+	// Check GLiNER service health
+	client := &http.Client{Timeout: 2 * time.Second}
+	resp, err := client.Get("http://localhost:8001/health")
+	if err != nil {
+		t.Logf("GLiNER service not responding: %v", err)
+		return false
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Logf("GLiNER service unhealthy: status %d", resp.StatusCode)
+		return false
+	}
+
+	return true
+}
 
 // =============================================================================
 // Category A: Service Lifecycle Tests (3 tests)
@@ -57,6 +88,10 @@ func TestGLiNERE2E_A2_DockerServiceLifecycle(t *testing.T) {
 
 	if os.Getenv("GLINER_E2E_SKIP_DOCKER") != "" {
 		t.Skip("GLINER_E2E_SKIP_DOCKER is set")
+	}
+
+	if !isDockerAvailable(t) {
+		t.Skip("Skipping: Docker not available or GLiNER service unhealthy")
 	}
 
 	service := StartGLiNERService(t, ServiceDocker)
