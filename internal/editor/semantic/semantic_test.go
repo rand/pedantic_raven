@@ -767,6 +767,10 @@ func TestAnalyzerChannelCloseOnce(t *testing.T) {
 // TestAnalyzerRaceDetector is designed to be run with -race flag
 // to detect any data races in concurrent operations.
 func TestAnalyzerRaceDetector(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow race detector test in short mode")
+	}
+
 	analyzer := NewAnalyzer()
 
 	content1 := "User creates Document"
