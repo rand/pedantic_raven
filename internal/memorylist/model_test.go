@@ -770,19 +770,20 @@ func TestRelevanceScoringExactMatch(t *testing.T) {
 	m.searchQuery = "authentication"
 	m.applySorting()
 
-	// First result should be "Authentication system" (exact match in content)
-	if m.filteredMems[0].Id != "1" {
-		t.Errorf("Expected first memory to be ID '1' (exact match), got '%s'", m.filteredMems[0].Id)
+	// Both "1" and "3" have exact matches, but "3" has higher importance (6 vs 5)
+	// so it should be first
+	if m.filteredMems[0].Id != "3" {
+		t.Errorf("Expected first memory to be ID '3' (exact match + higher importance), got '%s'", m.filteredMems[0].Id)
 	}
 
-	// Second should be "Authentication middleware"
-	if m.filteredMems[1].Id != "3" {
-		t.Errorf("Expected second memory to be ID '3' (also exact match), got '%s'", m.filteredMems[1].Id)
+	// Second should be "Authentication system" (exact match but lower importance)
+	if m.filteredMems[1].Id != "1" {
+		t.Errorf("Expected second memory to be ID '1' (exact match + lower importance), got '%s'", m.filteredMems[1].Id)
 	}
 
-	// Last should be "Database schema design"
+	// Last should be "Database schema design" (no match despite higher importance)
 	if m.filteredMems[2].Id != "2" {
-		t.Errorf("Expected last memory to be ID '2' (no match), got '%s'", m.filteredMems[2].Id)
+		t.Errorf("Expected last memory to be ID '2' (no content match), got '%s'", m.filteredMems[2].Id)
 	}
 }
 

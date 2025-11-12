@@ -139,8 +139,7 @@ func selectRootMemory(memories []*pb.MemoryNote) *pb.MemoryNote {
 		score += float64(mem.Importance) * 2.0
 
 		// Link count (more links = more central)
-		score += float64(len(mem.OutgoingLinks)) * 1.5
-		score += float64(len(mem.IncomingLinks)) * 1.0
+		score += float64(len(mem.Links)) * 1.5
 
 		// Recency (newer = more relevant)
 		updatedAt := time.Unix(int64(mem.UpdatedAt), 0)

@@ -480,8 +480,8 @@ func (s *RelevanceScorer) Score(memory *pb.MemoryNote) float64 {
 	return score
 }
 
-// SortByRelevance sorts memories by relevance to a query.
-func SortByRelevance(memories []*pb.MemoryNote, query string) []*pb.MemoryNote {
+// SortMemoriesByRelevance sorts memories by relevance to a query (non-mutating).
+func SortMemoriesByRelevance(memories []*pb.MemoryNote, query string) []*pb.MemoryNote {
 	scorer := &RelevanceScorer{query: query}
 
 	sort.Slice(memories, func(i, j int) bool {

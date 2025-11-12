@@ -1111,18 +1111,16 @@ func TestExploreModeEdgeCases(t *testing.T) {
 // --- Root Memory Selection Tests ---
 
 // Helper function to create test memories
-func createTestMemoryForRoot(id string, importance uint32, outgoingLinks, incomingLinks int, updatedSecondsAgo int64) *pb.MemoryNote {
+func createTestMemoryForRoot(id string, importance uint32, linkCount int, updatedSecondsAgo int64) *pb.MemoryNote {
 	now := time.Now()
 	return &pb.MemoryNote{
-		Id:          id,
-		Content:     "Test memory: " + id,
-		Importance:  importance,
-		Tags:        []string{},
-		CreatedAt:   uint64(now.Add(-24 * time.Hour).Unix()),
-		UpdatedAt:   uint64(now.Add(-time.Duration(updatedSecondsAgo) * time.Second).Unix()),
-		OutgoingLinks: make([]*pb.MemoryLink, outgoingLinks),
-		IncomingLinks: make([]*pb.MemoryLink, incomingLinks),
-		Links:       []*pb.MemoryLink{},
+		Id:        id,
+		Content:   "Test memory: " + id,
+		Importance: importance,
+		Tags:      []string{},
+		CreatedAt: uint64(now.Add(-24 * time.Hour).Unix()),
+		UpdatedAt: uint64(now.Add(-time.Duration(updatedSecondsAgo) * time.Second).Unix()),
+		Links:     make([]*pb.MemoryLink, linkCount),
 		Namespace: &pb.Namespace{
 			Namespace: &pb.Namespace_Global{
 				Global: &pb.GlobalNamespace{},
@@ -1133,9 +1131,9 @@ func createTestMemoryForRoot(id string, importance uint32, outgoingLinks, incomi
 
 func TestRootSelectionByImportance(t *testing.T) {
 	memories := []*pb.MemoryNote{
-		createTestMemoryForRoot("low-importance", 2, 0, 0, 3600),
-		createTestMemoryForRoot("high-importance", 9, 0, 0, 3600),
-		createTestMemoryForRoot("medium-importance", 5, 0, 0, 3600),
+		createTestMemoryForRoot("low-importance", 2, 0, 3600),
+		createTestMemoryForRoot("high-importance", 9, 0, 3600),
+		createTestMemoryForRoot("medium-importance", 5, 0, 3600),
 	}
 
 	root := selectRootMemory(memories)
@@ -1155,9 +1153,9 @@ func TestRootSelectionByImportance(t *testing.T) {
 
 func TestRootSelectionByLinks(t *testing.T) {
 	memories := []*pb.MemoryNote{
-		createTestMemoryForRoot("few-links", 5, 1, 2, 3600),
-		createTestMemoryForRoot("many-links", 5, 5, 3, 3600), // Should be selected
-		createTestMemoryForRoot("some-links", 5, 2, 1, 3600),
+		createTestMemoryForRoot("few-links", 5, 3, 3600),      // 3 links
+		createTestMemoryForRoot("many-links", 5, 8, 3600),     // Should be selected (8 links)
+		createTestMemoryForRoot("some-links", 5, 3, 3600),     // 3 links
 	}
 
 	root := selectRootMemory(memories)
@@ -1173,9 +1171,9 @@ func TestRootSelectionByLinks(t *testing.T) {
 
 func TestRootSelectionByRecency(t *testing.T) {
 	memories := []*pb.MemoryNote{
-		createTestMemoryForRoot("old-memory", 5, 0, 0, 86400),      // Updated 1 day ago
-		createTestMemoryForRoot("recent-memory", 5, 0, 0, 3600),    // Updated 1 hour ago (most recent)
-		createTestMemoryForRoot("medium-memory", 5, 0, 0, 43200),   // Updated 12 hours ago
+		createTestMemoryForRoot("old-memory", 5, 0, 86400),      // Updated 1 day ago
+		createTestMemoryForRoot("recent-memory", 5, 0, 3600),    // Updated 1 hour ago (most recent)
+		createTestMemoryForRoot("medium-memory", 5, 0, 43200),   // Updated 12 hours ago
 	}
 
 	root := selectRootMemory(memories)
