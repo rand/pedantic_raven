@@ -229,7 +229,9 @@ func TestModeRegistryBoundaryConditions(t *testing.T) {
 
 	// 1. Switch to non-existent mode (should be no-op)
 	cmd := registry.SwitchTo(modes.ModeID("nonexistent"))
-	AssertEqual(t, nil, cmd, "switching to non-existent mode should return nil")
+	if cmd != nil {
+		t.Fatalf("switching to non-existent mode should return nil, got %v", cmd)
+	}
 
 	// 2. Current mode should be unchanged
 	currentID := registry.CurrentID()
@@ -237,7 +239,9 @@ func TestModeRegistryBoundaryConditions(t *testing.T) {
 
 	// 3. Switch to current mode (should be no-op)
 	cmd = registry.SwitchTo(modes.ModeEdit)
-	AssertEqual(t, nil, cmd, "switching to current mode should return nil")
+	if cmd != nil {
+		t.Fatalf("switching to current mode should return nil, got %v", cmd)
+	}
 
 	// 4. Previous should not change
 	prevID := registry.PreviousID()

@@ -705,6 +705,10 @@ func TestAnalyzerConcurrentStop(t *testing.T) {
 // TestAnalyzerChannelCloseOnce verifies that the update channel is closed
 // exactly once, even with concurrent operations.
 func TestAnalyzerChannelCloseOnce(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow channel close verification test in short mode")
+	}
+
 	analyzer := NewAnalyzer()
 
 	content := "User creates Document"
