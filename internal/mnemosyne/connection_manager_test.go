@@ -1,6 +1,9 @@
 package mnemosyne
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -612,4 +615,279 @@ func TestConnectionManagerConcurrentOfflineModeOperations(t *testing.T) {
 	if !cm.IsOffline() {
 		t.Error("expected offline mode to be active")
 	}
+}
+
+// --- New Test Coverage Improvement Tests ---
+
+// TestConnectionManagerConcurrentConnectAcquire tests concurrent connection acquisition.
+func TestConnectionManagerConcurrentConnectAcquire(t *testing.T) {
+	server, err := newTestServer()
+	if err != nil {
+		t.Fatalf("Failed to start test server: %v", err)
+	}
+	defer server.Stop()
+
+	config := &ConnectionConfig{
+		Host:        "127.0.0.1",
+		Port:        extractPort(server.address),
+		Timeout:     5 * time.Second,
+		RetryPolicy: DefaultRetryPolicy(),
+	}
+
+	cm, err := NewConnectionManager(config)
+	if err != nil {
+		t.Fatalf("Failed to create connection manager: %v", err)
+	}
+	defer cm.Disconnect()
+
+	err = cm.Connect()
+	if err != nil {
+		t.Fatalf("Connect failed: %v", err)
+	}
+
+	// Multiple goroutines acquiring client concurrently
+	const numGoroutines = 20
+	var wg sync.WaitGroup
+	errors := make(chan error, numGoroutines)
+
+	for i := 0; i < numGoroutines; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+
+			client := cm.Client()
+			if client == nil {
+				errors <- fmt.Errorf("goroutine %d: got nil client", id)
+				return
+			}
+
+			// All should get the same client instance
+			if !client.IsConnected() {
+				errors <- fmt.Errorf("goroutine %d: client not connected", id)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	close(errors)
+
+	for err := range errors {
+		t.Error(err)
+	}
+}
+
+// TestConnectionManagerHealthCheckRemovesBadConnection tests health check failure handling.
+func TestConnectionManagerHealthCheckRemovesBadConnection(t *testing.T) {
+	server, err := newTestServer()
+	if err != nil {
+		t.Fatalf("Failed to start test server: %v", err)
+	}
+
+	config := &ConnectionConfig{
+		Host:        "127.0.0.1",
+		Port:        extractPort(server.address),
+		Timeout:     2 * time.Second,
+		RetryPolicy: DefaultRetryPolicy(),
+	}
+
+	cm, err := NewConnectionManager(config)
+	if err != nil {
+		t.Fatalf("Failed to create connection manager: %v", err)
+	}
+	defer cm.Disconnect()
+
+	err = cm.Connect()
+	if err != nil {
+		t.Fatalf("Connect failed: %v", err)
+	}
+
+	// Verify initial health check passes
+	err = cm.HealthCheck()
+	if err != nil {
+		t.Fatalf("Initial health check failed: %v", err)
+	}
+
+	// Make the health server unhealthy
+	server.health.mu.Lock()
+	server.health.healthy = false
+	server.health.mu.Unlock()
+
+	// Health check should fail and trigger offline mode
+	err = cm.HealthCheck()
+	if err == nil {
+		t.Error("Expected health check to fail with unhealthy server")
+	}
+
+	// Should enter offline mode
+	time.Sleep(100 * time.Millisecond)
+	if !cm.IsOffline() {
+		t.Error("Expected connection manager to enter offline mode after health check failure")
+	}
+}
+
+// TestConnectionManagerGracefulShutdown tests proper shutdown with active operations.
+func TestConnectionManagerGracefulShutdown(t *testing.T) {
+	server, err := newTestServer()
+	if err != nil {
+		t.Fatalf("Failed to start test server: %v", err)
+	}
+	defer server.Stop()
+
+	config := &ConnectionConfig{
+		Host:        "127.0.0.1",
+		Port:        extractPort(server.address),
+		Timeout:     5 * time.Second,
+		RetryPolicy: DefaultRetryPolicy(),
+	}
+
+	cm, err := NewConnectionManager(config)
+	if err != nil {
+		t.Fatalf("Failed to create connection manager: %v", err)
+	}
+
+	err = cm.Connect()
+	if err != nil {
+		t.Fatalf("Connect failed: %v", err)
+	}
+
+	// Verify connection is active
+	if cm.Status() != StatusConnected {
+		t.Fatalf("Expected connected status, got %s", cm.Status())
+	}
+
+	// Start some background operations
+	var wg sync.WaitGroup
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			time.Sleep(100 * time.Millisecond)
+			_ = cm.Client()
+		}()
+	}
+
+	// Give operations time to start
+	time.Sleep(50 * time.Millisecond)
+
+	// Disconnect should be graceful
+	err = cm.Disconnect()
+	if err != nil {
+		t.Errorf("Disconnect failed: %v", err)
+	}
+
+	// Wait for background operations
+	wg.Wait()
+
+	// Verify disconnected
+	if cm.Status() != StatusDisconnected {
+		t.Errorf("Expected disconnected status after shutdown, got %s", cm.Status())
+	}
+
+	// Verify health check is stopped
+	cm.mu.RLock()
+	hasHealthCheck := cm.healthCheck != nil
+	cm.mu.RUnlock()
+
+	if hasHealthCheck {
+		t.Error("Expected health check ticker to be stopped after disconnect")
+	}
+}
+
+// TestConnectionManagerConnectionReuse tests that connections are properly reused.
+func TestConnectionManagerConnectionReuse(t *testing.T) {
+	server, err := newTestServer()
+	if err != nil {
+		t.Fatalf("Failed to start test server: %v", err)
+	}
+	defer server.Stop()
+
+	config := &ConnectionConfig{
+		Host:        "127.0.0.1",
+		Port:        extractPort(server.address),
+		Timeout:     5 * time.Second,
+		RetryPolicy: DefaultRetryPolicy(),
+	}
+
+	cm, err := NewConnectionManager(config)
+	if err != nil {
+		t.Fatalf("Failed to create connection manager: %v", err)
+	}
+	defer cm.Disconnect()
+
+	err = cm.Connect()
+	if err != nil {
+		t.Fatalf("Connect failed: %v", err)
+	}
+
+	// Get client multiple times
+	client1 := cm.Client()
+	client2 := cm.Client()
+	client3 := cm.Client()
+
+	// All should be the same instance (connection reuse)
+	if client1 != client2 {
+		t.Error("Expected same client instance (connection reuse)")
+	}
+
+	if client2 != client3 {
+		t.Error("Expected same client instance (connection reuse)")
+	}
+
+	// Verify all are connected
+	if !client1.IsConnected() || !client2.IsConnected() || !client3.IsConnected() {
+		t.Error("Expected all clients to be connected")
+	}
+}
+
+// TestConnectionManagerConnectionExhaustion tests behavior when connection fails repeatedly.
+func TestConnectionManagerConnectionExhaustion(t *testing.T) {
+	// Use invalid address that will always fail
+	config := &ConnectionConfig{
+		Host:    "192.0.2.1", // TEST-NET-1 (black hole)
+		Port:    12345,
+		Timeout: 500 * time.Millisecond,
+		RetryPolicy: RetryPolicy{
+			MaxAttempts:    2,
+			InitialBackoff: 50 * time.Millisecond,
+			MaxBackoff:     100 * time.Millisecond,
+		},
+	}
+
+	cm, err := NewConnectionManager(config)
+	if err != nil {
+		t.Fatalf("Failed to create connection manager: %v", err)
+	}
+
+	// Connection should fail
+	err = cm.Connect()
+	if err == nil {
+		t.Fatal("Expected connection to fail")
+	}
+
+	// Should be in failed or offline state
+	status := cm.Status()
+	if status != StatusFailed && !cm.IsOffline() {
+		t.Errorf("Expected failed status or offline mode, got status=%s, offline=%v", status, cm.IsOffline())
+	}
+
+	// Client should be nil
+	client := cm.Client()
+	if client != nil {
+		t.Error("Expected nil client after connection exhaustion")
+	}
+
+	// Verify offline mode is active
+	if !cm.IsOffline() {
+		t.Error("Expected offline mode after connection failure")
+	}
+}
+
+// Helper function to extract port from address
+func extractPort(addr string) int {
+	parts := strings.Split(addr, ":")
+	if len(parts) != 2 {
+		return 0
+	}
+	port, _ := strconv.Atoi(parts[1])
+	return port
 }
