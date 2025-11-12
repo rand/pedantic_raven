@@ -72,8 +72,8 @@ func (m *mockMemoryServer) StoreMemory(ctx context.Context, req *pb.StoreMemoryR
 		Namespace:  req.Namespace,
 		Importance: importance,
 		Tags:       req.Tags,
-		CreatedAt:  time.Now().Unix(),
-		UpdatedAt:  time.Now().Unix(),
+		CreatedAt:  uint64(time.Now().Unix()),
+		UpdatedAt:  uint64(time.Now().Unix()),
 	}
 
 	m.memories[memoryID] = memory
@@ -123,7 +123,7 @@ func (m *mockMemoryServer) UpdateMemory(ctx context.Context, req *pb.UpdateMemor
 	if len(req.AddTags) > 0 {
 		memory.Tags = append(memory.Tags, req.AddTags...)
 	}
-	memory.UpdatedAt = time.Now().Unix()
+	memory.UpdatedAt = uint64(time.Now().Unix())
 
 	return &pb.UpdateMemoryResponse{Memory: memory}, nil
 }
@@ -217,13 +217,16 @@ func (m *mockMemoryServer) Recall(ctx context.Context, req *pb.RecallRequest) (*
 			continue
 		}
 
-		// Create search result with mock score
+		// Create search result with mock scores
+		semanticScore := float32(0.9)
+		ftsScore := float32(0.8)
+		graphScore := float32(0.7)
 		result := &pb.SearchResult{
-			Memory:         memory,
-			RelevanceScore: 0.85,
-			SemanticScore:  0.9,
-			FtsScore:       0.8,
-			GraphScore:     0.7,
+			Memory:        memory,
+			Score:         0.85,
+			SemanticScore: &semanticScore,
+			FtsScore:      &ftsScore,
+			GraphScore:    &graphScore,
 		}
 		results = append(results, result)
 	}
@@ -255,10 +258,11 @@ func (m *mockMemoryServer) SemanticSearch(ctx context.Context, req *pb.SemanticS
 			continue
 		}
 
+		semanticScore := float32(0.95)
 		result := &pb.SearchResult{
-			Memory:         memory,
-			RelevanceScore: 0.9,
-			SemanticScore:  0.95,
+			Memory:        memory,
+			Score:         0.9,
+			SemanticScore: &semanticScore,
 		}
 		results = append(results, result)
 	}
@@ -345,7 +349,8 @@ func (m *mockHealthServer) HealthCheck(ctx context.Context, req *pb.HealthCheckR
 	}
 
 	return &pb.HealthCheckResponse{
-		Status: pb.HealthStatus_SERVING,
+		Healthy: true,
+		Version: "1.0.0-test",
 	}, nil
 }
 
@@ -358,9 +363,9 @@ func (m *mockHealthServer) GetStats(ctx context.Context, req *pb.GetStatsRequest
 	}
 
 	stats := &pb.Stats{
-		TotalMemories:  100,
-		TotalNamespaces: 5,
-		DatabaseSizeMb: 50.5,
+		TotalMemories:   100,
+		TotalLinks:      50,
+		NamespacesCount: 5,
 	}
 
 	return &pb.GetStatsResponse{Stats: stats}, nil

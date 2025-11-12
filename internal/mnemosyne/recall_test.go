@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"testing"
 	"time"
-
-	pb "github.com/rand/pedantic-raven/internal/mnemosyne/pb/mnemosyne/v1"
 )
 
 // TestRecallWithNamespace tests namespace filtering in recall operations.

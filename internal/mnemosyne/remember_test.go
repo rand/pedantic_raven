@@ -85,7 +85,7 @@ func TestRememberValidation(t *testing.T) {
 
 	// Test 5: Valid with all options (should succeed)
 	importance := uint32(8)
-	memoryType := pb.MemoryType_INSIGHT
+	memoryType := pb.MemoryType_MEMORY_TYPE_INSIGHT
 	memory2, err := client.StoreMemory(ctx, StoreMemoryOptions{
 		Content:           "fully specified memory",
 		Namespace:         ProjectNamespace("test-project"),

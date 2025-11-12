@@ -659,8 +659,9 @@ func TestClientContextCancellation(t *testing.T) {
 		t.Error("Expected StoreMemory to fail with context cancellation")
 	}
 
-	if !IsCanceled(err) && !IsDeadlineExceeded(err) {
-		t.Errorf("Expected cancellation or deadline error, got: %v", err)
+	// Check if it's a timeout/deadline error
+	if !IsTimeout(err) {
+		t.Errorf("Expected timeout/deadline/cancellation error, got: %v", err)
 	}
 }
 
