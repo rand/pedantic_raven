@@ -11,6 +11,10 @@ import (
 
 // TestConcurrentModeSwitching tests concurrent mode switches from multiple goroutines.
 func TestConcurrentModeSwitching(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow concurrent mode switching test in short mode")
+	}
+
 	app := NewTestApp(t)
 	defer app.Cleanup()
 
@@ -43,7 +47,19 @@ func TestConcurrentModeSwitching(t *testing.T) {
 		}(g)
 	}
 
-	wg.Wait()
+	// Wait for all goroutines with timeout
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Success
+	case <-time.After(5 * time.Second):
+		t.Fatal("Test timed out waiting for concurrent mode switches to complete")
+	}
 
 	// After concurrent operations, verify app is still functioning
 	content := app.Editor().GetContent()

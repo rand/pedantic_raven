@@ -491,6 +491,10 @@ func TestAnalyzerProgressUpdates(t *testing.T) {
 }
 
 func TestAnalyzerConcurrentAnalysis(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow concurrent analysis test in short mode")
+	}
+
 	analyzer := NewAnalyzer()
 
 	content1 := "User creates Document"
@@ -503,15 +507,25 @@ func TestAnalyzerConcurrentAnalysis(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 	chan2 := analyzer.Analyze(content2)
 
-	// Drain both channels
+	// Drain both channels with timeout
+	done := make(chan struct{})
 	go func() {
 		for range chan1 {
 		}
 	}()
 
-	updates := []AnalysisUpdate{}
-	for update := range chan2 {
-		updates = append(updates, update)
+	go func() {
+		defer close(done)
+		for range chan2 {
+		}
+	}()
+
+	// Wait for completion with timeout
+	select {
+	case <-done:
+		// Success
+	case <-time.After(5 * time.Second):
+		t.Fatal("Test timed out waiting for analysis to complete")
 	}
 
 	// Should have completed second analysis
