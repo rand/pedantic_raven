@@ -240,6 +240,11 @@ func (m *mockMemoryServer) Recall(ctx context.Context, req *pb.RecallRequest) (*
 		results = results[:maxResults]
 	}
 
+	// Ensure non-nil slice
+	if results == nil {
+		results = []*pb.SearchResult{}
+	}
+
 	return &pb.RecallResponse{Results: results}, nil
 }
 
