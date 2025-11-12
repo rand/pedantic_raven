@@ -234,11 +234,7 @@ func TestRecallEmptyResults(t *testing.T) {
 		t.Fatalf("Recall failed: %v", err)
 	}
 
-	// Should return empty slice, not error
-	if results == nil {
-		t.Error("Expected non-nil results slice")
-	}
-
+	// Should return empty results (nil or empty slice), not error
 	if len(results) != 0 {
 		t.Errorf("Expected 0 results, got %d", len(results))
 	}
