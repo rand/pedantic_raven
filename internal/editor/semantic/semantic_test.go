@@ -600,6 +600,10 @@ func TestAnalysisStatistics(t *testing.T) {
 // TestAnalyzerConcurrentAnalyze tests multiple rapid Analyze() calls
 // to ensure no race conditions or channel close panics occur.
 func TestAnalyzerConcurrentAnalyze(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow concurrent analyze test in short mode")
+	}
+
 	analyzer := NewAnalyzer()
 
 	content := "User creates Document and System validates Request"
@@ -624,9 +628,15 @@ func TestAnalyzerConcurrentAnalyze(t *testing.T) {
 		}()
 	}
 
-	// Wait for all goroutines
+	// Wait for all goroutines with timeout
+	timeout := time.After(5 * time.Second)
 	for i := 0; i < numGoroutines; i++ {
-		<-done
+		select {
+		case <-done:
+			// Success
+		case <-timeout:
+			t.Fatal("Test timed out waiting for concurrent analyses to complete")
+		}
 	}
 
 	// Analyzer should not be running

@@ -187,6 +187,10 @@ func TestConcurrentAnalysisCalls(t *testing.T) {
 
 // TestRaceConditionModeSwitchAndAnalysis tests race condition between mode switching and analysis.
 func TestRaceConditionModeSwitchAndAnalysis(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping slow race condition test in short mode")
+	}
+
 	app := NewTestApp(t)
 	defer app.Cleanup()
 
@@ -233,7 +237,19 @@ func TestRaceConditionModeSwitchAndAnalysis(t *testing.T) {
 		}
 	}()
 
-	wg.Wait()
+	// Wait for all goroutines with timeout
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// Success
+	case <-time.After(5 * time.Second):
+		t.Fatal("Test timed out waiting for race condition test to complete")
+	}
 
 	// App should still be responsive
 	content := app.Editor().GetContent()
